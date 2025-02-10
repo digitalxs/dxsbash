@@ -223,4 +223,5 @@ apacheconfig - edit apache configuration
 phpconfig - edit php configuration file (ERROR)
 mysqlconfig - edit MySQL configuration
 trim - Trim leading and trailing spaces (for scripts)
-# dxsbash
+
+### dxsbash - DigitalXS - Programming and Development (2025) by Luis Miguel P. Freitas
