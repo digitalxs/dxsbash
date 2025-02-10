@@ -4,7 +4,7 @@ iatest=$(expr index "$-" i)
 #######################################################################
 # SOURCED ALIAS'S AND SCRIPTS BY Luis Freitas and others (2025)
 # Get List of commands at README
-# Version 1.0.0
+# Version 1.0.1
 # Start updating .bashrc:
 # nano .bashrc
 # paste this bash script and save
