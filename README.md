@@ -224,4 +224,13 @@ phpconfig - edit php configuration file (ERROR)
 mysqlconfig - edit MySQL configuration
 trim - Trim leading and trailing spaces (for scripts)
 
+### Uninstall and Reset Bash to Defaults
+
+Use the script at:
+
+https://github.com/digitalxs/BashProfileReset
+
+
+
+
 ### dxsbash - DigitalXS - Programming and Development (2025) by Luis Miguel P. Freitas
