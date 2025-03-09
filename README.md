@@ -1,4 +1,4 @@
-# dxsbash
+# dxsbash for Debian 12
 ## bash unleashed. for pros. 
 
 * [Documentation](https://github.com/digitalxs/dxsbash/wiki/)
