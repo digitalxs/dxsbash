@@ -273,6 +273,11 @@ linkConfig() {
         echo "${RED}Failed to create symbolic link for .bashrc${RC}"
         exit 1
     }
+    # link .bashrc_help
+    ln -svf "$GITPATH/.bashrc_help" "$USER_HOME/.bashrc_help" || {
+        echo "${RED}Failed to create symbolic link for .bashrc_help${RC}"
+        exit 1
+    }
     ln -svf "$GITPATH/starship.toml" "$USER_HOME/.config/starship.toml" || {
         echo "${RED}Failed to create symbolic link for starship.toml${RC}"
         exit 1
