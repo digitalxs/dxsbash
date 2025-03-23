@@ -26,6 +26,13 @@ for cmd in git curl wget; do
     fi
 done
 
+# Check network connectivity
+echo -e "${YELLOW}Checking network connectivity...${RC}"
+if ! ping -c 1 github.com &>/dev/null; then
+    echo -e "${RED}Error: Cannot connect to GitHub. Check your internet connection.${RC}"
+    exit 1
+fi
+
 # Function to get current installed version
 get_current_version() {
     if [ -f "$VERSION_FILE" ]; then
@@ -70,8 +77,11 @@ update_dxsbash() {
     echo -e "${YELLOW}Creating backup at $backup_dir${RC}"
     cp -r "$DXSBASH_DIR" "$backup_dir"
     
-    # Pull latest changes
+    # Check for local modifications
     cd "$DXSBASH_DIR" || exit 1
+    if [ -n "$(git status --porcelain)" ]; then
+        echo -e "${YELLOW}Local modifications detected. These will be preserved in the backup.${RC}"
+    fi
     
     # Store current branch
     local current_branch
@@ -88,9 +98,21 @@ update_dxsbash() {
         echo -e "${YELLOW}Applying updates...${RC}"
         bash "$DXSBASH_DIR/setup.sh"
         
-        # Update was successful
-        echo -e "${GREEN}Update completed successfully!${RC}"
-        return 0
+        # Verify the installation
+        echo -e "${YELLOW}Verifying installation...${RC}"
+        if [ -f "$DXSBASH_DIR/.bashrc" ]; then
+            echo -e "${GREEN}Verification passed.${RC}"
+            # Update was successful
+            echo -e "${GREEN}Update completed successfully!${RC}"
+            return 0
+        else
+            echo -e "${RED}Verification failed. Repository may be in an inconsistent state.${RC}"
+            echo -e "${YELLOW}Restoring from backup...${RC}"
+            rm -rf "$DXSBASH_DIR"
+            cp -r "$backup_dir" "$DXSBASH_DIR"
+            echo -e "${YELLOW}Restored from backup.${RC}"
+            return 1
+        fi
     else
         echo -e "${RED}Failed to update dxsbash.${RC}"
         echo -e "${YELLOW}Restoring from backup...${RC}"
@@ -110,6 +132,8 @@ main() {
         echo -e "${RED}Error: dxsbash directory not found at $DXSBASH_DIR${RC}"
         echo -e "${YELLOW}Run the installer first:${RC}"
         echo -e "git clone --depth=1 https://github.com/digitalxs/dxsbash.git"
+        echo -e "cd dxsbash"
+        echo -e "./setup.sh"
         exit 1
     fi
     
@@ -127,7 +151,15 @@ main() {
     if [ "$current_version" = "$latest_version" ]; then
         echo -e "${GREEN}You already have the latest version of dxsbash.${RC}"
     elif version_gt "$latest_version" "$current_version"; then
-        echo -e "${YELLOW}A newer version is available. Updating...${RC}"
+        echo -e "${YELLOW}A newer version is available!${RC}"
+        
+        # Ask for user confirmation
+        read -p "Do you want to proceed with the update? (y/N): " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}Update cancelled.${RC}"
+            exit 0
+        fi
+        
         if update_dxsbash; then
             echo -e "${GREEN}dxsbash has been updated to version $latest_version${RC}"
         else
