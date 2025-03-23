@@ -258,16 +258,27 @@ create_fastfetch_config() {
 linkConfig() {
     ## Get the correct user home directory.
     USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+    
     ## Check if a bashrc file is already there.
     OLD_BASHRC="$USER_HOME/.bashrc"
     if [ -e "$OLD_BASHRC" ]; then
-        echo "${YELLOW}Moving old bash config file to $USER_HOME/.bashrc.bak${RC}"
-        if ! mv "$OLD_BASHRC" "$USER_HOME/.bashrc.bak"; then
-            echo "${RED}Can't move the old bash config file!${RC}"
-            exit 1
+        BACKUP_FILE="$USER_HOME/.bashrc.bak"
+        
+        # If backup already exists, create a timestamped version
+        if [ -e "$BACKUP_FILE" ]; then
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            BACKUP_FILE="$USER_HOME/.bashrc.bak.$TIMESTAMP"
+        fi
+        
+        echo "${YELLOW}Moving old bash config file to $BACKUP_FILE${RC}"
+        
+        if ! mv "$OLD_BASHRC" "$BACKUP_FILE"; then
+            echo "${RED}Warning: Can't move the old bash config file!${RC}"
+            echo "${YELLOW}Continuing with installation anyway...${RC}"
+            # Don't exit, continue with installation
         fi
     fi
-
+    
     echo "${YELLOW}Linking new bash config file...${RC}"
     ln -svf "$GITPATH/.bashrc" "$USER_HOME/.bashrc" || {
         echo "${RED}Failed to create symbolic link for .bashrc${RC}"
