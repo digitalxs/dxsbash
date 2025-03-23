@@ -294,6 +294,16 @@ linkConfig() {
         exit 1
     }
     
+    # Add a symlink to updater.sh in the home directory
+    echo "${YELLOW}Creating updater symlink in home directory...${RC}"
+    ln -svf "$GITPATH/updater.sh" "$USER_HOME/update-dxsbash.sh" || {
+        echo "${RED}Failed to create symlink for updater in home directory${RC}"
+        echo "${YELLOW}Continuing with installation anyway...${RC}"
+        # Don't exit, continue with installation
+    }
+    # Make sure the symlink is executable
+    chmod +x "$USER_HOME/update-dxsbash.sh"
+    }
 }
 installResetScript() {
     echo "${YELLOW}Installing reset-bash-profile script...${RC}"
