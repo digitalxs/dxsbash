@@ -7,7 +7,7 @@ RED='\033[31m'
 YELLOW='\033[33m'
 GREEN='\033[32m'
 
-# Logging function
+# Logging function (silent, doesn't echo to console)
 log() {
     local level="$1"
     local message="$2"
@@ -19,14 +19,6 @@ log() {
     
     # Format the log message
     local formatted_log="[$timestamp] [$level] $message"
-    
-    # Output to console with colors if appropriate
-    case "$level" in
-        "INFO")  echo -e "${GREEN}$formatted_log${RC}" ;;
-        "WARN")  echo -e "${YELLOW}$formatted_log${RC}" ;;
-        "ERROR") echo -e "${RED}$formatted_log${RC}" ;;
-        *)       echo "$formatted_log" ;;
-    esac
     
     # Append to log file
     echo "$formatted_log" >> "$log_file"
