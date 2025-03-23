@@ -77,8 +77,13 @@ update_dxsbash() {
     echo -e "${YELLOW}Creating backup at $backup_dir${RC}"
     cp -r "$DXSBASH_DIR" "$backup_dir"
     
-    # Check for local modifications
+    # Get user home directory
+    USER_HOME="$HOME"
+    
+    # Pull latest changes
     cd "$DXSBASH_DIR" || exit 1
+    
+    # Check for local modifications
     if [ -n "$(git status --porcelain)" ]; then
         echo -e "${YELLOW}Local modifications detected. These will be preserved in the backup.${RC}"
     fi
@@ -92,27 +97,70 @@ update_dxsbash() {
     
     # Fetch latest changes
     if git pull origin main; then
-        echo -e "${GREEN}Successfully updated dxsbash!${RC}"
+        echo -e "${GREEN}Successfully updated dxsbash repository!${RC}"
         
-        # Run setup script to apply changes
-        echo -e "${YELLOW}Applying updates...${RC}"
-        bash "$DXSBASH_DIR/setup.sh"
+        # Update symlinks for key files
+        echo -e "${YELLOW}Updating symlinks for configuration files...${RC}"
         
-        # Verify the installation
-        echo -e "${YELLOW}Verifying installation...${RC}"
-        if [ -f "$DXSBASH_DIR/.bashrc" ]; then
-            echo -e "${GREEN}Verification passed.${RC}"
-            # Update was successful
-            echo -e "${GREEN}Update completed successfully!${RC}"
-            return 0
+        # Update .bashrc
+        if [ -L "$USER_HOME/.bashrc" ]; then
+            ln -svf "$DXSBASH_DIR/.bashrc" "$USER_HOME/.bashrc"
+            echo -e "${GREEN}Updated .bashrc symlink${RC}"
         else
-            echo -e "${RED}Verification failed. Repository may be in an inconsistent state.${RC}"
-            echo -e "${YELLOW}Restoring from backup...${RC}"
-            rm -rf "$DXSBASH_DIR"
-            cp -r "$backup_dir" "$DXSBASH_DIR"
-            echo -e "${YELLOW}Restored from backup.${RC}"
-            return 1
+            echo -e "${YELLOW}Your .bashrc is not a symlink. Consider running setup.sh to fully configure dxsbash.${RC}"
         fi
+        
+        # Update .bashrc_help
+        if [ -L "$USER_HOME/.bashrc_help" ]; then
+            ln -svf "$DXSBASH_DIR/.bashrc_help" "$USER_HOME/.bashrc_help"
+            echo -e "${GREEN}Updated .bashrc_help symlink${RC}"
+        fi
+        
+        # Update starship.toml
+        if [ -L "$USER_HOME/.config/starship.toml" ]; then
+            ln -svf "$DXSBASH_DIR/starship.toml" "$USER_HOME/.config/starship.toml"
+            echo -e "${GREEN}Updated starship.toml symlink${RC}"
+        fi
+        
+        # Update the updater script in home directory
+        if [ -L "$USER_HOME/update-dxsbash.sh" ]; then
+            ln -svf "$DXSBASH_DIR/updater.sh" "$USER_HOME/update-dxsbash.sh"
+            chmod +x "$USER_HOME/update-dxsbash.sh"
+            echo -e "${GREEN}Updated updater symlink in home directory${RC}"
+        fi
+        
+        # Update system-wide symlinks (requires sudo)
+        echo -e "${YELLOW}Updating system-wide commands...${RC}"
+        
+        # Define sudo command
+        local sudo_cmd="sudo"
+        if ! command -v sudo >/dev/null 2>&1; then
+            if command -v doas >/dev/null 2>&1 && [ -f "/etc/doas.conf" ]; then
+                sudo_cmd="doas"
+            else
+                sudo_cmd="su -c"
+            fi
+        fi
+        
+        # Update reset-bash-profile
+        if [ -f "$DXSBASH_DIR/reset-bash-profile.sh" ]; then
+            cp -p "$DXSBASH_DIR/reset-bash-profile.sh" "$LINUXTOOLBOXDIR/"
+            chmod +x "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
+            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-bash-profile
+            echo -e "${GREEN}Updated reset-bash-profile script${RC}"
+        fi
+        
+        # Update system-wide updater command
+        if [ -f "$DXSBASH_DIR/updater.sh" ]; then
+            cp -p "$DXSBASH_DIR/updater.sh" "$LINUXTOOLBOXDIR/"
+            chmod +x "$LINUXTOOLBOXDIR/updater.sh"
+            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs
+            echo -e "${GREEN}Updated system-wide updater command${RC}"
+        fi
+        
+        echo -e "${GREEN}Update completed successfully!${RC}"
+        echo -e "${YELLOW}To apply changes to your current session, run: source ~/.bashrc${RC}"
+        return 0
     else
         echo -e "${RED}Failed to update dxsbash.${RC}"
         echo -e "${YELLOW}Restoring from backup...${RC}"
