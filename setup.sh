@@ -340,6 +340,7 @@ install_additional_dependencies
 
 if linkConfig; then
     installResetScript
+    installUpdaterCommand
     echo "${GREEN}Done!\nrestart your shell to see the changes.${RC}"
 else
     echo "${RED}Something went wrong!${RC}"
