@@ -77,6 +77,9 @@ update_dxsbash() {
     echo -e "${YELLOW}Creating backup at $backup_dir${RC}"
     cp -r "$DXSBASH_DIR" "$backup_dir"
     
+    # Store the old version before updating
+    local old_version=$(get_current_version)
+    
     # Get user home directory
     USER_HOME="$HOME"
     
@@ -98,6 +101,10 @@ update_dxsbash() {
     # Fetch latest changes
     if git pull origin main; then
         echo -e "${GREEN}Successfully updated dxsbash repository!${RC}"
+        
+        # Get the new version after update
+        local new_version=$(get_current_version)
+        echo -e "${GREEN}Updated from version ${YELLOW}$old_version${GREEN} to ${YELLOW}$new_version${RC}"
         
         # Instead of running setup.sh, update symlinks directly
         echo -e "${YELLOW}Updating configuration files...${RC}"
