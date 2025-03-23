@@ -318,7 +318,9 @@ installUpdaterCommand() {
     
     # Copy the updater script to the linuxtoolbox directory
     if [ -f "$GITPATH/updater.sh" ]; then
-        cp "$GITPATH/updater.sh" "$LINUXTOOLBOXDIR/"
+        # Use cp -p to preserve permissions from source
+        cp -p "$GITPATH/updater.sh" "$LINUXTOOLBOXDIR/"
+        # Ensure it's executable regardless of source permissions
         chmod +x "$LINUXTOOLBOXDIR/updater.sh"
         
         # Create a symbolic link to make it available system-wide
