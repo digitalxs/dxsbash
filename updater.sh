@@ -99,38 +99,8 @@ update_dxsbash() {
     if git pull origin main; then
         echo -e "${GREEN}Successfully updated dxsbash repository!${RC}"
         
-        # Update symlinks for key files
-        echo -e "${YELLOW}Updating symlinks for configuration files...${RC}"
-        
-        # Update .bashrc
-        if [ -L "$USER_HOME/.bashrc" ]; then
-            ln -svf "$DXSBASH_DIR/.bashrc" "$USER_HOME/.bashrc"
-            echo -e "${GREEN}Updated .bashrc symlink${RC}"
-        else
-            echo -e "${YELLOW}Your .bashrc is not a symlink. Consider running setup.sh to fully configure dxsbash.${RC}"
-        fi
-        
-        # Update .bashrc_help
-        if [ -L "$USER_HOME/.bashrc_help" ]; then
-            ln -svf "$DXSBASH_DIR/.bashrc_help" "$USER_HOME/.bashrc_help"
-            echo -e "${GREEN}Updated .bashrc_help symlink${RC}"
-        fi
-        
-        # Update starship.toml
-        if [ -L "$USER_HOME/.config/starship.toml" ]; then
-            ln -svf "$DXSBASH_DIR/starship.toml" "$USER_HOME/.config/starship.toml"
-            echo -e "${GREEN}Updated starship.toml symlink${RC}"
-        fi
-        
-        # Update the updater script in home directory
-        if [ -L "$USER_HOME/update-dxsbash.sh" ]; then
-            ln -svf "$DXSBASH_DIR/updater.sh" "$USER_HOME/update-dxsbash.sh"
-            chmod +x "$USER_HOME/update-dxsbash.sh"
-            echo -e "${GREEN}Updated updater symlink in home directory${RC}"
-        fi
-        
-        # Update system-wide symlinks (requires sudo)
-        echo -e "${YELLOW}Updating system-wide commands...${RC}"
+        # Instead of running setup.sh, update symlinks directly
+        echo -e "${YELLOW}Updating configuration files...${RC}"
         
         # Define sudo command
         local sudo_cmd="sudo"
@@ -142,27 +112,54 @@ update_dxsbash() {
             fi
         fi
         
+        # Update .bashrc 
+        ln -svf "$DXSBASH_DIR/.bashrc" "$USER_HOME/.bashrc" && \
+        echo -e "${GREEN}Updated .bashrc${RC}" || \
+        echo -e "${RED}Failed to update .bashrc${RC}"
+        
+        # Update .bashrc_help
+        ln -svf "$DXSBASH_DIR/.bashrc_help" "$USER_HOME/.bashrc_help" && \
+        echo -e "${GREEN}Updated .bashrc_help${RC}" || \
+        echo -e "${RED}Failed to update .bashrc_help${RC}"
+        
+        # Update starship.toml 
+        mkdir -p "$USER_HOME/.config"
+        ln -svf "$DXSBASH_DIR/starship.toml" "$USER_HOME/.config/starship.toml" && \
+        echo -e "${GREEN}Updated starship.toml${RC}" || \
+        echo -e "${RED}Failed to update starship.toml${RC}"
+        
+        # Update the updater script in home directory
+        ln -svf "$DXSBASH_DIR/updater.sh" "$USER_HOME/update-dxsbash.sh"
+        chmod +x "$USER_HOME/update-dxsbash.sh" && \
+        echo -e "${GREEN}Updated updater script in home directory${RC}" || \
+        echo -e "${RED}Failed to update updater script in home directory${RC}"
+        
+        # Update system-wide commands
+        echo -e "${YELLOW}Updating system-wide commands...${RC}"
+        
         # Update reset-bash-profile
         if [ -f "$DXSBASH_DIR/reset-bash-profile.sh" ]; then
             cp -p "$DXSBASH_DIR/reset-bash-profile.sh" "$LINUXTOOLBOXDIR/"
             chmod +x "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
-            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-bash-profile
-            echo -e "${GREEN}Updated reset-bash-profile script${RC}"
+            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-bash-profile && \
+            echo -e "${GREEN}Updated reset-bash-profile script${RC}" || \
+            echo -e "${RED}Failed to update reset-bash-profile script${RC}"
         fi
         
         # Update system-wide updater command
         if [ -f "$DXSBASH_DIR/updater.sh" ]; then
             cp -p "$DXSBASH_DIR/updater.sh" "$LINUXTOOLBOXDIR/"
             chmod +x "$LINUXTOOLBOXDIR/updater.sh"
-            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs
-            echo -e "${GREEN}Updated system-wide updater command${RC}"
+            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs && \
+            echo -e "${GREEN}Updated system-wide updater command${RC}" || \
+            echo -e "${RED}Failed to update system-wide updater command${RC}"
         fi
         
         echo -e "${GREEN}Update completed successfully!${RC}"
         echo -e "${YELLOW}To apply changes to your current session, run: source ~/.bashrc${RC}"
         return 0
     else
-        echo -e "${RED}Failed to update dxsbash.${RC}"
+        echo -e "${RED}Failed to update dxsbash repository.${RC}"
         echo -e "${YELLOW}Restoring from backup...${RC}"
         rm -rf "$DXSBASH_DIR"
         cp -r "$backup_dir" "$DXSBASH_DIR"
@@ -170,7 +167,6 @@ update_dxsbash() {
         return 1
     fi
 }
-
 # Main function
 main() {
     echo -e "${YELLOW}Checking for dxsbash updates...${RC}"
