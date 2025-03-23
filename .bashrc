@@ -556,7 +556,7 @@ install_bashrc_support() {
 			sudo zypper install multitail tree zoxide trash-cli fzf bash-completion 
 			;;
 		"debian")
-			sudo apt-get install bash bash-completion tar bat tree multitail wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
+			sudo apt-get install bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
 			;;
 		"arch")
 			sudo paru multitail tree zoxide trash-cli fzf bash-completion
