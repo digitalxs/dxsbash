@@ -76,7 +76,7 @@ Commands +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ### General Alias
 `alert [text]` - Add an "alert" alias for long running commands. Use like so: sleep 10; alert
 `ebrc` - edit this .bashrc
-`hlp` - Show help for this .bashrc file - UNDER development
+`help` - Show help for this .bashrc file - UNDER development
 `da` - Show date
 `password` - generate list of random passwords
 
