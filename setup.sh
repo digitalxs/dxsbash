@@ -293,6 +293,25 @@ linkConfig() {
         echo "${RED}Failed to create symbolic link for starship.toml${RC}"
         exit 1
     }
+    
+}
+installResetScript() {
+    echo "${YELLOW}Installing reset-bash-profile script...${RC}"
+    
+    # Copy the reset script to the linuxtoolbox directory
+    if [ -f "$GITPATH/reset-bash-profile.sh" ]; then
+        cp "$GITPATH/reset-bash-profile.sh" "$LINUXTOOLBOXDIR/"
+        chmod +x "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
+        
+        # Create a symbolic link to make it available system-wide
+        ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-bash-profile
+        
+        echo "${GREEN}Reset script installed successfully at $LINUXTOOLBOXDIR/reset-bash-profile.sh${RC}"
+        echo "${GREEN}You can run it with: sudo reset-bash-profile [username]${RC}"
+    else
+        echo "${RED}Reset script not found in $GITPATH${RC}"
+        echo "${YELLOW}You will need to manually copy it later${RC}"
+    fi
 }
 
 checkEnv
@@ -302,6 +321,7 @@ installZoxide
 install_additional_dependencies
 
 if linkConfig; then
+    installResetScript
     echo "${GREEN}Done!\nrestart your shell to see the changes.${RC}"
 else
     echo "${RED}Something went wrong!${RC}"
