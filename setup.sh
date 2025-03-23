@@ -25,6 +25,15 @@ else
     exit 1
 fi
 
+# Check if the .config folder exist, create them if they don't
+CONFIGDIR="$HOME/.config"
+
+if [ ! -d "$CONFIGDIR" ]; then
+    echo "${YELLOW}Creating .config directory: $CONFIGDIR${RC}"
+    mkdir -p "$CONFIGDIR"
+    echo "${GREEN}.config directory created: $CONFIGDIR${RC}"
+fi
+
 # add variables to top level so can easily be accessed by all functions
 PACKAGER=""
 SUDO_CMD=""
