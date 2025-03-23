@@ -43,7 +43,7 @@ get_latest_version() {
         if git ls-remote --quiet https://github.com/digitalxs/dxsbash.git HEAD &>/dev/null; then
             # Try to get version.txt content from the repository
             local remote_version
-            remote_version=$(curl -s https://raw.githubusercontent.com/digitalxs/dxsbash/main/version.txt)
+            remote_version=$(curl -s https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/version.txt)
             if [ -n "$remote_version" ]; then
                 echo "$remote_version"
                 return 0
