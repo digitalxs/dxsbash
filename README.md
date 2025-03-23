@@ -57,8 +57,19 @@ Note: also use command install_bashrc_support to check for any dependecy missing
 - **Auto-Install**: A function `install_bashrc_support()` to automatically install necessary utilities based on the system type.
 - **Configuration Editors**: Functions to edit important configuration files directly, e.g., `apacheconfig()` for Apache server configurations.
 
-**Alias's for SSH**
-alias SERVERNAME='ssh YOURWEBSITE.com -l USERNAME -p PORTNUMBERHERE'
+### Uninstall dxsbash
+To uninstall, execute the following commands:
+```
+cd ~
+sudo ./reset-bash-profile.sh [username]
+```
+
+### Update dxsbash
+To update all files on dxsbash, execute the following commands:
+```
+cd ~
+./update-dxsbash.sh
+```
 
 Commands +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
