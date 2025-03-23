@@ -5,6 +5,13 @@ RED='\033[31m'
 YELLOW='\033[33m'
 GREEN='\033[32m'
 
+# Ensure the .config directory exists
+if [ ! -d "$CONFIGDIR" ]; then
+    echo "${YELLOW}Creating .config directory: $CONFIGDIR${RC}"
+    mkdir -p "$CONFIGDIR"
+    echo "${GREEN}.config directory created: $CONFIGDIR${RC}"
+fi
+
 # Check if the home directory and linuxtoolbox folder exist, create them if they don't
 LINUXTOOLBOXDIR="$HOME/linuxtoolbox"
 
@@ -23,15 +30,6 @@ if [ $? -eq 0 ]; then
 else
     echo "${RED}Failed to clone dxsbash repository${RC}"
     exit 1
-fi
-
-# Check if the .config folder exist, create them if they don't
-CONFIGDIR="$HOME/.config"
-
-if [ ! -d "$CONFIGDIR" ]; then
-    echo "${YELLOW}Creating .config directory: $CONFIGDIR${RC}"
-    mkdir -p "$CONFIGDIR"
-    echo "${GREEN}.config directory created: $CONFIGDIR${RC}"
 fi
 
 # add variables to top level so can easily be accessed by all functions
