@@ -353,8 +353,6 @@ if linkConfig; then
     installResetScript
     installUpdaterCommand
     echo "${GREEN}Done!\nrestart your shell to see the changes.${RC}"
-    log "INFO" "Installation completed successfully"
 else
     echo "${RED}Something went wrong!${RC}"
-    log "INFO" "Error on installation."
 fi
