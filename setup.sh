@@ -5,20 +5,6 @@ RED='\033[31m'
 YELLOW='\033[33m'
 GREEN='\033[32m'
 
-# Initialize logging
-source "$(dirname "$0")/dxsbash-utils.sh" 2>/dev/null || {
-    # If utils file not found, define minimal logging function
-    log() {
-        local level="$1"
-        local message="$2"
-        local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-        echo "[$timestamp] [$level] $message"
-    }
-}
-
-# Start logging
-log "INFO" "Starting dxsbash setup"
-
 # Ensure the .config directory exists
 # Check if the home directory and linuxtoolbox folder exist, create them if they don't
 CONFIGDIR="$HOME/.config"
