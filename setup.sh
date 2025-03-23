@@ -5,6 +5,42 @@ RED='\033[31m'
 YELLOW='\033[33m'
 GREEN='\033[32m'
 
+# Initialize logging
+source "$(dirname "$0")/dxsbash-utils.sh" 2>/dev/null || {
+    # If utils file not found, define minimal logging function
+    log() {
+        local level="$1"
+        local message="$2"
+        local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+        local log_file="$HOME/.dxsbash/logs/dxsbash.log"
+        mkdir -p "$(dirname "$log_file")" 2>/dev/null
+        echo "[$timestamp] [$level] $message" >> "$log_file" 2>/dev/null
+    }
+}
+
+# Rotate logs at script start
+rotate_logs 2>/dev/null
+
+# Function for both console output and logging
+echo_log() {
+    local level="$1"
+    local message="$2"
+    
+    # Log the message (silently)
+    log "$level" "$message"
+    
+    # Echo to console with color
+    case "$level" in
+        "INFO")  echo -e "${GREEN}$message${RC}" ;;
+        "WARN")  echo -e "${YELLOW}$message${RC}" ;;
+        "ERROR") echo -e "${RED}$message${RC}" ;;
+        *)       echo "$message" ;;
+    esac
+}
+
+# Start logging
+log "INFO" "Starting dxsbash setup"
+
 # Ensure the .config directory exists
 # Check if the home directory and linuxtoolbox folder exist, create them if they don't
 CONFIGDIR="$HOME/.config"
@@ -353,6 +389,8 @@ if linkConfig; then
     installResetScript
     installUpdaterCommand
     echo "${GREEN}Done!\nrestart your shell to see the changes.${RC}"
+    log "INFO" "Installation completed successfully"
 else
     echo "${RED}Something went wrong!${RC}"
+    log "INFO" "Error on installation."
 fi
