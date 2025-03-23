@@ -314,7 +314,7 @@ installResetScript() {
     fi
 }
 installUpdaterCommand() {
-    echo "${YELLOW}Installing dxsbash updater command...${RC}"
+    echo "${YELLOW}Installing dxsbash updater script...${RC}"
     
     # Copy the updater script to the linuxtoolbox directory
     if [ -f "$GITPATH/updater.sh" ]; then
@@ -324,7 +324,7 @@ installUpdaterCommand() {
         # Create a symbolic link to make it available system-wide
         ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs
         
-        echo "${GREEN}Updater command installed successfully${RC}"
+        echo "${GREEN}Updater script installed successfully at $LINUXTOOLBOXDIR/updater.sh${RC}"
         echo "${GREEN}You can update dxsbash anytime by running: upbashdxs${RC}"
     else
         echo "${RED}Updater script not found in $GITPATH${RC}"
