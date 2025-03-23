@@ -1,0 +1,145 @@
+#!/bin/bash
+#
+# .bashrc_help - Help file for the dxsbash environment
+#
+# This file contains helpful information about commands and shortcuts
+# available in the dxsbash environment.
+
+cat << 'EOF'
+░█▀▄░█░█░█▀▀░░░█▀▄░█▀█░█▀▀░█░█░░░█░█░█▀▀░█░░░█▀█
+░█░█░▄▀▄░▀▀█░░░█▀▄░█▀█░▀▀█░█▀█░░░█▀█░█▀▀░█░░░█▀▀
+░▀▀░░▀░▀░▀▀▀░░░▀▀░░▀░▀░▀▀▀░▀░▀░░░▀░▀░▀▀▀░▀▀▀░▀░░
+
+GENERAL COMMANDS
+===============
+
+help                - Display this help message
+update              - Update system packages
+cls                 - Clear the screen
+mkcd <dir>          - Create and change to directory
+extract <file>      - Extract archive regardless of type
+trash <file>        - Move files to trash instead of deleting
+z <dir>             - Jump to directories you frequently use (zoxide)
+zi                  - Interactive directory selection with zoxide
+
+FILE NAVIGATION
+==============
+
+l                   - List files in long format
+la                  - List all files including hidden
+ll                  - Detailed list with permissions
+lt                  - List files sorted by time
+lsd                 - List only directories
+lsf                 - List only files
+ff <pattern>        - Find files by name
+find-in-file <text> - Search for text in files
+
+GIT SHORTCUTS
+============
+
+gs                  - Git status
+gl                  - Git log
+ga                  - Git add
+gc                  - Git commit
+gp                  - Git push
+gpl                 - Git pull
+gb                  - Git branch
+gco                 - Git checkout
+
+SYSTEM INFO
+==========
+
+myip                - Show public IP address
+cpuinfo             - Show CPU information
+meminfo             - Show memory information
+diskinfo            - Show disk usage
+ports               - Show listening ports
+
+PRODUCTIVITY
+===========
+
+cheat <command>     - Show cheatsheet for a command
+weather             - Show weather forecast
+notes               - Quick access to your notes
+timer <minutes>     - Set a countdown timer
+copy <file>         - Copy file contents to clipboard
+serve               - Start a simple HTTP server in current directory
+
+FZF SHORTCUTS
+============
+
+CTRL+T              - Paste selected files/dirs onto command line
+CTRL+R              - Search command history
+ALT+C               - cd into selected directory
+
+STARSHIP PROMPT
+==============
+
+The prompt shows:
+- Current directory
+- Git branch and status
+- Python environment
+- Command execution time
+- Exit code of previous command
+
+For more information and customization options, see:
+https://github.com/digitalxs/dxsbash
+EOF
+
+# Function to show specific help topics
+show_help_topic() {
+    case "$1" in
+        "git")
+            echo "Git Commands:"
+            echo "  gs      - git status"
+            echo "  ga      - git add"
+            echo "  gc      - git commit"
+            echo "  gp      - git push"
+            echo "  gpl     - git pull"
+            echo "  gd      - git diff"
+            echo "  gl      - git log"
+            echo "  gb      - git branch"
+            echo "  gco     - git checkout"
+            echo "  grh     - git reset --hard"
+            echo "  grhh    - git reset --hard HEAD"
+            ;;
+        "zoxide")
+            echo "Zoxide Commands:"
+            echo "  z <dir>  - Jump to a directory you frequently use"
+            echo "  zi       - Interactive directory selection"
+            echo "  z -      - Go to previous directory"
+            echo "  z ..     - Go to parent directory"
+            echo "  z ...    - Go to grandparent directory"
+            ;;
+        "fzf")
+            echo "FZF Commands:"
+            echo "  CTRL+T - Paste selected files/dirs onto command line"
+            echo "  CTRL+R - Search command history"
+            echo "  ALT+C  - cd into selected directory"
+            echo "  fzf    - Start fzf in current directory"
+            echo "  **<TAB> - Fuzzy file completion"
+            ;;
+        "nvim")
+            echo "Neovim Shortcuts:"
+            echo "  nv          - Open neovim"
+            echo "  nvconf      - Edit neovim config"
+            echo "  nvplugs     - Edit neovim plugins"
+            echo ""
+            echo "  Inside Neovim:"
+            echo "  <Space>     - Leader key"
+            echo "  <Leader>f   - Find files"
+            echo "  <Leader>g   - Live grep"
+            echo "  <Leader>b   - Buffers"
+            echo "  <Leader>h   - Help tags"
+            ;;
+        *)
+            echo "Available help topics: git, zoxide, fzf, nvim"
+            echo "Usage: help <topic>"
+            ;;
+    esac
+}
+
+# If arguments are passed to the script, show specific help
+if [[ $# -gt 0 ]]; then
+    show_help_topic "$1"
+fi
