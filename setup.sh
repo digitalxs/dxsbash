@@ -99,7 +99,7 @@ checkEnv() {
 
 installDepend() {
     ## Check for dependencies.
-    DEPENDENCIES='bash bash-completion tar bat tree multitail wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline'
+    DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline'
     if ! command_exists nvim; then
         DEPENDENCIES="${DEPENDENCIES} neovim"
     fi
