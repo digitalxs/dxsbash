@@ -7,7 +7,7 @@ GREEN='\033[32m'
 
 # Ensure the .config directory exists
 # Check if the home directory and linuxtoolbox folder exist, create them if they don't
-LINUXTOOLBOXDIR="$HOME/.config"
+CONFIGDIR="$HOME/.config"
 
 if [ ! -d "$CONFIGDIR" ]; then
     echo "${YELLOW}Creating .config directory: $CONFIGDIR${RC}"
