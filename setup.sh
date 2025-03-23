@@ -303,7 +303,7 @@ linkConfig() {
     }
     # Make sure the symlink is executable
     chmod +x "$USER_HOME/update-dxsbash.sh"
-    }
+}
 installResetScript() {
     echo "${YELLOW}Installing reset-bash-profile script...${RC}"
     
