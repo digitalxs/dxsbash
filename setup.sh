@@ -147,14 +147,14 @@ installDepend() {
         ${SUDO_CMD} ${PACKAGER} install -yq ${DEPENDENCIES}
     fi
 
-    # Check to see if the MesloLGS Nerd Font is installed (Change this to whatever font you would like)
-    FONT_NAME="MesloLGS Nerd Font Mono"
+    # Check to see if the FiraCode Nerd Font is installed (Change this to whatever font you would like)
+    FONT_NAME="FiraCode Nerd Font"
     if fc-list :family | grep -iq "$FONT_NAME"; then
         echo "Font '$FONT_NAME' is installed."
     else
         echo "Installing font '$FONT_NAME'"
         # Change this URL to correspond with the correct font
-        FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip"
+        FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/FiraCode.zip"
         FONT_DIR="$HOME/.local/share/fonts"
         # check if the file is accessible
         if wget -q --spider "$FONT_URL"; then
