@@ -785,7 +785,6 @@ function __setprompt
 	# PS4 is used for tracing a script in debug mode
 	PS4='\[${DARKGRAY}\]+\[${NOCOLOR}\] '
 }
-# END OF SPECIAL .bashrc script
 ##################################################################
 PROMPT_COMMAND='__setprompt'
 export PATH=/usr/sbin:$PATH
@@ -797,6 +796,10 @@ if [[ $- == *i* ]]; then
     # Bind Ctrl+f to insert 'zi' followed by a newline
     bind '"\C-f":"zi\n"'
 fi
-
+##################################################################
+# IF YOU WANT TO USE ALTERNATIVE THEME COMMENT THE NEXT LINE
+# eval "$(starship init bash)"
 eval "$(starship init bash)"
+##################################################################
 eval "$(zoxide init bash)"
+##################################################################
