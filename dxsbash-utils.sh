@@ -1,5 +1,6 @@
 #!/bin/bash
 # dxsbash-utils.sh - Shared utilities for dxsbash scripts
+# UNDER DEVELOPMENT
 
 # Color codes
 RC='\033[0m'
