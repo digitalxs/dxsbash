@@ -798,7 +798,6 @@ if [[ $- == *i* ]]; then
 fi
 ##################################################################
 # IF YOU WANT TO USE ALTERNATIVE THEME COMMENT THE NEXT LINE
-# eval "$(starship init bash)"
 eval "$(starship init bash)"
 ##################################################################
 eval "$(zoxide init bash)"
