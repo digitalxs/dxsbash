@@ -1,14 +1,9 @@
 # DXSBash - Enhanced Shell Environment
 
 <div align="center">
-    
-```
- ____  __  __ ____  ____   __   ____  _   _ 
-|  _ \ \ \/ // ___|| __ ) / /\ / /  \| | | |
-| | | | \  / \___ \|  _ \| |\ V /| |_|| |_| |
-| |_| | /  \  ___) | |_) | | | | |___|  _  |
-|____/ /_/\_\|____/|____/|_| |_|\____|_| |_|
-```
+    <a href="https://digitalxs.ca">
+        <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="200">
+    </a>
 
 **A feature-rich, cross-shell environment for developers and power users**
 
@@ -35,6 +30,8 @@ DXSBash is a comprehensive shell environment that enhances your terminal experie
 
 ## Installation
 
+### One-line installer
+
 ```bash
 git clone --depth=1 https://github.com/digitalxs/dxsbash.git
 cd dxsbash
@@ -59,7 +56,6 @@ The installation script will:
 
 ### Visual Enhancements
 - **Starship prompt**: Cross-shell prompt with git status, command duration, etc.
-- **Fastfetch**: System information display
 - **FiraCode Nerd Font**: Font with programming ligatures and icons
 
 ### Navigation Tools
