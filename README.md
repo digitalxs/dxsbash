@@ -17,12 +17,6 @@ DXSBash is a comprehensive shell environment that enhances your terminal experie
 
 ## Installation
 
-### One-line installer
-
-```bash
-curl -sL https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/setup.sh | bash
-```
-
 ### Manual installation
 
 ```bash
