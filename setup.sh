@@ -1,14 +1,14 @@
 #!/bin/sh -e
-
 RC='\033[0m'
 RED='\033[31m'
 YELLOW='\033[33m'
 GREEN='\033[32m'
+BLUE='\033[34m'
+CYAN='\033[36m'
 
 # Ensure the .config directory exists
 # Check if the home directory and linuxtoolbox folder exist, create them if they don't
 CONFIGDIR="$HOME/.config"
-
 if [ ! -d "$CONFIGDIR" ]; then
     echo "${YELLOW}Creating .config directory: $CONFIGDIR${RC}"
     mkdir -p "$CONFIGDIR"
@@ -17,7 +17,6 @@ fi
 
 # Check if the home directory and linuxtoolbox folder exist, create them if they don't
 LINUXTOOLBOXDIR="$HOME/linuxtoolbox"
-
 if [ ! -d "$LINUXTOOLBOXDIR" ]; then
     echo "${YELLOW}Creating linuxtoolbox directory: $LINUXTOOLBOXDIR${RC}"
     mkdir -p "$LINUXTOOLBOXDIR"
@@ -25,7 +24,6 @@ if [ ! -d "$LINUXTOOLBOXDIR" ]; then
 fi
 
 if [ -d "$LINUXTOOLBOXDIR/dxsbash" ]; then rm -rf "$LINUXTOOLBOXDIR/dxsbash"; fi
-
 echo "${YELLOW}Cloning dxsbash repository into: $LINUXTOOLBOXDIR/dxsbash${RC}"
 git clone https://github.com/digitalxs/dxsbash "$LINUXTOOLBOXDIR/dxsbash"
 if [ $? -eq 0 ]; then
@@ -40,6 +38,7 @@ PACKAGER=""
 SUDO_CMD=""
 SUGROUP=""
 GITPATH=""
+SELECTED_SHELL=""
 
 cd "$LINUXTOOLBOXDIR/dxsbash" || exit
 
@@ -79,7 +78,6 @@ checkEnv() {
     else
         SUDO_CMD="su -c"
     fi
-
     echo "Using $SUDO_CMD as privilege escalation software"
 
     ## Check if the current directory is writable.
@@ -90,7 +88,6 @@ checkEnv() {
     fi
 
     ## Check SuperUser Group
-
     SUPERUSERGROUP='wheel sudo root'
     for sug in $SUPERUSERGROUP; do
         if groups | grep -q "$sug"; then
@@ -109,11 +106,26 @@ checkEnv() {
 
 installDepend() {
     ## Check for dependencies.
-    DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline'
+    COMMON_DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano zoxide trash-cli fzf pwgen powerline'
+    
+    # Shell-specific dependencies
+    BASH_DEPENDENCIES=""
+    ZSH_DEPENDENCIES="zsh zsh-autosuggestions zsh-syntax-highlighting"
+    FISH_DEPENDENCIES="fish"
+    
+    # Combine dependencies based on the selected shell
+    DEPENDENCIES="$COMMON_DEPENDENCIES"
+    
+    if [ "$SELECTED_SHELL" = "zsh" ]; then
+        DEPENDENCIES="$DEPENDENCIES $ZSH_DEPENDENCIES"
+    elif [ "$SELECTED_SHELL" = "fish" ]; then
+        DEPENDENCIES="$DEPENDENCIES $FISH_DEPENDENCIES"
+    fi
+    
     if ! command_exists nvim; then
         DEPENDENCIES="${DEPENDENCIES} neovim"
     fi
-
+    
     echo "${YELLOW}Installing dependencies...${RC}"
     if [ "$PACKAGER" = "pacman" ]; then
         if ! command_exists yay && ! command_exists paru; then
@@ -137,10 +149,20 @@ installDepend() {
         ${SUDO_CMD} ${PACKAGER} install -y ${DEPENDENCIES}
     elif [ "$PACKAGER" = "emerge" ]; then
         ${SUDO_CMD} ${PACKAGER} -v app-shells/bash app-shells/bash-completion app-arch/tar app-editors/neovim sys-apps/bat app-text/tree app-text/multitail app-misc/fastfetch
+        if [ "$SELECTED_SHELL" = "zsh" ]; then
+            ${SUDO_CMD} ${PACKAGER} -v app-shells/zsh app-shells/zsh-completions
+        elif [ "$SELECTED_SHELL" = "fish" ]; then
+            ${SUDO_CMD} ${PACKAGER} -v app-shells/fish
+        fi
     elif [ "$PACKAGER" = "xbps-install" ]; then
         ${SUDO_CMD} ${PACKAGER} -v ${DEPENDENCIES}
     elif [ "$PACKAGER" = "nix-env" ]; then
-        ${SUDO_CMD} ${PACKAGER} -iA nixos.bash nixos.bash-completion nixos.gnutar nixos.neovim nixos.bat nixos.tree nixos.multitail nixos.fastfetch  nixos.pkgs.starship
+        ${SUDO_CMD} ${PACKAGER} -iA nixos.bash nixos.bash-completion nixos.gnutar nixos.neovim nixos.bat nixos.tree nixos.multitail nixos.fastfetch nixos.pkgs.starship
+        if [ "$SELECTED_SHELL" = "zsh" ]; then
+            ${SUDO_CMD} ${PACKAGER} -iA nixos.zsh nixos.zsh-completions nixos.zsh-autosuggestions nixos.zsh-syntax-highlighting
+        elif [ "$SELECTED_SHELL" = "fish" ]; then
+            ${SUDO_CMD} ${PACKAGER} -iA nixos.fish nixos.fishPlugins.done
+        fi
     elif [ "$PACKAGER" = "dnf" ]; then
         ${SUDO_CMD} ${PACKAGER} install -y ${DEPENDENCIES}
     else
@@ -179,7 +201,6 @@ installStarshipAndFzf() {
         echo "Starship already installed"
         return
     fi
-
     if ! curl -sS https://starship.rs/install.sh | sh; then
         echo "${RED}Something went wrong during starship install!${RC}"
         exit 1
@@ -197,7 +218,6 @@ installZoxide() {
         echo "Zoxide already installed"
         return
     fi
-
     if ! curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh; then
         echo "${RED}Something went wrong during zoxide install!${RC}"
         exit 1
@@ -255,73 +275,206 @@ create_fastfetch_config() {
     }
 }
 
-linkConfig() {
+setupShellConfig() {
     ## Get the correct user home directory.
     USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
     
-    ## Check if a bashrc file is already there.
-    OLD_BASHRC="$USER_HOME/.bashrc"
-    if [ -e "$OLD_BASHRC" ]; then
-        BACKUP_FILE="$USER_HOME/.bashrc.bak"
-        
-        # If backup already exists, create a timestamped version
-        if [ -e "$BACKUP_FILE" ]; then
-            TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            BACKUP_FILE="$USER_HOME/.bashrc.bak.$TIMESTAMP"
+    # Make sure all required directories exist
+    mkdir -p "$USER_HOME/.config/fish"
+    
+    echo "${YELLOW}Setting up configuration for $SELECTED_SHELL...${RC}"
+    
+    # Backup existing config files
+    if [ "$SELECTED_SHELL" = "bash" ]; then
+        if [ -e "$USER_HOME/.bashrc" ]; then
+            BACKUP_FILE="$USER_HOME/.bashrc.bak"
+            if [ -e "$BACKUP_FILE" ]; then
+                TIMESTAMP=$(date +%Y%m%d%H%M%S)
+                BACKUP_FILE="$USER_HOME/.bashrc.bak.$TIMESTAMP"
+            fi
+            echo "${YELLOW}Moving old bash config file to $BACKUP_FILE${RC}"
+            if ! mv "$USER_HOME/.bashrc" "$BACKUP_FILE"; then
+                echo "${RED}Warning: Can't move the old bash config file!${RC}"
+                echo "${YELLOW}Continuing with installation anyway...${RC}"
+            fi
         fi
         
-        echo "${YELLOW}Moving old bash config file to $BACKUP_FILE${RC}"
+        # Link Bash config
+        ln -svf "$GITPATH/.bashrc" "$USER_HOME/.bashrc" || {
+            echo "${RED}Failed to create symbolic link for .bashrc${RC}"
+            exit 1
+        }
+        ln -svf "$GITPATH/.bashrc_help" "$USER_HOME/.bashrc_help" || {
+            echo "${RED}Failed to create symbolic link for .bashrc_help${RC}"
+            exit 1
+        }
         
-        if ! mv "$OLD_BASHRC" "$BACKUP_FILE"; then
-            echo "${RED}Warning: Can't move the old bash config file!${RC}"
-            echo "${YELLOW}Continuing with installation anyway...${RC}"
-            # Don't exit, continue with installation
+    elif [ "$SELECTED_SHELL" = "zsh" ]; then
+        if [ -e "$USER_HOME/.zshrc" ]; then
+            BACKUP_FILE="$USER_HOME/.zshrc.bak"
+            if [ -e "$BACKUP_FILE" ]; then
+                TIMESTAMP=$(date +%Y%m%d%H%M%S)
+                BACKUP_FILE="$USER_HOME/.zshrc.bak.$TIMESTAMP"
+            fi
+            echo "${YELLOW}Moving old zsh config file to $BACKUP_FILE${RC}"
+            if ! mv "$USER_HOME/.zshrc" "$BACKUP_FILE"; then
+                echo "${RED}Warning: Can't move the old zsh config file!${RC}"
+                echo "${YELLOW}Continuing with installation anyway...${RC}"
+            fi
+        fi
+        
+        # Link Zsh config
+        ln -svf "$GITPATH/.zshrc" "$USER_HOME/.zshrc" || {
+            echo "${RED}Failed to create symbolic link for .zshrc${RC}"
+            exit 1
+        }
+        ln -svf "$GITPATH/.zshrc_help" "$USER_HOME/.zshrc_help" || {
+            echo "${RED}Failed to create symbolic link for .zshrc_help${RC}"
+            exit 1
+        }
+        
+        # Install Oh My Zsh if not already installed
+        if [ ! -d "$USER_HOME/.oh-my-zsh" ]; then
+            echo "${YELLOW}Installing Oh My Zsh...${RC}"
+            sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+            echo "${GREEN}Oh My Zsh installed${RC}"
+        fi
+        
+    elif [ "$SELECTED_SHELL" = "fish" ]; then
+        if [ -e "$USER_HOME/.config/fish/config.fish" ]; then
+            BACKUP_DIR="$USER_HOME/.config/fish/backup"
+            mkdir -p "$BACKUP_DIR"
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            BACKUP_FILE="$BACKUP_DIR/config.fish.$TIMESTAMP"
+            echo "${YELLOW}Moving old fish config file to $BACKUP_FILE${RC}"
+            if ! mv "$USER_HOME/.config/fish/config.fish" "$BACKUP_FILE"; then
+                echo "${RED}Warning: Can't move the old fish config file!${RC}"
+                echo "${YELLOW}Continuing with installation anyway...${RC}"
+            fi
+        fi
+        
+        # Link Fish config
+        ln -svf "$GITPATH/config.fish" "$USER_HOME/.config/fish/config.fish" || {
+            echo "${RED}Failed to create symbolic link for config.fish${RC}"
+            exit 1
+        }
+        
+        # Create help file for fish
+        ln -svf "$GITPATH/fish_help" "$USER_HOME/.config/fish/fish_help" || {
+            echo "${RED}Failed to create symbolic link for fish_help${RC}"
+            exit 1
+        }
+        
+        # Setup Fisher plugin manager if not already installed
+        if ! command_exists fisher; then
+            echo "${YELLOW}Installing Fisher plugin manager for Fish...${RC}"
+            fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher"
+            echo "${GREEN}Fisher installed${RC}"
+            
+            # Install useful plugins
+            echo "${YELLOW}Installing Fish plugins...${RC}"
+            fish -c "fisher install PatrickF1/fzf.fish"
+            fish -c "fisher install jethrokuan/z"
+            fish -c "fisher install IlanCosman/tide@v5"
+            echo "${GREEN}Fish plugins installed${RC}"
         fi
     fi
     
-    echo "${YELLOW}Linking new bash config file...${RC}"
-    ln -svf "$GITPATH/.bashrc" "$USER_HOME/.bashrc" || {
-        echo "${RED}Failed to create symbolic link for .bashrc${RC}"
-        exit 1
-    }
-    # link .bashrc_help
-    ln -svf "$GITPATH/.bashrc_help" "$USER_HOME/.bashrc_help" || {
-        echo "${RED}Failed to create symbolic link for .bashrc_help${RC}"
-        exit 1
-    }
+    # Link starship.toml for all shells
     ln -svf "$GITPATH/starship.toml" "$USER_HOME/.config/starship.toml" || {
         echo "${RED}Failed to create symbolic link for starship.toml${RC}"
         exit 1
     }
-    
-    # Add a symlink to updater.sh in the home directory
-    echo "${YELLOW}Creating updater symlink in home directory...${RC}"
-    ln -svf "$GITPATH/updater.sh" "$USER_HOME/update-dxsbash.sh" || {
-        echo "${RED}Failed to create symlink for updater in home directory${RC}"
-        echo "${YELLOW}Continuing with installation anyway...${RC}"
-        # Don't exit, continue with installation
-    }
-    # Make sure the symlink is executable
-    chmod +x "$USER_HOME/update-dxsbash.sh"
 }
+
+setDefaultShell() {
+    echo "${YELLOW}Setting $SELECTED_SHELL as your default shell...${RC}"
+    
+    SHELL_PATH=""
+    case "$SELECTED_SHELL" in
+        bash)
+            SHELL_PATH=$(which bash)
+            ;;
+        zsh)
+            SHELL_PATH=$(which zsh)
+            ;;
+        fish)
+            SHELL_PATH=$(which fish)
+            ;;
+    esac
+    
+    if [ -z "$SHELL_PATH" ]; then
+        echo "${RED}Error: Could not find path to $SELECTED_SHELL. Please set it as your default shell manually.${RC}"
+        return 1
+    fi
+    
+    # Check if the shell is in /etc/shells
+    if ! grep -q "^$SHELL_PATH$" /etc/shells; then
+        echo "${YELLOW}Adding $SHELL_PATH to /etc/shells...${RC}"
+        echo "$SHELL_PATH" | ${SUDO_CMD} tee -a /etc/shells > /dev/null
+    fi
+    
+    # Change the default shell
+    ${SUDO_CMD} chsh -s "$SHELL_PATH" "$USER"
+    
+    if [ $? -eq 0 ]; then
+        echo "${GREEN}Successfully set $SELECTED_SHELL as your default shell${RC}"
+    else
+        echo "${RED}Failed to set $SELECTED_SHELL as your default shell. Please do it manually with:${RC}"
+        echo "${YELLOW}chsh -s $SHELL_PATH${RC}"
+    fi
+}
+
 installResetScript() {
-    echo "${YELLOW}Installing reset-bash-profile script...${RC}"
+    echo "${YELLOW}Installing reset-shell-profile script...${RC}"
     
     # Copy the reset script to the linuxtoolbox directory
     if [ -f "$GITPATH/reset-bash-profile.sh" ]; then
-        cp "$GITPATH/reset-bash-profile.sh" "$LINUXTOOLBOXDIR/"
+        cp "$GITPATH/reset-bash-profile.sh" "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
         chmod +x "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
         
-        # Create a symbolic link to make it available system-wide
-        ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-bash-profile
+        # Copy for other shells if available
+        if [ -f "$GITPATH/reset-zsh-profile.sh" ]; then
+            cp "$GITPATH/reset-zsh-profile.sh" "$LINUXTOOLBOXDIR/reset-zsh-profile.sh"
+            chmod +x "$LINUXTOOLBOXDIR/reset-zsh-profile.sh"
+        fi
         
-        echo "${GREEN}Reset script installed successfully at $LINUXTOOLBOXDIR/reset-bash-profile.sh${RC}"
-        echo "${GREEN}You can run it with: sudo reset-bash-profile [username]${RC}"
+        if [ -f "$GITPATH/reset-fish-profile.sh" ]; then
+            cp "$GITPATH/reset-fish-profile.sh" "$LINUXTOOLBOXDIR/reset-fish-profile.sh"
+            chmod +x "$LINUXTOOLBOXDIR/reset-fish-profile.sh"
+        fi
+        
+        # Create a symbolic link for the appropriate reset script based on selected shell
+        case "$SELECTED_SHELL" in
+            bash)
+                ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
+                ;;
+            zsh)
+                if [ -f "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" ]; then
+                    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" /usr/local/bin/reset-shell-profile
+                else
+                    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
+                    echo "${YELLOW}Note: Using bash reset script as fallback for zsh${RC}"
+                fi
+                ;;
+            fish)
+                if [ -f "$LINUXTOOLBOXDIR/reset-fish-profile.sh" ]; then
+                    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-fish-profile.sh" /usr/local/bin/reset-shell-profile
+                else
+                    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
+                    echo "${YELLOW}Note: Using bash reset script as fallback for fish${RC}"
+                fi
+                ;;
+        esac
+        
+        echo "${GREEN}Reset script installed successfully at $LINUXTOOLBOXDIR/reset-*-profile.sh${RC}"
+        echo "${GREEN}You can run it with: sudo reset-shell-profile [username]${RC}"
     else
         echo "${RED}Reset script not found in $GITPATH${RC}"
         echo "${YELLOW}You will need to manually copy it later${RC}"
     fi
 }
+
 installUpdaterCommand() {
     echo "${YELLOW}Installing dxsbash updater script...${RC}"
     
@@ -343,16 +496,66 @@ installUpdaterCommand() {
     fi
 }
 
+selectShell() {
+    echo "${CYAN}==================================================${RC}"
+    echo "${CYAN}       Select your preferred shell:               ${RC}"
+    echo "${CYAN}==================================================${RC}"
+    echo "${YELLOW}1) Bash ${RC}(default, most compatible)"
+    echo "${YELLOW}2) Zsh ${RC}(enhanced features, popular alternative)"
+    echo "${YELLOW}3) Fish ${RC}(modern, user-friendly, less POSIX-compatible)"
+    echo ""
+    
+    # Default to bash if no selection is made
+    SELECTED_SHELL="bash"
+    
+    read -p "Enter your choice [1-3] (default: 1): " shell_choice
+    
+    case "$shell_choice" in
+        2)
+            if command_exists zsh; then
+                SELECTED_SHELL="zsh"
+            else
+                echo "${YELLOW}Zsh is not installed yet. It will be installed during setup.${RC}"
+                SELECTED_SHELL="zsh"
+            fi
+            ;;
+        3)
+            if command_exists fish; then
+                SELECTED_SHELL="fish"
+            else
+                echo "${YELLOW}Fish is not installed yet. It will be installed during setup.${RC}"
+                SELECTED_SHELL="fish"
+            fi
+            ;;
+        *)
+            SELECTED_SHELL="bash"
+            ;;
+    esac
+    
+    echo "${GREEN}Selected shell: $SELECTED_SHELL${RC}"
+}
+
+# Main installation flow
 checkEnv
+selectShell
 installDepend
 installStarshipAndFzf
 installZoxide
 install_additional_dependencies
+create_fastfetch_config
+setupShellConfig
+setDefaultShell
+installResetScript
+installUpdaterCommand
 
-if linkConfig; then
-    installResetScript
-    installUpdaterCommand
-    echo "${GREEN}Done!\nrestart your shell to see the changes.${RC}"
-else
-    echo "${RED}Something went wrong!${RC}"
-fi
+# Create symlink to updater in home directory
+USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+ln -svf "$GITPATH/updater.sh" "$USER_HOME/update-dxsbash.sh" || {
+    echo "${RED}Failed to create symlink for updater in home directory${RC}"
+    echo "${YELLOW}Continuing with installation anyway...${RC}"
+}
+chmod +x "$USER_HOME/update-dxsbash.sh"
+
+echo "${GREEN}Done!\nLog out and log back in to start using your new $SELECTED_SHELL shell.${RC}"
+echo "${YELLOW}Alternatively, you can start using it right now by running:${RC}"
+echo "${CYAN}$SELECTED_SHELL${RC}"
