@@ -1,37 +1,35 @@
-<div align="center">
-    # DXSBash - Enhanced Shell Environment
+# DXSBash - Enhanced Shell Environment
 
 <div align="center">
     <a href="https://digitalxs.ca">
         <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="100">
     </a>
+    <h3>Professional Shell Environment for Linux Power Users</h3>
 
-**A feature-rich, cross-shell environment for developers and power users**
+[![GPL License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Bash](https://img.shields.io/badge/Shell-Bash-4EAA25?logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![Zsh](https://img.shields.io/badge/Shell-Zsh-071D49?logo=zsh&logoColor=white)](https://www.zsh.org/)
+[![Fish](https://img.shields.io/badge/Shell-Fish-394655?logo=fish&logoColor=white)](https://fishshell.com/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-[![Bash](https://img.shields.io/badge/Shell-Bash-blue.svg)](https://www.gnu.org/software/bash/)
-[![Zsh](https://img.shields.io/badge/Shell-Zsh-green.svg)](https://www.zsh.org/)
-[![Fish](https://img.shields.io/badge/Shell-Fish-orange.svg)](https://fishshell.com/)
-
-<a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
 </div>
 
-DXSBash is a comprehensive shell environment that enhances your terminal experience with productivity features, visual improvements, and useful utilities. It supports Bash, Zsh, and Fish shells on multiple Linux distributions.
+## Overview
 
-![DXSBash](images/dxsbash-demo.png)
+DXSBash is a comprehensive shell enhancement suite designed for developers, system administrators, and Linux power users. It provides a consistent, feature-rich experience across multiple shells and distributions, combining productivity tools, visual improvements, and optimized workflows.
 
-## Features
+## Key Features
 
-- **Multi-shell support**: Choose between Bash, Zsh, or Fish shell with consistent features
-- **Visual enhancements**: Modern prompt with Starship, system information with Fastfetch
-- **Productivity tools**: Smart directory navigation, enhanced history, improved command completion
-- **Development utilities**: Git integration, programming language version detection
-- **Cross-distribution compatibility**: Works on Debian, Ubuntu, Fedora, RHEL, Arch and more
-- **KDE integration**: Automatic Konsole and Yakuake configuration with FiraCode Nerd Font
+- **Cross-shell compatibility** - Works seamlessly with Bash, Zsh, and Fish
+- **Distribution-agnostic** - Supports Debian, Ubuntu, Fedora, RHEL, Arch, and more
+- **Smart navigation** - Enhanced directory jumping, fuzzy search, and history management
+- **Beautiful interface** - Modern prompt, system information display, and optimized typography
+- **Development tools** - Git integration, language version detection, and shortcuts
+- **KDE integration** - Custom Konsole and Yakuake profiles with optimized settings
 
 ## Installation
-
-### One-line installer
 
 ```bash
 git clone --depth=1 https://github.com/digitalxs/dxsbash.git
@@ -40,110 +38,71 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-The installation script will:
-1. Detect your Linux distribution
-2. Let you choose your preferred shell (Bash, Zsh, or Fish)
-3. Install all necessary dependencies
-4. Configure your shell with enhanced features
-5. Set your chosen shell as the default
-6. Configure KDE terminal emulators (if detected)
+The installer provides an interactive experience:
+1. Detects your Linux distribution automatically
+2. Lets you choose your preferred shell (Bash, Zsh, or Fish)
+3. Installs all required dependencies
+4. Configures your chosen shell with enhanced features
+5. Sets up visual elements and productivity tools
+6. Configures KDE terminal emulators when available
 
-## Key Components
+## Core Components
 
 ### Shell Configurations
 - `.bashrc` - Enhanced Bash configuration
-- `.zshrc` - Zsh configuration with similar functionality
+- `.zshrc` - Zsh configuration with plugins
 - `config.fish` - Fish shell configuration
 
-### Visual Enhancements
-- **Starship prompt**: Cross-shell prompt with git status, command duration, etc.
-- **FiraCode Nerd Font**: Font with programming ligatures and icons
-
-### Navigation Tools
-- **Zoxide**: Smart directory jumping (`z`, `zi`)
-- **FZF**: Fuzzy finder for files, history, and more
+### Tools Included
+- **Starship** - Cross-shell prompt with rich information
+- **Zoxide** - Smarter directory navigation
+- **FZF** - Fuzzy finder for files and history
+- **Fastfetch** - Optimized system information display
+- **FiraCode Nerd Font** - Programming font with ligatures and icons
 
 ### Keyboard Shortcuts
-- `Ctrl+R`: Search command history
-- `Ctrl+F`: Open interactive directory selector
-- `Alt+C`: Change to selected directory (with FZF)
+- `Ctrl+R` - Search command history with fuzzy matching
+- `Ctrl+F` - Launch interactive directory navigator
+- `Alt+C` - Change to selected directory via fuzzy finder
 
-### Shell-specific Enhancements
-- **Zsh**: Oh My Zsh, syntax highlighting, autosuggestions
-- **Fish**: Fisher plugin manager, tide prompt
-
-## Commands and Aliases
+## Command Reference
 
 ### System Management
-- `update`: Update system packages
-- `install [package]`: Install packages
-- `cleanup`: Clean package caches
-- `whatsmyip`: Show internal and external IP addresses
+- `update` - Update system packages
+- `install [package]` - Install packages with updates
+- `whatsmyip` - Show internal and external IP addresses
 
 ### File Operations
-- `extract <file>`: Extract archives of any type
-- `mkdirg <dir>`: Create and navigate to directory
-- `cpg <src> <dest>`: Copy and go to destination
-- `mvg <src> <dest>`: Move and go to destination
+- `extract <file>` - Extract any archive type automatically
+- `mkdirg <dir>` - Create and navigate to directory
+- `cpg <src> <dest>` - Copy and go to destination
+- `mvg <src> <dest>` - Move and go to destination
 
 ### Directory Navigation
-- `..`, `...`, `....`: Go up 1, 2, or 3 directories
-- `bd`: Go back to previous directory
-- `up <n>`: Go up n directories
+- `..`, `...`, `....` - Go up 1, 2, or 3 directories
+- `bd` - Go back to previous directory
+- `up <n>` - Go up n directories
 
-### Directory Listing
-- `la`: List all files (including hidden)
-- `ll`: Long listing format
-- `lt`: Sort by modification time
-- `lk`: Sort by size
-- `lf`: List only files
-- `ldir`: List only directories
-
-### Git Commands
-- `gs`: Git status
-- `ga`: Git add
-- `gc`: Git commit
-- `gp`: Git push
-- `gl`: Git log
-- `gb`: Git branch
-- `gco`: Git checkout
-
-### Search Commands
-- `h <pattern>`: Search command history
-- `f <pattern>`: Find files by pattern
-- `ftext <pattern>`: Search text in files
-
-### System Information
-- `diskspace`: Show disk usage
-- `folders`: Show size of directories
-- `netinfo`: Show network information
-- `topcpu`: Show top CPU-consuming processes
-
-## Supported Linux Distributions
-
-- Debian and derivatives (Ubuntu, Linux Mint, etc.)
-- Fedora, RHEL, and CentOS
-- Arch Linux and derivatives
-- OpenSUSE
-- Other distributions with compatible package managers
+### Git Operations
+- `gs` - Git status
+- `ga` - Git add
+- `gc` - Git commit
+- `gp` - Git push
+- `gl` - Git log
+- `gb` - Git branch
+- `gco` - Git checkout
 
 ## Customization
 
-You can customize your environment by editing the following files:
+You can customize your environment by editing:
 
 - Shell configuration: `.bashrc`, `.zshrc`, or `~/.config/fish/config.fish`
 - Prompt: `~/.config/starship.toml`
-- Fastfetch: `~/.config/fastfetch/config.jsonc`
+- System info: `~/.config/fastfetch/config.jsonc`
 
 ## Updating
 
-To update DXSBash to the latest version:
-
-```bash
-~/update-dxsbash.sh
-```
-
-Or use the global command:
+Update to the latest version:
 
 ```bash
 upbashdxs
@@ -151,44 +110,26 @@ upbashdxs
 
 ## Uninstalling
 
-To revert to the default shell configuration:
+Revert to default shell configuration:
 
 ```bash
 sudo reset-shell-profile [username]
 ```
 
-This will:
-- Create a backup of your current configuration
-- Restore the default shell configuration files
-- Preserve your custom files in the backup directory
-
 ## Support Development
 
-If you find DXSBash useful, consider supporting its development:
+If you find DXSBash valuable for your workflow, consider supporting its development:
 
 <div align="center">
-<a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 </div>
-
-## Acknowledgements
-
-This project builds upon many excellent open-source tools:
-
-- [Starship](https://starship.rs/) - Cross-shell prompt
-- [Zoxide](https://github.com/ajeetdsouza/zoxide) - Smart directory jumper
-- [FZF](https://github.com/junegunn/fzf) - Fuzzy finder
-- [Oh My Zsh](https://ohmyz.sh/) - Zsh framework
-- [Fish shell](https://fishshell.com/) and its ecosystem
-- [Fastfetch](https://github.com/fastfetch-cli/fastfetch) - System information tool
-- [FiraCode Nerd Font](https://www.nerdfonts.com/) - Programming font with icons
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-For questions, suggestions, or issues:
 - GitHub: [digitalxs/dxsbash](https://github.com/digitalxs/dxsbash)
 - Email: luis@digitalxs.ca
-- Website: https://digitalxs.ca
+- Website: [https://digitalxs.ca](https://digitalxs.ca)
