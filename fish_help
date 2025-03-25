@@ -1,0 +1,379 @@
+#!/usr/bin/env fish
+#
+# fish_help - Help file for the dxsbash Fish environment
+#
+# This file contains helpful information about commands and shortcuts
+# available in the dxsbash Fish environment.
+
+cat << 'EOF'
+░█▀▄░█░█░█▀▀░░░█▀▄░█▀█░█▀▀░█░█░░░█░█░█▀▀░█░░░█▀█
+░█░█░▄▀▄░▀▀█░░░█▀▄░█▀█░▀▀█░█▀█░░░█▀█░█▀▀░█░░░█▀▀
+░▀▀░░▀░▀░▀▀▀░░░▀▀░░▀░▀░▀▀▀░▀░▀░░░▀░▀░▀▀▀░▀▀▀░▀░░
+
+GENERAL COMMANDS
+===============
+
+help                - Display this help message
+help <topic>        - Display help for specific topic (git, zsh, fish, etc.)
+update              - Update system packages
+install <pkg>       - Install package with system updates
+cls                 - Clear the screen
+mkcd <dir>          - Create and change to directory
+extract <file>      - Extract archive regardless of type
+trash <file>        - Move files to trash instead of deleting
+z <dir>             - Jump to directories you frequently use (zoxide)
+zi                  - Interactive directory selection with zoxide
+whatsmyip           - Show internal and external IP addresses
+
+FILE NAVIGATION
+==============
+
+l                   - List files in long format
+la                  - List all files including hidden
+ll                  - Detailed list with permissions
+lt                  - List files sorted by time
+lsd                 - List only directories
+lsf                 - List only files
+ff <pattern>        - Find files by name
+ftext <text>        - Search for text in files
+countfiles          - Count files, links, and directories in current location
+
+GIT SHORTCUTS
+============
+
+gs                  - Git status
+gl                  - Git log
+ga                  - Git add
+gc                  - Git commit
+gp                  - Git push
+gpl                 - Git pull
+gb                  - Git branch
+gco                 - Git checkout
+gd                  - Git diff
+grm                 - Git remove
+gg                  - Git grep
+
+SYSTEM INFO
+==========
+
+diskspace           - Show disk usage sorted by size
+folders             - Show top-level folder sizes
+folderssort         - Sort folders by size
+df -h               - Show disk free space
+free -h             - Show memory usage
+netinfo             - Show network configuration
+ports               - Show listening ports
+topcpu              - Show top CPU processes
+ver                 - Show detailed OS version
+
+FILE OPERATIONS
+==============
+
+cp                  - Copy (safer, interactive mode)
+mv                  - Move (safer, interactive mode)
+rm                  - Remove (safer, verbose mode)
+mkdir               - Create directory (parents automatically)
+cpg                 - Copy and change to destination directory
+mvg                 - Move and change to destination directory
+cpp                 - Copy with progress bar
+
+DIRECTORY NAVIGATION
+===================
+
+home                - Go to home directory
+..                  - Go up one directory
+...                 - Go up two directories
+....                - Go up three directories
+.....               - Go up four directories
+up N                - Go up N directories
+bd                  - Go back to previous directory
+
+FISH-SPECIFIC FEATURES
+=====================
+
+• Syntax highlighting as you type
+• Autosuggestions from history
+• Tab completions with descriptions
+• Web-based configuration (fish_config)
+• No need for quoting in conditions
+• Modern scripting syntax
+• Searchable command history (Ctrl+R)
+• Abbreviations that expand as you type
+
+ARCHIVE OPERATIONS
+=================
+
+mktar <file.tar>    - Create tar archive
+mkbz2 <file.tar.bz2>- Create bz2 archive
+mkgz <file.tar.gz>  - Create gz archive
+untar <file>        - Extract tar archive
+unbz2 <file>        - Extract bz2 archive
+ungz <file>         - Extract gz archive
+extract <file>      - Auto-extract based on extension
+
+SHELL FEATURES
+=============
+
+CTRL+R              - Search command history
+CTRL+F              - Launch zoxide interactive
+ALT+C               - cd into selected directory (fzf)
+Tab                 - Show completions with descriptions
+→                   - Accept autosuggestion (right arrow)
+Alt+→               - Accept word from autosuggestion
+
+MULTI-SHELL SUPPORT
+==================
+
+dxsbash supports three shells with equivalent functionality:
+
+bash                - Traditional shell
+zsh                 - Z-Shell with enhanced features
+fish                - Friendly interactive shell (current)
+
+Configuration files:
+~/.bashrc           - Bash configuration
+~/.zshrc            - Zsh configuration 
+~/.config/fish/config.fish - Fish configuration
+
+To change your default shell, use:
+chsh -s $(which bash|zsh|fish)
+
+TERMINAL CUSTOMIZATION
+=====================
+
+Starship prompt shows:
+- Current directory
+- Git branch and status
+- Programming language versions
+- Command execution time
+- Error status of previous command
+
+Fastfetch display includes:
+- Host information
+- OS and kernel details
+- CPU and memory stats
+- Uptime information
+
+MAINTENANCE COMMANDS
+===================
+
+install_fish_support - Install required dependencies
+upbashdxs           - Update dxsbash to latest version
+reset-shell-profile - Reset to default shell configuration
+
+For more information and updates, visit:
+https://github.com/digitalxs/dxsbash
+EOF
+
+# Function to show specific help topics
+function show_help_topic
+    switch $argv[1]
+        case "git"
+            echo "Git Commands:"
+            echo "  gs      - git status"
+            echo "  ga      - git add"
+            echo "  gc      - git commit"
+            echo "  gp      - git push"
+            echo "  gpl     - git pull"
+            echo "  gd      - git diff"
+            echo "  gl      - git log"
+            echo "  gb      - git branch"
+            echo "  gco     - git checkout"
+            echo "  gg      - git grep"
+            echo "  grm     - git remove"
+            echo "  gri     - git rebase interactive"
+            echo "  gcp     - git cherry-pick"
+            
+        case "zoxide"
+            echo "Zoxide Commands:"
+            echo "  z <dir>  - Jump to a directory you frequently use"
+            echo "  zi       - Interactive directory selection"
+            echo "  z -      - Go to previous directory"
+            echo "  z ..     - Go to parent directory"
+            echo "  z ...    - Go to grandparent directory"
+            echo ""
+            echo "  Keyboard shortcuts:"
+            echo "  CTRL+F   - Launch zoxide interactive mode (zi)"
+            
+        case "fzf"
+            echo "FZF Commands:"
+            echo "  CTRL+T - Paste selected files/dirs onto command line"
+            echo "  CTRL+R - Search command history"
+            echo "  ALT+C  - cd into selected directory"
+            echo "  fzf    - Start fzf in current directory"
+            
+        case "nvim"
+            echo "Neovim Shortcuts:"
+            echo "  nv          - Open neovim"
+            echo "  nvconf      - Edit neovim config"
+            echo "  nvplugs     - Edit neovim plugins"
+            echo ""
+            echo "  Inside Neovim:"
+            echo "  <Space>     - Leader key"
+            echo "  <Leader>f   - Find files"
+            echo "  <Leader>g   - Live grep"
+            echo "  <Leader>b   - Buffers"
+            echo "  <Leader>h   - Help tags"
+            
+        case "shells"
+            echo "Shell Support:"
+            echo "  dxsbash supports three shells with equivalent features:"
+            echo ""
+            echo "  Bash:"
+            echo "  - Most compatible with scripts"
+            echo "  - Configuration: ~/.bashrc"
+            echo "  - Help file: ~/.bashrc_help"
+            echo ""
+            echo "  Zsh:"
+            echo "  - Enhanced features and plugins"
+            echo "  - Configuration: ~/.zshrc"
+            echo "  - Help file: ~/.zshrc_help"
+            echo "  - Plugins: Oh My Zsh, syntax highlighting, autosuggestions"
+            echo ""
+            echo "  Fish:"
+            echo "  - Most user-friendly with superior autocompletions"
+            echo "  - Configuration: ~/.config/fish/config.fish"
+            echo "  - Help file: ~/.config/fish/fish_help"
+            echo "  - Plugins: fzf.fish, tide, z"
+            echo ""
+            echo "  To switch your default shell:"
+            echo "  chsh -s (which bash|zsh|fish)"
+            
+        case "fishconfig"
+            echo "Fish Configuration:"
+            echo "  Fish offers several ways to customize your environment:"
+            echo ""
+            echo "  • Web interface: Run 'fish_config' to open browser configuration"
+            echo "  • Functions: Define functions in ~/.config/fish/functions/"
+            echo "  • Aliases: Create aliases in ~/.config/fish/conf.d/aliases.fish"
+            echo "  • Abbreviations: Create typing shortcuts that expand as you type"
+            echo "    Example: abbr -a g git"
+            echo ""
+            echo "  Fisher plugin manager:"
+            echo "  • List plugins: fisher list"
+            echo "  • Add plugin: fisher install [plugin]"
+            echo "  • Update plugins: fisher update"
+            echo ""
+            echo "  Tide prompt:"
+            echo "  • Configure: tide configure"
+            echo "  • Change style: tide --help"
+            
+        case "kde"
+            echo "KDE Terminal Integration:"
+            echo "  dxsbash includes special support for KDE terminal emulators:"
+            echo ""
+            echo "  Konsole:"
+            echo "  - Custom profile with FiraCode Nerd Font"
+            echo "  - Properly displays Starship prompt symbols"
+            echo "  - Configuration: ~/.local/share/konsole/DXSBash.profile"
+            echo ""
+            echo "  Yakuake:"
+            echo "  - Drop-down terminal with same configuration as Konsole"
+            echo "  - Uses same custom profile with Nerd Font support"
+            echo "  - Configuration: ~/.config/yakuakerc"
+            echo ""
+            echo "  To reset terminal configuration:"
+            echo "  rm ~/.local/share/konsole/DXSBash.profile"
+            echo "  Then edit ~/.config/konsolerc and ~/.config/yakuakerc"
+            
+        case "starship"
+            echo "Starship Prompt Features:"
+            echo "  Starship provides a rich terminal prompt with information:"
+            echo ""
+            echo "  Git Status:"
+            echo "  - Branch name and status"
+            echo "  - Modified/added/deleted files"
+            echo "  - Ahead/behind remote status"
+            echo ""
+            echo "  Programming Languages:"
+            echo "  - Shows version of detected language in current directory"
+            echo "  - Supports: Python, Node.js, Go, Rust, Java, and more"
+            echo ""
+            echo "  System Info:"
+            echo "  - Command execution time for long-running commands"
+            echo "  - Exit status of previous command"
+            echo "  - Username and hostname (when connected via SSH)"
+            echo ""
+            echo "  Configuration: ~/.config/starship.toml"
+            
+        case "aliases"
+            echo "Aliases Categories:"
+            echo "  dxsbash includes many useful aliases to improve productivity:"
+            echo ""
+            echo "  Navigation:"
+            echo "  - .. ... .... (go up directories)"
+            echo "  - bd (go back to previous directory)"
+            echo ""
+            echo "  Listing:"
+            echo "  - ls, la, ll, lt (different ls formats)"
+            echo "  - lsd (list directories only)"
+            echo "  - lsf (list files only)"
+            echo ""
+            echo "  Safety:"
+            echo "  - rm, cp, mv (interactive versions)"
+            echo "  - delete (safer remove with confirmation)"
+            echo ""
+            echo "  System:"
+            echo "  - update, install (update system)"
+            echo "  - ports, openports (network ports)"
+            echo ""
+            echo "  Git:"
+            echo "  - ga, gs, gc, gp (git operations)"
+            echo ""
+            echo "  For complete list, see: ~/.config/fish/conf.d/aliases.fish"
+            
+        case "update"
+            echo "Updating DXSBash:"
+            echo "  You can update dxsbash in several ways:"
+            echo ""
+            echo "  Using the system-wide command:"
+            echo "  > upbashdxs"
+            echo ""
+            echo "  Using the home directory shortcut:"
+            echo "  > ~/update-dxsbash.sh"
+            echo ""
+            echo "  Updates will:"
+            echo "  - Pull latest changes from the repository"
+            echo "  - Update all configuration files"
+            echo "  - Maintain your customizations (in backup)"
+            echo "  - Update shell, KDE, and utility configurations"
+            echo ""
+            echo "  To see your current version:"
+            echo "  > cat ~/linuxtoolbox/dxsbash/version.txt"
+            
+        case "reset"
+            echo "Resetting Your Shell:"
+            echo "  If you need to restore your shell to the default configuration:"
+            echo ""
+            echo "  > sudo reset-shell-profile [username]"
+            echo ""
+            echo "  This will:"
+            echo "  - Create a backup of your current configuration"
+            echo "  - Restore the default shell configuration files"
+            echo "  - Remove DXSBash settings and customizations"
+            echo ""
+            echo "  Note: This will not uninstall any software or remove the"
+            echo "  repository from ~/linuxtoolbox/dxsbash"
+            
+        case "*"
+            echo "Available help topics:"
+            echo "  git        - Git commands and shortcuts"
+            echo "  zoxide     - Directory navigation with zoxide"
+            echo "  fzf        - Fuzzy finder usage and shortcuts"
+            echo "  nvim       - Neovim editor shortcuts"
+            echo "  shells     - Multi-shell support (Bash, Zsh, Fish)"
+            echo "  fishconfig - Fish shell configuration and plugins"
+            echo "  kde        - KDE terminal integration"
+            echo "  starship   - Starship prompt features"
+            echo "  aliases    - Overview of useful aliases"
+            echo "  update     - How to update dxsbash"
+            echo "  reset      - How to reset your shell configuration"
+            echo ""
+            echo "Usage: help <topic>"
+    end
+end
+
+# If arguments are passed to the script, show specific help
+if test (count $argv) -gt 0
+    show_help_topic $argv[1]
+end
