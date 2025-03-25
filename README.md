@@ -1,6 +1,24 @@
 # DXSBash - Enhanced Shell Environment
 
-> **A feature-rich, cross-shell environment for developers and power users**
+<div align="center">
+    
+```
+ ____  __  __ ____  ____   __   ____  _   _ 
+|  _ \ \ \/ // ___|| __ ) / /\ / /  \| | | |
+| | | | \  / \___ \|  _ \| |\ V /| |_|| |_| |
+| |_| | /  \  ___) | |_) | | | | |___|  _  |
+|____/ /_/\_\|____/|____/|_| |_|\____|_| |_|
+```
+
+**A feature-rich, cross-shell environment for developers and power users**
+
+[![Bash](https://img.shields.io/badge/Shell-Bash-blue.svg)](https://www.gnu.org/software/bash/)
+[![Zsh](https://img.shields.io/badge/Shell-Zsh-green.svg)](https://www.zsh.org/)
+[![Fish](https://img.shields.io/badge/Shell-Fish-orange.svg)](https://fishshell.com/)
+
+<a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+</div>
 
 DXSBash is a comprehensive shell environment that enhances your terminal experience with productivity features, visual improvements, and useful utilities. It supports Bash, Zsh, and Fish shells on multiple Linux distributions.
 
@@ -16,6 +34,12 @@ DXSBash is a comprehensive shell environment that enhances your terminal experie
 - **KDE integration**: Automatic Konsole and Yakuake configuration with FiraCode Nerd Font
 
 ## Installation
+
+### One-line installer
+
+```bash
+curl -sL https://raw.githubusercontent.com/digitalxs/dxsbash/main/install.sh | bash
+```
 
 ### Manual installation
 
@@ -149,6 +173,14 @@ This will:
 - Restore the default shell configuration files
 - Preserve your custom files in the backup directory
 
+## Support Development
+
+If you find DXSBash useful, consider supporting its development:
+
+<div align="center">
+<a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+</div>
+
 ## Acknowledgements
 
 This project builds upon many excellent open-source tools:
@@ -163,7 +195,7 @@ This project builds upon many excellent open-source tools:
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Contact
 
