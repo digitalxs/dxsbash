@@ -2,7 +2,7 @@
 
 <div align="center">
     <a href="https://digitalxs.ca">
-        <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="200">
+        <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="100">
     </a>
 
 **A feature-rich, cross-shell environment for developers and power users**
