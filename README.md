@@ -1,247 +1,179 @@
-# dxsbash for Debian 12
-## bash unleashed. for pros. 
+# DXSBash - Enhanced Shell Environment
 
-* [Documentation](https://github.com/digitalxs/dxsbash/wiki/)
+> **A feature-rich, cross-shell environment for developers and power users**
 
-The `.bashrc` file is a script that runs every time a new terminal session is started in Unix-like operating systems. It is used to configure the shell session, set up aliases, define functions, and more, making the terminal easier to use and more powerful. Below is a summary of the key sections and functionalities defined in the provided `.bashrc` file.
+DXSBash is a comprehensive shell environment that enhances your terminal experience with productivity features, visual improvements, and useful utilities. It supports Bash, Zsh, and Fish shells on multiple Linux distributions.
 
-## How to install automatically
+![DXSBash](images/dxsbash-demo.png)
+
+## Features
+
+- **Multi-shell support**: Choose between Bash, Zsh, or Fish shell with consistent features
+- **Visual enhancements**: Modern prompt with Starship, system information with Fastfetch
+- **Productivity tools**: Smart directory navigation, enhanced history, improved command completion
+- **Development utilities**: Git integration, programming language version detection
+- **Cross-distribution compatibility**: Works on Debian, Ubuntu, Fedora, RHEL, Arch and more
+- **KDE integration**: Automatic Konsole and Yakuake configuration with FiraCode Nerd Font
+
+## Installation
+
+### One-line installer
+
+```bash
+curl -sL https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/setup.sh | bash
 ```
+
+### Manual installation
+
+```bash
 git clone --depth=1 https://github.com/digitalxs/dxsbash.git
 cd dxsbash
 chmod +x setup.sh
 ./setup.sh
 ```
-Note: also use command install_bashrc_support to check for any dependecy missing.
 
-## How to install manually
-1. Copy and/or create file .bashrc and replace on users home folder.
-2. Log off or use command `source .bashrc` to activate new customized shell.
-3. Use command `install_bashrc_support` to install all necessary software to run with this shell
+The installation script will:
+1. Detect your Linux distribution
+2. Let you choose your preferred shell (Bash, Zsh, or Fish)
+3. Install all necessary dependencies
+4. Configure your shell with enhanced features
+5. Set your chosen shell as the default
+6. Configure KDE terminal emulators (if detected)
 
-### Initial Setup and System Checks
+## Key Components
 
-- **Environment Checks**: The script checks if it is running in an interactive mode and sets up the environment accordingly.
-- **System Utilities**: It checks for the presence of utilities like `fastfetch`, `bash-completion`, and system-specific configurations (`/etc/bashrc`).
+### Shell Configurations
+- `.bashrc` - Enhanced Bash configuration
+- `.zshrc` - Zsh configuration with similar functionality
+- `config.fish` - Fish shell configuration
 
-### Aliases and Functions
+### Visual Enhancements
+- **Starship prompt**: Cross-shell prompt with git status, command duration, etc.
+- **Fastfetch**: System information display
+- **FiraCode Nerd Font**: Font with programming ligatures and icons
 
-- **Aliases**: Shortcuts for common commands are set up to enhance productivity. For example, `alias cp='cp -i'` makes the `cp` command interactive, asking for confirmation before overwriting files.
-- **Functions**: Custom functions for complex operations like `extract()` for extracting various archive types, and `cpp()` for copying files with a progress bar.
+### Navigation Tools
+- **Zoxide**: Smart directory jumping (`z`, `zi`)
+- **FZF**: Fuzzy finder for files, history, and more
 
-### Prompt Customization and History Management
+### Keyboard Shortcuts
+- `Ctrl+R`: Search command history
+- `Ctrl+F`: Open interactive directory selector
+- `Alt+C`: Change to selected directory (with FZF)
 
-- **Prompt Command**: The `PROMPT_COMMAND` variable is set to automatically save the command history after each command.
-- **History Control**: Settings to manage the size of the history file and how duplicates are handled.
+### Shell-specific Enhancements
+- **Zsh**: Oh My Zsh, syntax highlighting, autosuggestions
+- **Fish**: Fisher plugin manager, tide prompt
 
-### System-Specific Aliases and Settings
+## Commands and Aliases
 
-- **Editor Settings**: Sets `nvim` (NeoVim) as the default editor.
-- **Conditional Aliases**: Depending on the system type (like Fedora), it sets specific aliases, e.g., replacing `cat` with `bat`.
+### System Management
+- `update`: Update system packages
+- `install [package]`: Install packages
+- `cleanup`: Clean package caches
+- `whatsmyip`: Show internal and external IP addresses
 
-### Enhancements and Utilities
+### File Operations
+- `extract <file>`: Extract archives of any type
+- `mkdirg <dir>`: Create and navigate to directory
+- `cpg <src> <dest>`: Copy and go to destination
+- `mvg <src> <dest>`: Move and go to destination
 
-- **Color and Formatting**: Enhancements for command output readability using colors and formatting for tools like `ls`, `grep`, and `man`.
-- **Navigation Shortcuts**: Aliases to simplify directory navigation, e.g., `alias ..='cd ..'` to go up one directory.
-- **Safety Features**: Aliases for safer file operations, like using `trash` instead of `rm` for deleting files, to prevent accidental data loss.
-- **Extensive Zoxide support**: Easily navigate with `z`, `zi`, or pressing Ctrl+f to launch zi to see frequently used navigation directories.
+### Directory Navigation
+- `..`, `...`, `....`: Go up 1, 2, or 3 directories
+- `bd`: Go back to previous directory
+- `up <n>`: Go up n directories
 
-### Advanced Functions
+### Directory Listing
+- `la`: List all files (including hidden)
+- `ll`: Long listing format
+- `lt`: Sort by modification time
+- `lk`: Sort by size
+- `lf`: List only files
+- `ldir`: List only directories
 
-- **System Information**: Functions to display system information like `distribution()` to identify the Linux distribution.
-- **Networking Utilities**: Tools to check internal and external IP addresses.
-- **Resource Monitoring**: Commands to monitor system resources like disk usage and open ports.
+### Git Commands
+- `gs`: Git status
+- `ga`: Git add
+- `gc`: Git commit
+- `gp`: Git push
+- `gl`: Git log
+- `gb`: Git branch
+- `gco`: Git checkout
 
-### Installation and Configuration Helpers
+### Search Commands
+- `h <pattern>`: Search command history
+- `f <pattern>`: Find files by pattern
+- `ftext <pattern>`: Search text in files
 
-- **Auto-Install**: A function `install_bashrc_support()` to automatically install necessary utilities based on the system type.
-- **Configuration Editors**: Functions to edit important configuration files directly, e.g., `apacheconfig()` for Apache server configurations.
+### System Information
+- `diskspace`: Show disk usage
+- `folders`: Show size of directories
+- `netinfo`: Show network information
+- `topcpu`: Show top CPU-consuming processes
 
-### Uninstall dxsbash
-To uninstall, execute the following commands:
+## Supported Linux Distributions
+
+- Debian and derivatives (Ubuntu, Linux Mint, etc.)
+- Fedora, RHEL, and CentOS
+- Arch Linux and derivatives
+- OpenSUSE
+- Other distributions with compatible package managers
+
+## Customization
+
+You can customize your environment by editing the following files:
+
+- Shell configuration: `.bashrc`, `.zshrc`, or `~/.config/fish/config.fish`
+- Prompt: `~/.config/starship.toml`
+- Fastfetch: `~/.config/fastfetch/config.jsonc`
+
+## Updating
+
+To update DXSBash to the latest version:
+
+```bash
+~/update-dxsbash.sh
 ```
-cd ~
-sudo ./reset-bash-profile.sh [username]
+
+Or use the global command:
+
+```bash
+upbashdxs
 ```
 
-### Update dxsbash
-To update all files on dxsbash, execute the following commands:
+## Uninstalling
+
+To revert to the default shell configuration:
+
+```bash
+sudo reset-shell-profile [username]
 ```
-cd ~
-./update-dxsbash.sh
-```
 
-Commands +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+This will:
+- Create a backup of your current configuration
+- Restore the default shell configuration files
+- Preserve your custom files in the backup directory
 
-### Update system
+## Acknowledgements
 
-`install [package]` - updates all repositories and software
-`update` - updates all repositories and software
-`upgrade` - upgrade distro
-`remove` [package name] - remove specified package
-`removeall` [package name] - purge specified package (removes config files too)
-`historypkg` - show history of installs
-`searchpkg` - search packages
+This project builds upon many excellent open-source tools:
 
+- [Starship](https://starship.rs/) - Cross-shell prompt
+- [Zoxide](https://github.com/ajeetdsouza/zoxide) - Smart directory jumper
+- [FZF](https://github.com/junegunn/fzf) - Fuzzy finder
+- [Oh My Zsh](https://ohmyz.sh/) - Zsh framework
+- [Fish shell](https://fishshell.com/) and its ecosystem
+- [Fastfetch](https://github.com/fastfetch-cli/fastfetch) - System information tool
+- [FiraCode Nerd Font](https://www.nerdfonts.com/) - Programming font with icons
 
-### General Alias
-`alert [text]` - Add an "alert" alias for long running commands. Use like so: sleep 10; alert
-`ebrc` - edit this .bashrc
-`help` - Show help for this .bashrc file - UNDER development
-`da` - Show date
-`password` - generate list of random passwords
+## License
 
+This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
 
-### Alias to modified commands
-cp='cp -i' - copy 
-mv='mv -i' - move
-rm='rm -iv' - remove
-delete='rm -rfi' - remove with options
-mkdir='mkdir -p' - create directory
-ps='ps auxf'
-ping='ping -c 10'
-less='less -R'
-cls='clear'
-apt-get='sudo apt-get' - escalates privileges
-multitail='multitail --no-repeat -c'
-freshclam='sudo freshclam' - update anti-virus
-vi='vim' - editor vim
-svi='sudo vi'
-vis='vim "+set si"'
+## Contact
 
-### Git related commands
-gs='git status'
-gc='git commit'
-ga='git add'
-gd='git diff'
-gb='git branch'
-gl='git log'
-gsb='git show-branch'
-gco='git checkout'
-gg='git grep'
-gk='gitk --all'
-gr='git rebase'
-gri='git rebase --interactive'
-gcp='git cherry-pick'
-grm='git rm'
-
-### Change directory aliases
-home='cd ~'
-cd..='cd ..'
-..='cd ..'
-...='cd ../..'
-....='cd ../../..'
-.....='cd ../../../..'
-
-### cd into the old directory
- bd='cd "$OLDPWD"'
-
-### Remove a directory and all files
- rmd='/bin/rm  --recursive --force --verbose '
-
-### Alias's for multiple directory listing commands
- la='ls -Alh' # show hidden files
- ls='ls -aFh --color=always' # add colors and file type extensions
- lx='ls -lXBh' # sort by extension
- lk='ls -lSrh' # sort by size
- lc='ls -lcrh' # sort by change time
- lu='ls -lurh' # sort by access time
- lr='ls -lRh' # recursive ls
- lt='ls -ltrh' # sort by date
- lm='ls -alh |more' # pipe through 'more'
- lw='ls -xAh' # wide listing format
- ll='ls -Fls' # long listing format
- labc='ls -lap' #alphabetical sort
- lf="ls -l | egrep -v '^d'" # files only
- ldir="ls -l | egrep '^d'" # directories only
-
-### alias chmod commands
-alias mx='chmod a+x'
-alias 000='chmod -R 000'
-alias 644='chmod -R 644'
-alias 666='chmod -R 666'
-alias 755='chmod -R 755'
-alias 777='chmod -R 777'
-
-### Search command line history
- h="history | grep "
-
-#Use this for when the boss comes around to look busy.
- busy="cat /dev/urandom | hexdump -C | grep 'ca fe'"
-
-#Show active ports
- ports='netstat -tulanp'
-
-### Search running processes
-alias p="ps aux | grep "
-alias topcpu="/bin/ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10"
-
-### Search files in the current folder
-alias f="find . | grep "
-
-### Count all files (recursively) in the current folder
- countfiles="for t in files links directories; do echo \`find . -type \${t:0:1} | wc -l\` \$t; done 2> /dev/null"
-
-### To see if a command is aliased, a file, or a built-in command
- checkcommand="type -t"
-
-### Show open ports
- openports='netstat -nape --inet'
-
-### Alias's for safe and forced reboots
- restart='sudo shutdown -r now'
- forcerestart='sudo shutdown -r -n now'
-
-### Alias's to show disk space and space used in a folder
- diskspace="du -S | sort -n -r |more"
- folders='du -h --max-depth=1'
- folderssort='find . -maxdepth 1 -type d -print0 | xargs -0 du -sk | sort -rn'
- tree='tree -CAhF --dirsfirst'
- treed='tree -CAFd'
- mountedinfo='df -hT'
-
-### Alias's for archives
- mktar='tar -cvf'
- mkbz2='tar -cvjf'
- mkgz='tar -cvzf'
- untar='tar -xvf'
- unbz2='tar -xvjf'
- ungz='tar -xvzf'
-
-### Show all logs in /var/log
-
-### SHA1
- ungz='tar -xvzf'
-
-### Special functions
-edit - Use the best version of pico installed
-sedit - 
-extract - Extracts any archive(s)
-ftext - Searches for text in all files in the current folder 
-cpp - copy file with a progress bar
-cpg - copy and go to the directory
-mvg - move and go to the directory
-mkdirg - create and go to the directory
-up - Goes up a specified number of directories  (i.e. up 4)
-pwdtail - Returns the last 2 fields of the working directory
-distribution - Show the current distribution (ERROR)
-ver - version (ERROR)
-install_bashrc_support - Automatically install the needed support files for this .bashrc file
-netinfo - show current network information (ERROR)
-whatismyip - show my IP address (ERROR)
-apachelog - view apache logs
-apacheconfig - edit apache configuration
-phpconfig - edit php configuration file (ERROR)
-mysqlconfig - edit MySQL configuration
-trim - Trim leading and trailing spaces (for scripts)
-
-### Uninstall and Reset Bash to Defaults
-
-Use the script at:
-
-https://github.com/digitalxs/BashProfileReset
-
-
-
-
-### dxsbash - DigitalXS - Programming and Development (2025) by Luis Miguel P. Freitas
+For questions, suggestions, or issues:
+- GitHub: [digitalxs/dxsbash](https://github.com/digitalxs/dxsbash)
+- Email: luis@digitalxs.ca
+- Website: https://digitalxs.ca
