@@ -106,18 +106,43 @@ checkEnv() {
 
 installDepend() {
     ## Check for dependencies.
-    COMMON_DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano zoxide trash-cli fzf pwgen powerline'
+    COMMON_DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nano zoxide fzf pwgen'
     
     # Shell-specific dependencies
     BASH_DEPENDENCIES=""
-    ZSH_DEPENDENCIES="zsh zsh-autosuggestions zsh-syntax-highlighting"
+    ZSH_DEPENDENCIES="zsh"
     FISH_DEPENDENCIES="fish"
     
-    # Combine dependencies based on the selected shell
+    # Combine dependencies based on the selected shell and distribution
     DEPENDENCIES="$COMMON_DEPENDENCIES"
     
+    # Add distribution-specific packages
+    if [ "$PACKAGER" = "apt" ] || [ "$PACKAGER" = "nala" ]; then
+        DEPENDENCIES="$DEPENDENCIES nala plocate trash-cli powerline"
+    elif [ "$PACKAGER" = "dnf" ]; then
+        DEPENDENCIES="$DEPENDENCIES dnf-plugins-core dnf-utils mlocate trash-cli powerline"
+    elif [ "$PACKAGER" = "pacman" ]; then
+        DEPENDENCIES="$DEPENDENCIES plocate trash-cli powerline"
+    fi
+    
+    # Add shell-specific dependencies
     if [ "$SELECTED_SHELL" = "zsh" ]; then
         DEPENDENCIES="$DEPENDENCIES $ZSH_DEPENDENCIES"
+        
+        # Add distribution-specific Zsh plugins
+        if [ "$PACKAGER" = "apt" ] || [ "$PACKAGER" = "nala" ]; then
+            DEPENDENCIES="$DEPENDENCIES zsh-autosuggestions zsh-syntax-highlighting"
+        elif [ "$PACKAGER" = "dnf" ]; then
+            # Fedora/RHEL package names may differ
+            if ${SUDO_CMD} dnf list zsh-autosuggestions &>/dev/null; then
+                DEPENDENCIES="$DEPENDENCIES zsh-autosuggestions"
+            fi
+            if ${SUDO_CMD} dnf list zsh-syntax-highlighting &>/dev/null; then
+                DEPENDENCIES="$DEPENDENCIES zsh-syntax-highlighting"
+            fi
+        elif [ "$PACKAGER" = "pacman" ]; then
+            DEPENDENCIES="$DEPENDENCIES zsh-autosuggestions zsh-syntax-highlighting"
+        fi
     elif [ "$SELECTED_SHELL" = "fish" ]; then
         DEPENDENCIES="$DEPENDENCIES $FISH_DEPENDENCIES"
     fi
@@ -164,7 +189,31 @@ installDepend() {
             ${SUDO_CMD} ${PACKAGER} -iA nixos.fish nixos.fishPlugins.done
         fi
     elif [ "$PACKAGER" = "dnf" ]; then
-        ${SUDO_CMD} ${PACKAGER} install -y ${DEPENDENCIES}
+        # Fedora-specific handling
+        echo "${YELLOW}Detected Fedora or RHEL-based distribution${RC}"
+        
+        # Check for EPEL repository if on RHEL/CentOS
+        if [ -f /etc/redhat-release ] && ! grep -q "Fedora" /etc/redhat-release; then
+            if ! ${SUDO_CMD} ${PACKAGER} list installed epel-release >/dev/null 2>&1; then
+                echo "${YELLOW}Installing EPEL repository for additional packages...${RC}"
+                ${SUDO_CMD} ${PACKAGER} install -y epel-release
+            fi
+        fi
+        
+        # Install RPM Fusion repositories for Fedora
+        if grep -q "Fedora" /etc/redhat-release 2>/dev/null; then
+            if ! ${SUDO_CMD} ${PACKAGER} list installed rpmfusion-free-release >/dev/null 2>&1; then
+                echo "${YELLOW}Installing RPM Fusion repositories...${RC}"
+                ${SUDO_CMD} ${PACKAGER} install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+                ${SUDO_CMD} ${PACKAGER} install -y https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+            fi
+        fi
+        
+        # Adjust package names for Fedora/RHEL
+        FEDORA_DEPENDENCIES=$(echo "$DEPENDENCIES" | sed 's/batcat/bat/g' | sed 's/nala/dnf-utils/g')
+        
+        # Install Fedora/RHEL packages
+        ${SUDO_CMD} ${PACKAGER} install -y $FEDORA_DEPENDENCIES
     else
         ${SUDO_CMD} ${PACKAGER} install -yq ${DEPENDENCIES}
     fi
@@ -225,11 +274,14 @@ installZoxide() {
 }
 
 install_additional_dependencies() {
-    # we have PACKAGER so just use it
-    # for now just going to return early as we have already installed neovim in `installDepend`
-    # so I am not sure why we are trying to install it again
-    return
-   case "$PACKAGER" in
+    # Check if Neovim needs to be installed or is already handled
+    if command_exists nvim; then
+        echo "${GREEN}Neovim already installed${RC}"
+        return
+    fi
+    
+    echo "${YELLOW}Installing Neovim...${RC}"
+    case "$PACKAGER" in
         *apt)
             if [ ! -d "/opt/neovim" ]; then
                 curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
@@ -245,7 +297,16 @@ install_additional_dependencies() {
             ;;
         *dnf)
             ${SUDO_CMD} dnf check-update
-            ${SUDO_CMD} dnf install -y neovim
+            
+            # Check if Neovim is available in standard repositories
+            if ${SUDO_CMD} dnf list neovim &>/dev/null; then
+                ${SUDO_CMD} dnf install -y neovim
+            else
+                # Try to install from COPR repository if not available
+                echo "${YELLOW}Installing Neovim from COPR repository...${RC}"
+                ${SUDO_CMD} dnf copr enable -y agriffis/neovim-nightly
+                ${SUDO_CMD} dnf install -y neovim
+            fi
             ;;
         *pacman)
             ${SUDO_CMD} pacman -Syu
@@ -275,12 +336,69 @@ create_fastfetch_config() {
     }
 }
 
+init_fedora_zsh_plugins() {
+    USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+    
+    # Handle Fedora/RHEL zsh plugins which might be in different locations
+    if [ "$PACKAGER" = "dnf" ] && [ "$SELECTED_SHELL" = "zsh" ]; then
+        echo "${YELLOW}Setting up Zsh plugins for Fedora/RHEL...${RC}"
+        
+        # Add plugin sourcing to .zshrc if files exist
+        ZSH_PLUGIN_DIR="/usr/share/zsh/plugins"
+        
+        # Create plugin loader function
+        cat > "$USER_HOME/.zsh_plugins" <<EOL
+# Generated by dxsbash setup for Fedora/RHEL
+# Load Zsh plugins if available
+
+# Autosuggestions
+if [ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+elif [ -f $ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+    source $ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
+
+# Syntax highlighting
+if [ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+elif [ -f $ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+    source $ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
+EOL
+        
+        # Try to install plugins manually if they're not found in standard locations
+        if [ ! -f "/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && [ ! -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
+            echo "${YELLOW}Installing Zsh autosuggestions plugin manually...${RC}"
+            PLUGIN_DIR="$USER_HOME/.zsh/plugins"
+            mkdir -p "$PLUGIN_DIR"
+            git clone https://github.com/zsh-users/zsh-autosuggestions "$PLUGIN_DIR/zsh-autosuggestions"
+            
+            # Add to .zsh_plugins
+            echo "# Manual installation" >> "$USER_HOME/.zsh_plugins"
+            echo "source $PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" >> "$USER_HOME/.zsh_plugins"
+        fi
+        
+        if [ ! -f "/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && [ ! -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
+            echo "${YELLOW}Installing Zsh syntax highlighting plugin manually...${RC}"
+            PLUGIN_DIR="$USER_HOME/.zsh/plugins"
+            mkdir -p "$PLUGIN_DIR"
+            git clone https://github.com/zsh-users/zsh-syntax-highlighting "$PLUGIN_DIR/zsh-syntax-highlighting"
+            
+            # Add to .zsh_plugins
+            echo "source $PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> "$USER_HOME/.zsh_plugins"
+        fi
+        
+        echo "${GREEN}Zsh plugins configured for Fedora/RHEL${RC}"
+    fi
+}
+
 setupShellConfig() {
     ## Get the correct user home directory.
     USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
     
     # Make sure all required directories exist
     mkdir -p "$USER_HOME/.config/fish"
+    mkdir -p "$USER_HOME/.zsh"
     
     echo "${YELLOW}Setting up configuration for $SELECTED_SHELL...${RC}"
     
@@ -338,6 +456,20 @@ setupShellConfig() {
             echo "${YELLOW}Installing Oh My Zsh...${RC}"
             sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
             echo "${GREEN}Oh My Zsh installed${RC}"
+        fi
+        
+        # Setup Fedora/RHEL specific Zsh plugins
+        init_fedora_zsh_plugins
+        
+        # Add plugin sourcing to .zshrc if it exists
+        if [ -f "$USER_HOME/.zsh_plugins" ]; then
+            # Add source line to .zshrc if not already present
+            if ! grep -q "source ~/.zsh_plugins" "$USER_HOME/.zshrc"; then
+                echo "${YELLOW}Adding plugins to .zshrc...${RC}"
+                echo "" >> "$USER_HOME/.zshrc"
+                echo "# Source plugins" >> "$USER_HOME/.zshrc"
+                echo "[ -f ~/.zsh_plugins ] && source ~/.zsh_plugins" >> "$USER_HOME/.zshrc"
+            fi
         fi
         
     elif [ "$SELECTED_SHELL" = "fish" ]; then
@@ -496,6 +628,54 @@ installUpdaterCommand() {
     fi
 }
 
+detectDistro() {
+    # Detect the specific distribution for better handling
+    DISTRO="unknown"
+    
+    if [ -f /etc/fedora-release ]; then
+        DISTRO="fedora"
+        echo "${BLUE}Detected Fedora Linux${RC}"
+    elif [ -f /etc/redhat-release ]; then
+        if grep -q "CentOS" /etc/redhat-release; then
+            DISTRO="centos"
+            echo "${BLUE}Detected CentOS Linux${RC}"
+        elif grep -q "Red Hat Enterprise Linux" /etc/redhat-release; then
+            DISTRO="rhel"
+            echo "${BLUE}Detected Red Hat Enterprise Linux${RC}"
+        else
+            DISTRO="redhat-based"
+            echo "${BLUE}Detected Red Hat-based Linux${RC}"
+        fi
+    elif [ -f /etc/lsb-release ] && grep -q "Ubuntu" /etc/lsb-release; then
+        DISTRO="ubuntu"
+        echo "${BLUE}Detected Ubuntu Linux${RC}"
+    elif [ -f /etc/debian_version ]; then
+        DISTRO="debian"
+        echo "${BLUE}Detected Debian Linux${RC}"
+    elif [ -f /etc/arch-release ]; then
+        DISTRO="arch"
+        echo "${BLUE}Detected Arch Linux${RC}"
+    elif [ -f /etc/SuSE-release ] || [ -f /etc/opensuse-release ]; then
+        DISTRO="suse"
+        echo "${BLUE}Detected SUSE Linux${RC}"
+    else
+        # Generic detection
+        if command_exists apt; then
+            DISTRO="debian-based"
+            echo "${BLUE}Detected Debian-based Linux${RC}"
+        elif command_exists dnf; then
+            DISTRO="fedora-based"
+            echo "${BLUE}Detected Fedora-based Linux${RC}"
+        elif command_exists pacman; then
+            DISTRO="arch-based"
+            echo "${BLUE}Detected Arch-based Linux${RC}"
+        elif command_exists zypper; then
+            DISTRO="suse-based"
+            echo "${BLUE}Detected SUSE-based Linux${RC}"
+        fi
+    fi
+}
+
 selectShell() {
     echo "${CYAN}==================================================${RC}"
     echo "${CYAN}       Select your preferred shell:               ${RC}"
@@ -537,6 +717,7 @@ selectShell() {
 
 # Main installation flow
 checkEnv
+detectDistro
 selectShell
 installDepend
 installStarshipAndFzf
