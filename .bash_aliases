@@ -9,7 +9,6 @@ alias meminfo='free -m -l -t'                     # Detailed memory information
 alias cpuinfo='lscpu'                             # CPU information
 alias listening='netstat -tlnp'                   # Show only listening connections
 alias fastping='ping -c 100 -s.2'                 # Quick ping for network testing
-alias http-serve='python3 -m http.server'         # Start a quick HTTP server
 alias services='systemctl --type=service'         # List all services
 
 # IP and network aliases
