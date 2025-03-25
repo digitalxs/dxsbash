@@ -1,4 +1,5 @@
-# DXSBash - Enhanced Shell Environment
+<div align="center">
+    # DXSBash - Enhanced Shell Environment
 
 <div align="center">
     <a href="https://digitalxs.ca">
