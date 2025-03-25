@@ -715,6 +715,120 @@ selectShell() {
     echo "${GREEN}Selected shell: $SELECTED_SHELL${RC}"
 }
 
+configure_konsole() {
+    echo "${YELLOW}Configuring Konsole to use FiraCode Nerd Font...${RC}"
+    
+    # Get user home directory
+    USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+    
+    # Create Konsole profile directory if it doesn't exist
+    KONSOLE_DIR="$USER_HOME/.local/share/konsole"
+    mkdir -p "$KONSOLE_DIR"
+    
+    # Create/update Konsole profile with FiraCode Nerd Font
+    PROFILE_NAME="DXSBash.profile"
+    PROFILE_PATH="$KONSOLE_DIR/$PROFILE_NAME"
+    
+    # Create profile file
+    cat > "$PROFILE_PATH" << EOL
+[Appearance]
+ColorScheme=Breeze
+Font=FiraCode Nerd Font,12,-1,5,50,0,0,0,0,0
+
+[General]
+Name=DXSBash
+Parent=FALLBACK/
+TerminalCenter=false
+TerminalMargin=1
+
+[Scrolling]
+HistoryMode=2
+ScrollBarPosition=2
+
+[Terminal Features]
+BlinkingCursorEnabled=true
+EOL
+    
+    # Make sure permissions are correct
+    chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$PROFILE_PATH"
+    
+    # Create/update Konsole configuration to use the new profile by default
+    KONSOLERC="$USER_HOME/.config/konsolerc"
+    
+    # Only create konsolerc if it doesn't exist
+    if [ ! -f "$KONSOLERC" ]; then
+        cat > "$KONSOLERC" << EOL
+[Desktop Entry]
+DefaultProfile=DXSBash.profile
+
+[MainWindow]
+MenuBar=Disabled
+ToolBarsMovable=Disabled
+
+[TabBar]
+NewTabButton=true
+EOL
+        chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$KONSOLERC"
+    else
+        # If konsolerc exists, just update the DefaultProfile line
+        if grep -q "DefaultProfile=" "$KONSOLERC"; then
+            # Replace existing DefaultProfile line
+            sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$KONSOLERC"
+        else
+            # Add DefaultProfile line if it doesn't exist
+            echo "DefaultProfile=DXSBash.profile" >> "$KONSOLERC"
+        fi
+    fi
+    
+    echo "${GREEN}Konsole configured to use FiraCode Nerd Font${RC}"
+}
+
+configure_kde_terminal_emulators() {
+    # Check if running in KDE environment
+    if [ "$XDG_CURRENT_DESKTOP" = "KDE" ] || command_exists konsole; then
+        echo "${YELLOW}KDE environment detected, configuring terminal emulators...${RC}"
+        
+        # Configure Konsole
+        if command_exists konsole; then
+            configure_konsole
+        fi
+        
+        # Configure Yakuake if installed
+        if command_exists yakuake; then
+            echo "${YELLOW}Configuring Yakuake to use FiraCode Nerd Font...${RC}"
+            
+            # Yakuake uses the same profiles as Konsole, so we just need to update yakuakerc
+            USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+            YAKUAKERC="$USER_HOME/.config/yakuakerc"
+            
+            if [ -f "$YAKUAKERC" ]; then
+                # Update existing DefaultProfile
+                if grep -q "DefaultProfile=" "$YAKUAKERC"; then
+                    sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$YAKUAKERC"
+                else
+                    echo "DefaultProfile=DXSBash.profile" >> "$YAKUAKERC"
+                fi
+            else
+                # Create new yakuakerc
+                mkdir -p "$USER_HOME/.config"
+                cat > "$YAKUAKERC" << EOL
+[Desktop Entry]
+DefaultProfile=DXSBash.profile
+
+[Dialogs]
+FirstRun=false
+
+[Window]
+KeepOpen=false
+EOL
+                chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$YAKUAKERC"
+            fi
+            
+            echo "${GREEN}Yakuake configured to use FiraCode Nerd Font${RC}"
+        fi
+    fi
+}
+
 # Main installation flow
 checkEnv
 detectDistro
@@ -728,6 +842,7 @@ setupShellConfig
 setDefaultShell
 installResetScript
 installUpdaterCommand
+configure_kde_terminal_emulators
 
 # Create symlink to updater in home directory
 USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
