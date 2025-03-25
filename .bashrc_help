@@ -14,13 +14,16 @@ GENERAL COMMANDS
 ===============
 
 help                - Display this help message
+help <topic>        - Display help for specific topic (git, zsh, fish, etc.)
 update              - Update system packages
+install <pkg>       - Install package with system updates
 cls                 - Clear the screen
 mkcd <dir>          - Create and change to directory
 extract <file>      - Extract archive regardless of type
 trash <file>        - Move files to trash instead of deleting
 z <dir>             - Jump to directories you frequently use (zoxide)
 zi                  - Interactive directory selection with zoxide
+whatsmyip           - Show internal and external IP addresses
 
 FILE NAVIGATION
 ==============
@@ -32,7 +35,8 @@ lt                  - List files sorted by time
 lsd                 - List only directories
 lsf                 - List only files
 ff <pattern>        - Find files by name
-find-in-file <text> - Search for text in files
+ftext <text>        - Search for text in files
+countfiles          - Count files, links, and directories in current location
 
 GIT SHORTCUTS
 ============
@@ -45,44 +49,104 @@ gp                  - Git push
 gpl                 - Git pull
 gb                  - Git branch
 gco                 - Git checkout
+gd                  - Git diff
+grm                 - Git remove
+gg                  - Git grep
 
 SYSTEM INFO
 ==========
 
-myip                - Show public IP address
-cpuinfo             - Show CPU information
-meminfo             - Show memory information
-diskinfo            - Show disk usage
+diskspace           - Show disk usage sorted by size
+folders             - Show top-level folder sizes
+folderssort         - Sort folders by size
+df -h               - Show disk free space
+free -h             - Show memory usage
+netinfo             - Show network configuration
 ports               - Show listening ports
+topcpu              - Show top CPU processes
+ver                 - Show detailed OS version
 
-PRODUCTIVITY
-===========
-
-cheat <command>     - Show cheatsheet for a command
-weather             - Show weather forecast
-notes               - Quick access to your notes
-timer <minutes>     - Set a countdown timer
-copy <file>         - Copy file contents to clipboard
-serve               - Start a simple HTTP server in current directory
-
-FZF SHORTCUTS
-============
-
-CTRL+T              - Paste selected files/dirs onto command line
-CTRL+R              - Search command history
-ALT+C               - cd into selected directory
-
-STARSHIP PROMPT
+FILE OPERATIONS
 ==============
 
-The prompt shows:
+cp                  - Copy (safer, interactive mode)
+mv                  - Move (safer, interactive mode)
+rm                  - Remove (safer, verbose mode)
+mkdir               - Create directory (parents automatically)
+cpg                 - Copy and change to destination directory
+mvg                 - Move and change to destination directory
+cpp                 - Copy with progress bar
+
+DIRECTORY NAVIGATION
+===================
+
+home                - Go to home directory
+..                  - Go up one directory
+...                 - Go up two directories
+....                - Go up three directories
+.....               - Go up four directories
+up N                - Go up N directories
+bd                  - Go back to previous directory
+
+ARCHIVE OPERATIONS
+=================
+
+mktar <file.tar>    - Create tar archive
+mkbz2 <file.tar.bz2>- Create bz2 archive
+mkgz <file.tar.gz>  - Create gz archive
+untar <file>        - Extract tar archive
+unbz2 <file>        - Extract bz2 archive
+ungz <file>         - Extract gz archive
+extract <file>      - Auto-extract based on extension
+
+SHELL FEATURES
+=============
+
+CTRL+R              - Search command history
+CTRL+F              - Launch zoxide interactive
+ALT+C               - cd into selected directory (fzf)
+
+MULTI-SHELL SUPPORT
+==================
+
+dxsbash supports three shells with equivalent functionality:
+
+bash                - Traditional shell (default)
+zsh                 - Z-Shell with enhanced features
+fish                - Friendly interactive shell
+
+Configuration files:
+~/.bashrc           - Bash configuration
+~/.zshrc            - Zsh configuration 
+~/.config/fish/config.fish - Fish configuration
+
+To change your default shell, use:
+chsh -s $(which bash|zsh|fish)
+
+TERMINAL CUSTOMIZATION
+=====================
+
+Starship prompt shows:
 - Current directory
 - Git branch and status
-- Python environment
+- Programming language versions
 - Command execution time
-- Exit code of previous command
+- Error status of previous command
 
-For more information and customization options, see:
+Fastfetch display includes:
+- Host information
+- OS and kernel details
+- CPU and memory stats
+- Uptime information
+
+MAINTENANCE COMMANDS
+===================
+
+install_bashrc_support - Install required dependencies
+upbashdxs           - Update dxsbash to latest version
+reset-shell-profile - Reset to default shell configuration
+
+For more information and updates, visit:
 https://github.com/digitalxs/dxsbash
 EOF
 
@@ -100,8 +164,10 @@ show_help_topic() {
             echo "  gl      - git log"
             echo "  gb      - git branch"
             echo "  gco     - git checkout"
-            echo "  grh     - git reset --hard"
-            echo "  grhh    - git reset --hard HEAD"
+            echo "  gg      - git grep"
+            echo "  grm     - git remove"
+            echo "  gri     - git rebase interactive"
+            echo "  gcp     - git cherry-pick"
             ;;
         "zoxide")
             echo "Zoxide Commands:"
@@ -110,6 +176,9 @@ show_help_topic() {
             echo "  z -      - Go to previous directory"
             echo "  z ..     - Go to parent directory"
             echo "  z ...    - Go to grandparent directory"
+            echo ""
+            echo "  Keyboard shortcuts:"
+            echo "  CTRL+F   - Launch zoxide interactive mode (zi)"
             ;;
         "fzf")
             echo "FZF Commands:"
@@ -132,8 +201,78 @@ show_help_topic() {
             echo "  <Leader>b   - Buffers"
             echo "  <Leader>h   - Help tags"
             ;;
+        "shells")
+            echo "Shell Support:"
+            echo "  dxsbash supports three shells with equivalent features:"
+            echo ""
+            echo "  Bash:"
+            echo "  - Most compatible with scripts"
+            echo "  - Configuration: ~/.bashrc"
+            echo "  - Help file: ~/.bashrc_help"
+            echo ""
+            echo "  Zsh:"
+            echo "  - Enhanced features and plugins"
+            echo "  - Configuration: ~/.zshrc"
+            echo "  - Help file: ~/.zshrc_help"
+            echo "  - Plugins: Oh My Zsh, syntax highlighting, autosuggestions"
+            echo ""
+            echo "  Fish:"
+            echo "  - Most user-friendly with superior autocompletions"
+            echo "  - Configuration: ~/.config/fish/config.fish"
+            echo "  - Help file: ~/.config/fish/fish_help"
+            echo "  - Plugins: fzf.fish, tide, z"
+            echo ""
+            echo "  To switch your default shell:"
+            echo "  chsh -s \$(which bash|zsh|fish)"
+            ;;
+        "kde")
+            echo "KDE Terminal Integration:"
+            echo "  dxsbash includes special support for KDE terminal emulators:"
+            echo ""
+            echo "  Konsole:"
+            echo "  - Custom profile with FiraCode Nerd Font"
+            echo "  - Properly displays Starship prompt symbols"
+            echo "  - Configuration: ~/.local/share/konsole/DXSBash.profile"
+            echo ""
+            echo "  Yakuake:"
+            echo "  - Drop-down terminal with same configuration as Konsole"
+            echo "  - Uses same custom profile with Nerd Font support"
+            echo "  - Configuration: ~/.config/yakuakerc"
+            echo ""
+            echo "  To reset terminal configuration:"
+            echo "  rm ~/.local/share/konsole/DXSBash.profile"
+            echo "  Then edit ~/.config/konsolerc and ~/.config/yakuakerc"
+            ;;
+        "starship")
+            echo "Starship Prompt Features:"
+            echo "  Starship provides a rich terminal prompt with information:"
+            echo ""
+            echo "  Git Status:"
+            echo "  - Branch name and status"
+            echo "  - Modified/added/deleted files"
+            echo "  - Ahead/behind remote status"
+            echo ""
+            echo "  Programming Languages:"
+            echo "  - Shows version of detected language in current directory"
+            echo "  - Supports: Python, Node.js, Go, Rust, Java, and more"
+            echo ""
+            echo "  System Info:"
+            echo "  - Command execution time for long-running commands"
+            echo "  - Exit status of previous command"
+            echo "  - Username and hostname (when connected via SSH)"
+            echo ""
+            echo "  Configuration: ~/.config/starship.toml"
+            ;;
         *)
-            echo "Available help topics: git, zoxide, fzf, nvim"
+            echo "Available help topics:"
+            echo "  git      - Git commands and shortcuts"
+            echo "  zoxide   - Directory navigation with zoxide"
+            echo "  fzf      - Fuzzy finder usage and shortcuts"
+            echo "  nvim     - Neovim editor shortcuts"
+            echo "  shells   - Multi-shell support (Bash, Zsh, Fish)"
+            echo "  kde      - KDE terminal integration"
+            echo "  starship - Starship prompt features"
+            echo ""
             echo "Usage: help <topic>"
             ;;
     esac
