@@ -16,9 +16,9 @@
 
 </div>
 
-## Overview
+DXSBash is a shell enhancement suite designed for developers, system administrators, and Linux power users. It provides a consistent, feature-rich experience across multiple shells and distributions, combining productivity tools, visual improvements, and optimized workflows.
 
-DXSBash is a comprehensive shell enhancement suite designed for developers, system administrators, and Linux power users. It provides a consistent, feature-rich experience across multiple shells and distributions, combining productivity tools, visual improvements, and optimized workflows.
+Tested extensively on Debian 12. Please test on any system and send e-mail with detailed info with results, bugs, etc...
 
 ## Key Features
 
