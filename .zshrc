@@ -1,4 +1,32 @@
 #!/usr/bin/env zsh
+
+# Reliable TTY detection for ZSH
+if [[ "$(tty)" == /dev/tty[1-9]* ]]; then
+    # This is a TTY console session - minimal configuration
+    
+    # Basic history settings
+    HISTFILE=~/.zsh_history
+    HISTSIZE=1000
+    SAVEHIST=1000
+    
+    # Basic ZSH options
+    setopt appendhistory
+    setopt hist_ignore_dups
+    setopt hist_ignore_space
+    
+    # Basic autocompletion
+    autoload -Uz compinit && compinit
+    
+    # Simple prompt for TTY
+    PS1='%n@%m:%~%# '
+    
+    # Basic color for ls
+    alias ls='ls --color=auto'
+    
+    # Exit early, skipping the rest of customizations including starship
+    return
+fi
+
 #######################################################################
 # SOURCED ALIAS'S AND SCRIPTS BY Luis Freitas and others (2025)
 # ZSH version converted from dxsbash
