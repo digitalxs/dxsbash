@@ -25,7 +25,6 @@ $character\
 """
 
 palette = 'catppuccin_mocha'
-# palette = 'tokyo_night'
 add_newline = true
 
 [palettes.catppuccin_mocha]
@@ -44,25 +43,32 @@ red = '#F38BA8'
 yellow = '#F9E2AF'
 status = "#e23140"
 
-[palettes.tokyo_night]
-foreground = '#D8D8D8'
-background = '#1A1B26'
-current_line = '#2A2C37'
-primary = '#292E42'
-box = '#2A2C37'
-blue = '#7AA2F7'
-cyan = '#7FDBCA'
-green = '#98C379'
-orange = '#FF9E64'
-pink = '#FF75A0'
-purple = '#BB80B3'
-red = '#F7768E'
-yellow = '#E5C07B'
-status = "#e23140"
-
 [os]
 format = '(fg:current_line)[](fg:red)[](fg:primary bg:red)[](fg:red)'
 disabled = false
+
+[os.symbols]
+Windows = "󰍲"
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
+Alpine = ""
+Amazon = ""
+Android = ""
+Arch = "󰣇"
+Artix = "󰣇"
+EndeavourOS = ""
+CentOS = ""
+Debian = "󰣚"
+Redhat = "󱄛"
+RedHatEnterprise = "󱄛"
+Pop = ""
 
 [status]
 format = "[─](fg:current_line)[](fg:status)[](fg:primary bg:status)[](fg:status bg:box)[ $status](fg:foreground bg:box)[](fg:box)"
