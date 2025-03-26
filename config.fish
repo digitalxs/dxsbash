@@ -210,7 +210,11 @@ function f
 end
 
 # Count files
-alias countfiles="for t in files links directories; echo (find . -type (string sub -l 1 \$t) | wc -l) \$t; end 2>/dev/null"
+function countfiles
+    for t in files links directories
+        echo (find . -type (string sub -l 1 $t) | wc -l) $t
+    end 2>/dev/null
+end
 
 # Command type checker
 function checkcommand
