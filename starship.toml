@@ -77,7 +77,7 @@ Unknown = ''
 Windows = ''
 
 [hostname]
-format = '[─](fg:current_line)[](fg:orange)[ ](fg:primary bg:orange)[](fg:orange bg:box)[ $hostname](fg:foreground bg:box)[](fg:box) '
+format = '[─](fg:current_line)[](fg:orange)[ ](fg:primary bg:orange)[](fg:orange bg:box)[ $hostname](fg:foreground bg:box)[](fg:box) '
 ssh_only = false
 
 [directory]
