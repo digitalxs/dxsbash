@@ -16,7 +16,7 @@ $cmd_duration\
 $shell\
 $time\
 $username\
-$hostname
+$hostname\
 $line_break\
 $character\
 """
