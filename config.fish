@@ -1,4 +1,36 @@
 #!/usr/bin/env fish
+
+# Detect if this is a TTY console
+if string match -q "/dev/tty[1-9]*" (tty)
+    # This is a TTY console - minimal configuration
+    
+    # Set a simple prompt
+    function fish_prompt
+        echo -n (whoami)"@"(hostname)":"(prompt_pwd)" > "
+    end
+    
+    # Clear fish greeting
+    set fish_greeting ""
+    
+    # Basic history
+    set -g HISTSIZE 1000
+    
+    # Basic color for ls
+    alias ls='ls --color=auto'
+    
+    # Basic XDG paths
+    set -x XDG_DATA_HOME "$HOME/.local/share"
+    set -x XDG_CONFIG_HOME "$HOME/.config"
+    set -x XDG_STATE_HOME "$HOME/.local/state" 
+    set -x XDG_CACHE_HOME "$HOME/.cache"
+    
+    # Skip rest of configuration
+    exit
+end
+
+#######################################################################
+# SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
+# ... rest of your config.fish file continues unchanged
 #######################################################################
 # SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
 # FISH version converted from dxsbash
