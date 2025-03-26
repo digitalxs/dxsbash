@@ -3,6 +3,7 @@
 format = """
 [╭](fg:current_line)\
 $os\
+$hostname\
 $directory\
 $git_branch\
 $fill\
@@ -75,6 +76,10 @@ Ubuntu = ''
 Unknown = ''
 Windows = ''
 
+[hostname]
+format = '[─](fg:current_line)[](fg:yellow)[ ](fg:primary bg:yellow)[](fg:yellow bg:box)[ $user](fg:foreground bg:box)[](fg:box) '
+show_always = true
+
 [directory]
 format = '[─](fg:current_line)[](fg:pink)[󰷏 ](fg:primary bg:pink)[](fg:pink bg:box)[ $read_only$truncation_symbol$path](fg:foreground bg:box)[](fg:box)'
 home_symbol = " ~/"
@@ -134,5 +139,5 @@ show_always = true
 [character]
 format = """
 [╰─$symbol](fg:current_line) """
-success_symbol = '[λ](fg:bold white)'
+success_symbol = '[](fg:bold white)'
 error_symbol = '[×](fg:bold red)'
