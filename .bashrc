@@ -16,7 +16,7 @@ iatest=$(expr index "$-" i)
 #######################################################################
 
 # Source global definitions
-if [ -f /etc/bashrc ]; then nano
+if [ -f /etc/bashrc ]; then
 	 . /etc/bashrc
 fi
 
