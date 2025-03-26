@@ -2,8 +2,8 @@
 iatest=$(expr index "$-" i)
 
 # Check if this is a TTY session
-if [ "$TERM" = "linux" ]; then
-    # This is a TTY session - load minimal configuration
+if [[ "$(tty)" == /dev/tty[1-9]* ]]; then
+    # This is definitely a TTY console session
     
     # Basic history settings
     export HISTSIZE=1000
@@ -21,7 +21,7 @@ if [ "$TERM" = "linux" ]; then
     alias ls='ls --color=auto'
     alias grep='grep --color=auto'
     
-    # Exit early, skipping all customizations
+    # Exit early, skipping all customizations including starship
     return
 fi
 #######################################################################
