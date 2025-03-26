@@ -427,8 +427,10 @@ setupShellConfig() {
             exit 1
         }
         
-    elif [ "$SELECTED_SHELL" = "zsh" ]; then
+elif [ "$SELECTED_SHELL" = "zsh" ]; then
+        # Check if .zshrc exists and handle accordingly
         if [ -e "$USER_HOME/.zshrc" ]; then
+            # Backup existing .zshrc
             BACKUP_FILE="$USER_HOME/.zshrc.bak"
             if [ -e "$BACKUP_FILE" ]; then
                 TIMESTAMP=$(date +%Y%m%d%H%M%S)
@@ -441,14 +443,26 @@ setupShellConfig() {
             fi
         fi
         
-        # Link Zsh config
+        # Link Zsh config - whether .zshrc existed or not, we'll use the one from dxsbash
+        echo "${GREEN}Installing dxsbash .zshrc file${RC}"
         ln -svf "$GITPATH/.zshrc" "$USER_HOME/.zshrc" || {
             echo "${RED}Failed to create symbolic link for .zshrc${RC}"
-            exit 1
+            # If symlinking fails, try direct copy
+            echo "${YELLOW}Attempting direct copy of .zshrc...${RC}"
+            cp -f "$GITPATH/.zshrc" "$USER_HOME/.zshrc" || {
+                echo "${RED}Failed to copy .zshrc file!${RC}"
+                exit 1
+            }
         }
+        
         ln -svf "$GITPATH/.zshrc_help" "$USER_HOME/.zshrc_help" || {
             echo "${RED}Failed to create symbolic link for .zshrc_help${RC}"
-            exit 1
+            # If symlinking fails, try direct copy
+            echo "${YELLOW}Attempting direct copy of .zshrc_help...${RC}"
+            cp -f "$GITPATH/.zshrc_help" "$USER_HOME/.zshrc_help" || {
+                echo "${RED}Failed to copy .zshrc_help file!${RC}"
+                exit 1
+            }
         }
         
         # Install Oh My Zsh if not already installed
