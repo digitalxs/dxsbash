@@ -3,6 +3,7 @@
 format = """
 [╭](fg:current_line)\
 $os\
+$hostname\
 $status\
 $directory\
 $git_branch\
@@ -46,8 +47,8 @@ status = "#e23140"
 [os]
 format = '(fg:current_line)[](fg:red)[](fg:primary bg:red)[](fg:red)'
 disabled = false
-# Add these lines to explicitly set symbols for Linux distributions
-debian_symbol = "󰣚"
+
+[os.symbols]
 Debian = "󰣚"
 Windows = "󰍲"
 Ubuntu = "󰕈"
