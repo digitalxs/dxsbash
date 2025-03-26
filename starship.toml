@@ -3,6 +3,7 @@
 format = """
 [╭](fg:current_line)\
 $os\
+$hostname\
 $directory\
 $git_branch\
 $fill\
@@ -15,7 +16,6 @@ $cmd_duration\
 $shell\
 $time\
 $username\
-$hostname\
 $line_break\
 $character\
 """
@@ -77,7 +77,7 @@ Unknown = ''
 Windows = ''
 
 [hostname]
-format = '[─](fg:current_line)[](fg:yellow)[ ](fg:primary bg:yellow)[](fg:yellow bg:box)[ $user](fg:foreground bg:box)[](fg:box) '
+format = '[─](fg:current_line)[](fg:orange)[ ](fg:primary bg:orange)[](fg:orange bg:box)[ $hostname](fg:foreground bg:box)[](fg:box) '
 show_always = true
 
 [directory]
@@ -134,10 +134,6 @@ disabled = false
 
 [username]
 format = '[─](fg:current_line)[](fg:yellow)[ ](fg:primary bg:yellow)[](fg:yellow bg:box)[ $user](fg:foreground bg:box)[](fg:box) '
-show_always = true
-
-[hostname]
-format = '[─](fg:current_line)[](fg:orange)[ ](fg:primary bg:orange)[](fg:orange bg:box)[ $hostname](fg:foreground bg:box)[](fg:box) '
 show_always = true
 
 [character]
