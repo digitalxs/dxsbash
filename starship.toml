@@ -44,10 +44,11 @@ yellow = '#F9E2AF'
 status = "#e23140"
 
 [os]
-format = '(fg:current_line)[](fg:red)[](fg:primary bg:red)[](fg:red)'
+format = '(fg:current_line)[](fg:red)[](fg:primary bg:red)[](fg:red)'
 disabled = false
-
-[os.symbols]
+# Add these lines to explicitly set symbols for Linux distributions
+debian_symbol = "󰣚"
+Debian = "󰣚"
 Windows = "󰍲"
 Ubuntu = "󰕈"
 SUSE = ""
@@ -65,7 +66,6 @@ Arch = "󰣇"
 Artix = "󰣇"
 EndeavourOS = ""
 CentOS = ""
-Debian = "󰣚"
 Redhat = "󱄛"
 RedHatEnterprise = "󱄛"
 Pop = ""
