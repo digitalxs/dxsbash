@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 iatest=$(expr index "$-" i)
 
+# Check if this is a TTY session
+if [ "$TERM" = "linux" ]; then
+    # This is a TTY session - load minimal configuration
+    
+    # Basic history settings
+    export HISTSIZE=1000
+    export HISTFILESIZE=2000
+    export HISTCONTROL=ignoreboth
+    
+    # Basic shell options
+    shopt -s checkwinsize
+    shopt -s histappend
+    
+    # Simple prompt
+    PS1='\u@\h:\w\$ '
+    
+    # Basic color support for common commands
+    alias ls='ls --color=auto'
+    alias grep='grep --color=auto'
+    
+    # Exit early, skipping all customizations
+    return
+fi
 #######################################################################
 # SOURCED ALIAS'S AND SCRIPTS BY Luis Freitas and others (2025)
 # Get List of commands at README
