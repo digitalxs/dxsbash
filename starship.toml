@@ -3,7 +3,6 @@
 format = """
 [╭](fg:current_line)\
 $os\
-$hostname\
 $directory\
 $git_branch\
 $fill\
@@ -16,6 +15,7 @@ $cmd_duration\
 $shell\
 $time\
 $username\
+$hostname\
 $line_break\
 $character\
 """
