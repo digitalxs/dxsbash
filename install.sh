@@ -6,9 +6,9 @@
 # This script will download and install DXSBash, a professional shell environment
 # for Linux power users with enhanced features for Bash, Zsh, and Fish shells.
 #
-# Usage: curl -fsSL https://digitalxs.ca/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/install.sh | bash
 #        or
-#        wget -qO- https://digitalxs.ca/install.sh | bash
+#        wget -qO- https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/install.sh | bash
 
 # Enable strict error handling
 set -eo pipefail
