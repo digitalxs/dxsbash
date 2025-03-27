@@ -36,6 +36,10 @@ cd dxsbash
 chmod +x setup.sh
 ./setup.sh
 ```
+## Installation with one command (hosted by digitalxs.ca)
+```
+curl -fsSL https://digitalxs.ca/install.sh | bash
+```
 
 The installer provides an interactive experience:
 1. Detects your Linux distribution automatically
