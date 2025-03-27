@@ -30,7 +30,7 @@ print_banner() {
   echo -e "${BLUE}██████╔╝██╔╝ ██╗███████║██████╔╝██║  ██║███████║██║  ██║${RC}"
   echo -e "${BLUE}╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝${RC}"
   echo -e "${CYAN}Professional Shell Environment for Linux Power Users${RC}"
-  echo -e "${YELLOW}digitalxs.ca${RC}\n"
+  echo -e "${YELLOW}v2.1.4${RC}\n"
 }
 
 # Print a step message
