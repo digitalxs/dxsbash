@@ -36,9 +36,9 @@ cd dxsbash
 chmod +x setup.sh
 ./setup.sh
 ```
-## Installation with one command (hosted by digitalxs.ca)
+## Installation with one command
 ```
-curl -fsSL https://digitalxs.ca/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/install.sh | bash
 ```
 
 The installer provides an interactive experience:
