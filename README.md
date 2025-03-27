@@ -106,6 +106,11 @@ Update to the latest version:
 ```bash
 upbashdxs
 ```
+## Cross-Platform Compatibility Issues
+- Linux-specific Commands: Some commands (like netstat-based aliases) might not work correctly on all Linux distributions or might have different output formats.
+- X11-dependent Features: Commands like clickpaste rely on X11 utilities (xdotool) which won't work in Wayland or headless environments.
+- Hardware-dependent Commands: The cpu function assumes a specific format in /proc/stat, which might not be consistent across all Linux kernels.
+- Terminal-specific Features: The Konsole and Yakuake configurations might not translate well to other terminal emulators.
 
 ## Uninstalling
 
