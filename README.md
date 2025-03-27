@@ -22,7 +22,7 @@ Tested extensively on Debian 12. Please test on any system and send e-mail with 
 ## Key Features
 
 - **Cross-shell compatibility** - Works seamlessly with Bash, Zsh, and Fish
-- **Distribution-agnostic** - Supports Debian, Ubuntu, Fedora, RHEL, Arch, and more
+- **Distribution-quasi-agnostic** - Made for Debian 12,but working on Ubuntu, Fedora, RHEL, Arch, and more
 - **Smart navigation** - Enhanced directory jumping, fuzzy search, and history management
 - **Beautiful interface** - Modern prompt, system information display, and optimized typography
 - **Development tools** - Git integration, language version detection, and shortcuts
