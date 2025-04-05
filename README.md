@@ -1,5 +1,5 @@
 # DXSBash - Enhanced Shell Environment
-v2.1.4
+v2.1.5
 <div align="center">
     <a href="https://digitalxs.ca">
         <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="100">
