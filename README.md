@@ -124,6 +124,14 @@ Revert to default shell configuration:
 sudo reset-shell-profile [username]
 ```
 
+## Tested compatibility
+DXSBash was successfully compatibility tested with:
+- Debian 12.9
+- Konsole  22.12.3
+- Yakuake 22.12.3
+- XFce Terminal 1.0.4 (Need to change font settings to Firacode Nerd Font Regular)
+
+
 ## Support Development
 
 If you find DXSBash valuable for your workflow, consider supporting its development:
