@@ -130,6 +130,7 @@ DXSBash was successfully compatibility tested with:
 - Konsole  22.12.3
 - Yakuake 22.12.3
 - XFce Terminal 1.0.4 (Need to change font settings to Firacode Nerd Font Regular)
+- Kitty 0.26.5
 
 
 ## Support Development
