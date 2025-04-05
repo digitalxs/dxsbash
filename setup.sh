@@ -120,7 +120,7 @@ installDepend() {
     if [ "$PACKAGER" = "apt" ] || [ "$PACKAGER" = "nala" ]; then
         DEPENDENCIES="$DEPENDENCIES nala plocate trash-cli powerline"
     elif [ "$PACKAGER" = "dnf" ]; then
-        DEPENDENCIES="$DEPENDENCIES dnf-plugins-core dnf-utils mlocate trash-cli powerline"
+        DEPENDENCIES="$DEPENDENCIES dnf-plugins-core dnf-utils plocate trash-cli powerline"
     elif [ "$PACKAGER" = "pacman" ]; then
         DEPENDENCIES="$DEPENDENCIES plocate trash-cli powerline"
     fi
