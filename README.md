@@ -1,5 +1,5 @@
 # DXSBash - Enhanced Shell Environment For Debian (but you can try on other distros)
-v2.1.5
+v2.1.6
 <div align="center">
     <a href="https://digitalxs.ca">
         <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="100">
