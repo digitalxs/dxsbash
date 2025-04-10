@@ -396,7 +396,6 @@ update_dxsbash() {
             echo -e "${RED}Failed to update system-wide updater command${RC}"
             log "ERROR" "Failed to update system-wide updater command"
         fi
-}
 
         # Update utilities script
         if [ -f "$DXSBASH_DIR/dxsbash-utils.sh" ]; then
