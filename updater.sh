@@ -11,6 +11,26 @@ GREEN='\033[32m'
 BLUE='\033[34m'
 CYAN='\033[36m'
 
+# Load dxsbash utilities for logging if available
+DXSBASH_UTILS="$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
+if [ -f "$DXSBASH_UTILS" ]; then
+    source "$DXSBASH_UTILS"
+    # Create logs directory if it doesn't exist
+    mkdir -p "$HOME/.dxsbash/logs"
+else
+    # Define a fallback log function if the utilities file isn't available
+    log() {
+        local level="$1"
+        local message="$2"
+        # Do nothing - silent fallback
+    }
+    
+    rotate_logs() {
+        # Do nothing - silent fallback
+        :
+    }
+fi
+
 # Base directory
 LINUXTOOLBOXDIR="$HOME/linuxtoolbox"
 DXSBASH_DIR="$LINUXTOOLBOXDIR/dxsbash"
