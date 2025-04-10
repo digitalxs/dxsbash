@@ -858,6 +858,13 @@ installResetScript
 installUpdaterCommand
 configure_kde_terminal_emulators
 
+# Create logs directory
+mkdir -p "$HOME/.dxsbash/logs"
+
+# Copy the utilities file
+cp -f "$GITPATH/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/dxsbash/"
+chmod +x "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
+
 # Create symlink to updater in home directory
 USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
 ln -svf "$GITPATH/updater.sh" "$USER_HOME/update-dxsbash.sh" || {
