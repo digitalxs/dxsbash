@@ -141,8 +141,8 @@ update_shell_configs() {
         bash)
             # Update Bash configuration
             ln -svf "$dxsbash_dir/.bashrc" "$user_home/.bashrc" && \
-            echo -e "${GREEN}Updated .bashrc${RC}" || \
-            echo -e "${RED}Failed to update .bashrc${RC}"
+            (echo -e "${GREEN}Updated .bashrc${RC}"; log "INFO" "Updated .bashrc") || \
+            (echo -e "${RED}Failed to update .bashrc${RC}"; log "ERROR" "Failed to update .bashrc")
             
             ln -svf "$dxsbash_dir/.bashrc_help" "$user_home/.bashrc_help" && \
             echo -e "${GREEN}Updated .bashrc_help${RC}" || \
@@ -300,10 +300,12 @@ update_dxsbash() {
     
     # Stash any local changes
     git stash -q
+    log "INFO" "Stashed local changes"
     
     # Fetch latest changes
     if git pull origin main; then
         echo -e "${GREEN}Successfully updated dxsbash repository!${RC}"
+        log "INFO" "Git pull successful"
         
         # Get the new version after update
         local new_version=$(get_current_version)
@@ -419,10 +421,13 @@ update_dxsbash() {
     fi
 }
 
+# Rotate logs if needed
+rotate_logs
+
 # Main function
 main() {
     echo -e "${YELLOW}Checking for dxsbash updates...${RC}"
-    log "INFO" "Checked for dxsbash updates"
+    log "INFO" "Starting check for dxsbash updates"
     
     # Check if dxsbash directory exists
     if [ ! -d "$DXSBASH_DIR" ]; then
@@ -450,7 +455,7 @@ main() {
         echo -e "${GREEN}You already have the latest version of dxsbash.${RC}"
     elif version_gt "$latest_version" "$current_version"; then
         echo -e "${YELLOW}A newer version is available!${RC}"
-        log "INFO" "Found a new version avaiable"
+        log "INFO" "Found a new version available"
         
         # Ask for user confirmation
         read -p "Do you want to proceed with the update? (y/N): " confirm
