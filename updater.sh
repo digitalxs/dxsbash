@@ -387,11 +387,14 @@ update_dxsbash() {
         if [ -f "$DXSBASH_DIR/updater.sh" ]; then
             cp -p "$DXSBASH_DIR/updater.sh" "$LINUXTOOLBOXDIR/"
             chmod +x "$LINUXTOOLBOXDIR/updater.sh"
-            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs && \
-            echo -e "${GREEN}Updated system-wide updater command${RC}" || \
+        if $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs; then
+            echo -e "${GREEN}Updated system-wide updater command${RC}"
+            log "INFO" "Updated system-wide updater command"
+        else
             echo -e "${RED}Failed to update system-wide updater command${RC}"
-            log "INFO" "Failed to update system-wide updater command"
+            log "ERROR" "Failed to update system-wide updater command"
         fi
+}
 
         # Update utilities script
         if [ -f "$DXSBASH_DIR/dxsbash-utils.sh" ]; then
