@@ -267,14 +267,17 @@ update_konsole_config() {
 # Function to update dxsbash
 update_dxsbash() {
     echo -e "${YELLOW}Updating dxsbash...${RC}"
+    log "INFO" "Starting dxsbash update"
     
     # Create backup of current installation
     local backup_dir="$LINUXTOOLBOXDIR/dxsbash_backup_$(date +%Y%m%d_%H%M%S)"
     echo -e "${YELLOW}Creating backup at $backup_dir${RC}"
     cp -r "$DXSBASH_DIR" "$backup_dir"
+    log "INFO" "Created backup at $backup_dir"
     
     # Store the old version before updating
     local old_version=$(get_current_version)
+    log "INFO" "Updating from version $old_version"
     
     # Get user home directory
     USER_HOME="$HOME"
@@ -305,6 +308,7 @@ update_dxsbash() {
         # Get the new version after update
         local new_version=$(get_current_version)
         echo -e "${GREEN}Updated from version ${YELLOW}$old_version${GREEN} to ${YELLOW}$new_version${RC}"
+        log "INFO" "Updated from version $old_version to $new_version"
         
         # Define sudo command
         local sudo_cmd="sudo"
@@ -318,6 +322,7 @@ update_dxsbash() {
         
         # Update shell configurations
         update_shell_configs "$USER_HOME" "$DXSBASH_DIR" "$SHELL_TYPE"
+        log "INFO" "Updated shell configurations for $SHELL_TYPE"
         
         # Update Konsole configuration if present
         update_konsole_config "$USER_HOME" "$DXSBASH_DIR"
@@ -385,17 +390,28 @@ update_dxsbash() {
             $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs && \
             echo -e "${GREEN}Updated system-wide updater command${RC}" || \
             echo -e "${RED}Failed to update system-wide updater command${RC}"
+            log "INFO" "Failed to update system-wide updater command"
+        fi
+
+        # Update utilities script
+        if [ -f "$DXSBASH_DIR/dxsbash-utils.sh" ]; then
+            cp -p "$DXSBASH_DIR/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/"
+            chmod +x "$LINUXTOOLBOXDIR/dxsbash-utils.sh"
+            log "INFO" "Updated dxsbash-utils.sh"
         fi
         
         echo -e "${GREEN}Update completed successfully!${RC}"
+        log "INFO" "Update completed successfully"
         echo -e "${YELLOW}To apply changes to your current session, run: source ~/.${SHELL_TYPE}rc${RC}"
         return 0
     else
         echo -e "${RED}Failed to update dxsbash repository.${RC}"
+        log "ERROR" "Failed to update dxsbash repository"
         echo -e "${YELLOW}Restoring from backup...${RC}"
         rm -rf "$DXSBASH_DIR"
         cp -r "$backup_dir" "$DXSBASH_DIR"
         echo -e "${YELLOW}Restored from backup.${RC}"
+        log "INFO" "Restored from backup $backup_dir"
         return 1
     fi
 }
@@ -403,10 +419,12 @@ update_dxsbash() {
 # Main function
 main() {
     echo -e "${YELLOW}Checking for dxsbash updates...${RC}"
+    log "INFO" "Checked for dxsbash updates"
     
     # Check if dxsbash directory exists
     if [ ! -d "$DXSBASH_DIR" ]; then
         echo -e "${RED}Error: dxsbash directory not found at $DXSBASH_DIR${RC}"
+        log "ERROR" "dxsbash directory not found at $DXSBASH_DIR"
         echo -e "${YELLOW}Run the installer first:${RC}"
         echo -e "git clone --depth=1 https://github.com/digitalxs/dxsbash.git"
         echo -e "cd dxsbash"
@@ -429,6 +447,7 @@ main() {
         echo -e "${GREEN}You already have the latest version of dxsbash.${RC}"
     elif version_gt "$latest_version" "$current_version"; then
         echo -e "${YELLOW}A newer version is available!${RC}"
+        log "INFO" "Found a new version avaiable"
         
         # Ask for user confirmation
         read -p "Do you want to proceed with the update? (y/N): " confirm
@@ -439,8 +458,10 @@ main() {
         
         if update_dxsbash; then
             echo -e "${GREEN}dxsbash has been updated to version $latest_version${RC}"
+            log "INFO" "dxsbash has been updated to version $latest_version"
         else
             echo -e "${RED}Update failed. Please try again later or update manually.${RC}"
+            log "ERROR" "Update failed"
         fi
     else
         echo -e "${YELLOW}You have a newer version than the repository. No update needed.${RC}"
