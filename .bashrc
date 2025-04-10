@@ -43,6 +43,11 @@ if [ -f /etc/bashrc ]; then
 	 . /etc/bashrc
 fi
 
+# Source dxsbash utilities
+if [ -f "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh" ]; then
+    source "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
+fi
+
 # Enable bash programmable completion features in interactive shells
 if [ -f /usr/share/bash-completion/bash_completion ]; then
 	. /usr/share/bash-completion/bash_completion
