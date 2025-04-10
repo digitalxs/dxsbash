@@ -4,12 +4,15 @@ v2.1.5
     <a href="https://digitalxs.ca">
         <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="100">
     </a>
-    <h3>Professional Shell Environment for Linux Power Users</h3>
 
+<h3>Professional Shell Environment for Linux Power Users</h3>
+
+[![Debian](https://img.shields.io/badge/Tested%20on-Debian-D70A53?logo=debian&logoColor=white)](https://www.debian.org/)
 [![GPL License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Bash](https://img.shields.io/badge/Shell-Bash-4EAA25?logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Zsh](https://img.shields.io/badge/Shell-Zsh-071D49?logo=zsh&logoColor=white)](https://www.zsh.org/)
 [![Fish](https://img.shields.io/badge/Shell-Fish-394655?logo=fish&logoColor=white)](https://fishshell.com/)
+
 
 <a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
@@ -94,6 +97,103 @@ The installer provides an interactive experience:
 - `gl` - Git log
 - `gb` - Git branch
 - `gco` - Git checkout
+
+## Software Dependencies
+
+DXSBash installs and uses the following software packages to enhance the Linux terminal experience and DXSBash would not be possible without them:
+
+### Core Shells
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Bash | GNU Bourne Again Shell | [gnu.org/software/bash](https://www.gnu.org/software/bash/) |
+| Zsh | Z Shell | [zsh.org](https://www.zsh.org/) |
+| Fish | Friendly Interactive Shell | [fishshell.com](https://fishshell.com/) |
+
+### Terminal Enhancement Tools
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Starship | Cross-shell prompt | [starship.rs](https://starship.rs/) |
+| Zoxide | Smart directory navigation | [github.com/ajeetdsouza/zoxide](https://github.com/ajeetdsouza/zoxide) |
+| FZF | Fuzzy finder | [github.com/junegunn/fzf](https://github.com/junegunn/fzf) |
+| Fastfetch | System information display | [github.com/fastfetch-cli/fastfetch](https://github.com/fastfetch-cli/fastfetch) |
+| Bat/Batcat | Improved cat command | [github.com/sharkdp/bat](https://github.com/sharkdp/bat) |
+| Ripgrep | Fast text search | [github.com/BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) |
+| Tree | Directory visualization | [mama.indstate.edu/users/ice/tree](http://mama.indstate.edu/users/ice/tree/) |
+| Multitail | Enhanced log viewing | [vanheusden.com/multitail](https://www.vanheusden.com/multitail/) |
+
+### Fonts
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| FiraCode Nerd Font | Programming font with ligatures and icons | [github.com/ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts) |
+
+### Shell-Specific Tools
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Oh My Zsh | Zsh framework | [ohmyz.sh](https://ohmyz.sh/) |
+| zsh-autosuggestions | Command suggestions for Zsh | [github.com/zsh-users/zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) |
+| zsh-syntax-highlighting | Syntax highlighting for Zsh | [github.com/zsh-users/zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting) |
+| Fisher | Plugin manager for Fish | [github.com/jorgebucaran/fisher](https://github.com/jorgebucaran/fisher) |
+| fzf.fish | FZF integration for Fish | [github.com/PatrickF1/fzf.fish](https://github.com/PatrickF1/fzf.fish) |
+| Tide | Fish prompt | [github.com/IlanCosman/tide](https://github.com/IlanCosman/tide) |
+
+### Development Tools
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Git | Version control system | [git-scm.com](https://git-scm.com/) |
+| Neovim | Text editor | [neovim.io](https://neovim.io/) |
+| Nano | Simple text editor | [nano-editor.org](https://www.nano-editor.org/) |
+| Joe | Text editor | [joe-editor.sourceforge.net](https://joe-editor.sourceforge.net/) |
+
+### System Utilities
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Nala | APT frontend | [github.com/volitank/nala](https://github.com/volitank/nala) |
+| Trash-cli | Safer alternative to rm | [github.com/andreafrancia/trash-cli](https://github.com/andreafrancia/trash-cli) |
+| Curl | URL transfer tool | [curl.se](https://curl.se/) |
+| Wget | File retrieval tool | [gnu.org/software/wget](https://www.gnu.org/software/wget/) |
+| Unzip | Archive extraction | [infozip.sourceforge.net/UnZip.html](https://infozip.sourceforge.net/UnZip.html) |
+| Pwgen | Password generator | [sourceforge.net/projects/pwgen](https://sourceforge.net/projects/pwgen/) |
+| Powerline | Status line | [github.com/powerline/powerline](https://github.com/powerline/powerline) |
+| Plocate | Fast file search | [plocate.sesse.net](https://plocate.sesse.net/) |
+| Fontconfig | Font management | [freedesktop.org/wiki/Software/fontconfig](https://www.freedesktop.org/wiki/Software/fontconfig/) |
+| Bash-completion | Improved shell completion | [github.com/scop/bash-completion](https://github.com/scop/bash-completion) |
+
+### Network Tools
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Nmcli | Network management CLI | [developer.gnome.org/NetworkManager/stable/nmcli.html](https://developer.gnome.org/NetworkManager/stable/nmcli.html) |
+| Netstat | Network statistics | [net-tools.sourceforge.net](https://net-tools.sourceforge.net/) |
+
+### UI Automation Tools
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| XDotool | X11 automation tool | [github.com/jordansissel/xdotool](https://github.com/jordansissel/xdotool) |
+| XClip | Clipboard management | [github.com/astrand/xclip](https://github.com/astrand/xclip) |
+
+### Container and Orchestration Tools
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Docker | Container platform | [docker.com](https://www.docker.com/) |
+| Docker Compose | Multi-container Docker | [docs.docker.com/compose](https://docs.docker.com/compose/) |
+| Kubectl | Kubernetes CLI | [kubernetes.io/docs/reference/kubectl](https://kubernetes.io/docs/reference/kubectl/) |
+
+### Package Managers
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| DNF | Fedora package manager | [dnf.readthedocs.io](https://dnf.readthedocs.io/) |
+| Zypper | SUSE package manager | [en.opensuse.org/Portal:Zypper](https://en.opensuse.org/Portal:Zypper) |
+| Pacman | Arch package manager | [archlinux.org/pacman](https://archlinux.org/pacman/) |
+| Emerge | Gentoo package manager | [wiki.gentoo.org/wiki/Portage](https://wiki.gentoo.org/wiki/Portage) |
+| XBPS | Void Linux package manager | [voidlinux.org/usage/xbps](https://voidlinux.org/usage/xbps/) |
+| Nix | NixOS package manager | [nixos.org/manual/nix](https://nixos.org/manual/nix/stable/) |
+| Yay/Paru | AUR helpers | [github.com/Jguer/yay](https://github.com/Jguer/yay) / [github.com/Morganamilo/paru](https://github.com/Morganamilo/paru) |
+
+### Terminal Emulators
+| Software | Description | Project Link |
+|----------|-------------|--------------|
+| Konsole | KDE terminal | [konsole.kde.org](https://konsole.kde.org/) |
+| Yakuake | KDE drop-down terminal | [kde.org/applications/system/org.kde.yakuake](https://kde.org/applications/system/org.kde.yakuake) |
+| Kitty | GPU-accelerated terminal | [sw.kovidgoyal.net/kitty](https://sw.kovidgoyal.net/kitty/) |
 
 ## Customization
 
