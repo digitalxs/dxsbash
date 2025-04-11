@@ -863,10 +863,12 @@ mkdir -p "$HOME/.dxsbash/logs"
 touch "$HOME/.dxsbash/logs/dxsbash.log"
 chmod R 777 "$HOME/.dxsbash/logs/dxsbash.log"
 
-# Copy the utilities file
-cp -f "$GITPATH/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
-chmod -R 700 "$HOME/.dxsbash/logs"
+# Copy the utilities file - only if source and destination are different
+if [ "$GITPATH/dxsbash-utils.sh" != "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh" ]; then
+    cp -f "$GITPATH/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
+fi
 chmod +x "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
+chmod -R 700 "$HOME/.dxsbash/logs"
 chmod -R 644 "$HOME/.dxsbash/logs/dxsbash.log"
 
 # Create symlink to updater in home directory
