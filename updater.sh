@@ -418,7 +418,6 @@ update_dxsbash() {
         log "INFO" "Restored from backup $backup_dir"
         return 1
     fi
-}
 
 # Main function
 main() {
