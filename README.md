@@ -13,6 +13,9 @@ v2.1.8
 [![Zsh](https://img.shields.io/badge/Shell-Zsh-071D49?logo=zsh&logoColor=white)](https://www.zsh.org/)
 [![Fish](https://img.shields.io/badge/Shell-Fish-394655?logo=fish&logoColor=white)](https://fishshell.com/)
 
+## Command Reference
+
+For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
 
 <a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
@@ -30,6 +33,15 @@ Tested extensively on Debian 12. Please test on any system and send e-mail with 
 - **Beautiful interface** - Modern prompt, system information display, and optimized typography
 - **Development tools** - Git integration, language version detection, and shortcuts
 - **KDE integration** - Custom Konsole and Yakuake profiles with optimized settings
+
+## Command Reference
+
+For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
+
+### Keyboard Shortcuts
+- `Ctrl+R` - Search command history with fuzzy matching
+- `Ctrl+F` - Launch interactive directory navigator
+- `Alt+C` - Change to selected directory via fuzzy finder
 
 ## Installation
 
