@@ -323,6 +323,11 @@ alias docker-clean=' \
   docker network prune -f ; \
   docker volume prune -f '
 
+# Source .bash_aliases if it exists
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
 #######################################################
 # SPECIAL FUNCTIONS
 #######################################################
