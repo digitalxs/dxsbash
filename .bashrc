@@ -418,7 +418,6 @@ cpg() {
 		cp "$1" "$2"
 	fi
 }
-
 # Move and go to the directory
 mvg() {
 	if [ -d "$2" ]; then
