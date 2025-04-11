@@ -1,4 +1,4 @@
-# DXSBash - An Excessive Shell Environment For Debian 12
+# DXSBash - Excessive Shell Environment For Debian 12
 v2.1.8
 <div align="center">
     <a href="https://digitalxs.ca">
