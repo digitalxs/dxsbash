@@ -861,6 +861,7 @@ configure_kde_terminal_emulators
 # Create logs directory
 mkdir -p "$HOME/.dxsbash/logs"
 touch "$HOME/.dxsbash/logs/dxsbash.log"
+chmod R 777 "$HOME/.dxsbash/logs/dxsbash.log"
 
 # Copy the utilities file
 cp -f "$GITPATH/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/dxsbash/"
