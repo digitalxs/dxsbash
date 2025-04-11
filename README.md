@@ -1,12 +1,9 @@
 # DXSBash - Excessive Shell Environment For Debian 12
 v2.1.8
+<div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
         <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="80"></a>
-<div align="center">
-    
-    
-    
 
 <h3>Professional Shell Environment for Linux Power Users</h3>
 
