@@ -420,9 +420,6 @@ update_dxsbash() {
     fi
 }
 
-# Rotate logs if needed
-rotate_logs
-
 # Main function
 main() {
     echo -e "${YELLOW}Checking for dxsbash updates...${RC}"
