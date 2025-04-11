@@ -868,7 +868,7 @@ if [ "$GITPATH/dxsbash-utils.sh" != "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh" 
     cp -f "$GITPATH/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
 fi
 chmod +x "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
-chmod -R 700 "$HOME/.dxsbash/logs"
+chmod 700 "$HOME/.dxsbash/logs"
 chmod 644 "$HOME/.dxsbash/logs/dxsbash.log"
 
 # Create symlink to updater in home directory
