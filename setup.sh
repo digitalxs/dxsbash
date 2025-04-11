@@ -426,7 +426,24 @@ setupShellConfig() {
             echo "${RED}Failed to create symbolic link for .bashrc_help${RC}"
             exit 1
         }
-        
+            # Link Bash aliases file
+    if [ -f "$GITPATH/.bash_aliases" ]; then
+        ln -svf "$GITPATH/.bash_aliases" "$USER_HOME/.bash_aliases" || {
+            echo "${RED}Failed to create symbolic link for .bash_aliases${RC}"
+            # If symlinking fails, try direct copy
+            echo "${YELLOW}Attempting direct copy of .bash_aliases...${RC}"
+            cp -f "$GITPATH/.bash_aliases" "$USER_HOME/.bash_aliases" || {
+                echo "${RED}Failed to copy .bash_aliases file!${RC}"
+            }
+        }
+        echo "${GREEN}Added .bash_aliases file${RC}"
+    else
+        # Create a minimal .bash_aliases file if it doesn't exist in the repository
+        echo "# Custom user aliases - Created by dxsbash setup" > "$USER_HOME/.bash_aliases"
+        echo "# Add your personal aliases below" >> "$USER_HOME/.bash_aliases"
+        echo "" >> "$USER_HOME/.bash_aliases"
+        echo "${GREEN}Created basic .bash_aliases file${RC}"
+    fi
 elif [ "$SELECTED_SHELL" = "zsh" ]; then
         # Check if .zshrc exists and handle accordingly
         if [ -e "$USER_HOME/.zshrc" ]; then
