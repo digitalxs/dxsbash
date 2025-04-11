@@ -4,6 +4,7 @@ v2.1.8
     <a href="https://digitalxs.ca">
         <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="100">
     </a>
+    <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="100">
 
 <h3>Professional Shell Environment for Linux Power Users</h3>
 
@@ -13,9 +14,6 @@ v2.1.8
 [![Zsh](https://img.shields.io/badge/Shell-Zsh-071D49?logo=zsh&logoColor=white)](https://www.zsh.org/)
 [![Fish](https://img.shields.io/badge/Shell-Fish-394655?logo=fish&logoColor=white)](https://fishshell.com/)
 
-## Command Reference
-
-For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
 
 <a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
@@ -24,6 +22,10 @@ For a comprehensive list of all available commands and aliases in DXSBash, see t
 DXSBash is a shell enhancement suite designed for developers, system administrators, and Linux power users. It provides a consistent, feature-rich experience across multiple shells and distributions, combining productivity tools, visual improvements, and optimized workflows.
 
 Tested extensively on Debian 12. Please test on any system and send e-mail with detailed info with results, bugs, etc...
+
+## Command Reference
+
+For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
 
 ## Key Features
 
