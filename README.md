@@ -1,4 +1,4 @@
-# DXSBash - Enhanced Shell Environment For Debian (but you can try on other distros)
+# DXSBash - An Excessive Shell Environment For Debian 12
 v2.1.8
 <div align="center">
     <a href="https://digitalxs.ca">
