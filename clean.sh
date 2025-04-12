@@ -21,7 +21,7 @@ echo -e "${CYAN}Removing all DXSBash files from user home directory${NC}"
 echo ""
 
 # Ask for confirmation
-read -p "This will remove all DXSBash files from your home directory. Continue? (y/N): " confirm
+read -p "This will remove all DXSBash files from your home directory. THIS FEATURE IS EXPERIMENTAL. DO IT AT YOUR OWN RISK! Continue? (y/N): " confirm
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}Operation cancelled.${NC}"
     exit 0
