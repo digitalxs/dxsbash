@@ -147,6 +147,10 @@ update_shell_configs() {
             ln -svf "$dxsbash_dir/.bashrc_help" "$user_home/.bashrc_help" && \
             echo -e "${GREEN}Updated .bashrc_help${RC}" || \
             echo -e "${RED}Failed to update .bashrc_help${RC}"
+
+            ln -svf "$dxsbash_dir/.bash_aliases" "$user_home/.bash_aliases" && \
+            echo -e "${GREEN}Updated .bash_aliases${RC}" || \
+            echo -e "${RED}Failed to update .bash_aliases${RC}"
             ;;
             
         zsh)
