@@ -26,6 +26,11 @@ Tested extensively on Debian 12. Please test on any system and send e-mail with 
 
 For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
 
+### Keyboard Shortcuts
+- `Ctrl+R` - Search command history with fuzzy matching
+- `Ctrl+F` - Launch interactive directory navigator
+- `Alt+C` - Change to selected directory via fuzzy finder
+
 ## Key Features
 
 - **Cross-shell compatibility** - Works seamlessly with Bash, Zsh, and Fish
@@ -35,14 +40,11 @@ For a comprehensive list of all available commands and aliases in DXSBash, see t
 - **Development tools** - Git integration, language version detection, and shortcuts
 - **KDE integration** - Custom Konsole and Yakuake profiles with optimized settings
 
-## Command Reference
+## Requirements
 
-For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
+- Debian 12 install
+- sudo access
 
-### Keyboard Shortcuts
-- `Ctrl+R` - Search command history with fuzzy matching
-- `Ctrl+F` - Launch interactive directory navigator
-- `Alt+C` - Change to selected directory via fuzzy finder
 
 ## Installation
 
