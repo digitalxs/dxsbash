@@ -31,20 +31,10 @@ For a comprehensive list of all available commands and aliases in DXSBash, see t
 - `Ctrl+F` - Launch interactive directory navigator
 - `Alt+C` - Change to selected directory via fuzzy finder
 
-## Key Features
-
-- **Cross-shell compatibility** - Works seamlessly with Bash, Zsh, and Fish
-- **Distribution-quasi-agnostic** - Made for Debian 12,but working on Ubuntu, Fedora, RHEL, Arch, and more
-- **Smart navigation** - Enhanced directory jumping, fuzzy search, and history management
-- **Beautiful interface** - Modern prompt, system information display, and optimized typography
-- **Development tools** - Git integration, language version detection, and shortcuts
-- **KDE integration** - Custom Konsole and Yakuake profiles with optimized settings
-
 ## Requirements
 
 - Debian 12 install
 - sudo access
-
 
 ## Installation
 
