@@ -1,3 +1,4 @@
+```bash
 #!/usr/bin/env bash
 iatest=$(expr index "$-" i)
 
@@ -161,12 +162,32 @@ alias searchpkg='sudo nala search'
 
 # For Arch Linux
 if command -v pacman &> /dev/null; then
-    alias install='sudo pacman -Sy'
-    alias update='sudo pacman -Syu'
-    alias upgrade='sudo pacman -Syu'
-    alias remove='sudo pacman -R'
-    alias removeall='sudo pacman -Rns'
-    alias searchpkg='pacman -Ss'
+    # Check for AUR helpers
+    if command -v yay &> /dev/null; then
+        alias install='yay -S'
+        alias update='yay -Syu'
+        alias upgrade='yay -Syu'
+        alias remove='yay -R'
+        alias removeall='yay -Rns'
+        alias searchpkg='yay -Ss'
+    elif command -v paru &> /dev/null; then
+        alias install='paru -S'
+        alias update='paru -Syu'
+        alias upgrade='paru -Syu'
+        alias remove='paru -R'
+        alias removeall='paru -Rns'
+        alias searchpkg='paru -Ss'
+    else
+        # Fallback to regular pacman
+        alias install='sudo pacman -S'
+        alias update='sudo pacman -Syu'
+        alias upgrade='sudo pacman -Syu'
+        alias remove='sudo pacman -R'
+        alias removeall='sudo pacman -Rns'
+        alias searchpkg='pacman -Ss'
+    fi
+    # Add history package listing for Arch
+    alias historypkg='cat /var/log/pacman.log'
 fi
 
 #######################################################
@@ -513,11 +534,12 @@ distribution ()
 }
 
 DISTRIBUTION=$(distribution)
-if [ "$DISTRIBUTION" = "arch" ]; then
-      alias cat='bat'
-else
-      alias cat='batcat'
-fi 
+# Set cat alias based on available commands and distribution
+if command -v bat &> /dev/null; then
+    alias cat='bat'
+elif command -v batcat &> /dev/null; then
+    alias cat='batcat'
+fi
 
 # Show the current version of the operating system
 ver() {
@@ -543,10 +565,38 @@ ver() {
 install_bashrc_support() {
     case $(distribution) in
         "debian")
-            sudo apt-get install bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
+            echo "Installing packages for Debian/Ubuntu..."
+            sudo apt-get update
+            sudo apt-get install -y bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline neovim ripgrep
             ;;
         "arch")
-            sudo pacman -S bash bash-completion bat tree zoxide trash-cli fzf
+            echo "Installing packages for Arch Linux..."
+            
+            # Determine which AUR helper to use, or fallback to pacman
+            AUR_HELPER="sudo pacman"
+            AUR_INSTALL_FLAG="-S --needed"
+            
+            if command -v yay &> /dev/null; then
+                AUR_HELPER="yay"
+                AUR_INSTALL_FLAG="-S --needed"
+            elif command -v paru &> /dev/null; then
+                AUR_HELPER="paru"
+                AUR_INSTALL_FLAG="-S --needed"
+            else
+                echo "No AUR helper found. Using pacman for official packages only."
+                echo "Consider installing yay or paru for AUR support."
+            fi
+            
+            # Install official packages with pacman
+            sudo pacman -S --needed bash bash-completion bat tree curl wget unzip fontconfig joe git fish zoxide trash-cli fzf ripgrep neovim
+            
+            # Install AUR packages if an AUR helper is available
+            if [ "$AUR_HELPER" != "sudo pacman" ]; then
+                echo "Installing AUR packages with $AUR_HELPER..."
+                $AUR_HELPER $AUR_INSTALL_FLAG fastfetch powerline
+            else
+                echo "To install AUR packages, please install an AUR helper like yay or paru."
+            fi
             ;;
         *)
             echo "Unsupported distribution. Only Debian, Ubuntu, and Arch are supported."
