@@ -1,8 +1,8 @@
 #!/bin/bash
 #=================================================================
-# DXSBash - Excessive Shell Environment for Debian 12
+# DXSBash - Enhanced Shell Environment for Debian and Ubuntu
 # Repository: https://github.com/digitalxs/dxsbash
-# Version: 2.2.1
+# Version: 2.2.3
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 # License: GPL-3.0
@@ -35,7 +35,7 @@ display_banner() {
   echo -e "${BLUE}║  ${WHITE}██████╔╝██╔╝ ██╗███████║██████╔╝██║  ██║███████║██║  ██║${BLUE}  ${RC}"
   echo -e "${BLUE}║  ${WHITE}╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝${BLUE}  ${RC}"
   echo -e "${BLUE}║                                                        ║${RC}"
-  echo -e "${BLUE}║  ${CYAN}Excessive Shell Environment for Debian${BLUE}                ║${RC}"
+  echo -e "${BLUE}║  ${CYAN}Enhanced Shell Environment for Debian & Ubuntu${BLUE}        ║${RC}"
   echo -e "${BLUE}║  ${YELLOW}  $(date +%Y) digitalxs.ca${BLUE}                                   ║${RC}"
   echo -e "${BLUE}║                                                        ║${RC}"
   echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${RC}"
@@ -88,11 +88,10 @@ initialize() {
 }
 
 # Main variables that will be used across functions
-PACKAGER=""
 SUDO_CMD=""
-SUGROUP=""
 GITPATH=""
 SELECTED_SHELL=""
+IS_DEBIAN_BASED=false
 
 # Display welcome banner
 display_banner
@@ -114,7 +113,7 @@ checkEnv() {
   echo -e "${CYAN}▶ Checking environment requirements...${RC}"
 
   ## Check for required tools
-  REQUIREMENTS='curl groups sudo git'
+  REQUIREMENTS='curl sudo git'
   for req in $REQUIREMENTS; do
     if ! command_exists "$req"; then
       echo -e "${RED}  ✗ Required tool missing: ${WHITE}$req${RC}"
@@ -124,28 +123,12 @@ checkEnv() {
   done
   echo -e "${GREEN}  ✓ All required tools are installed${RC}"
 
-  ## Check Package Handler
-  PACKAGEMANAGER='nala apt dnf yum pacman zypper emerge xbps-install nix-env'
-  for pgm in $PACKAGEMANAGER; do
-    if command_exists "$pgm"; then
-      PACKAGER="$pgm"
-      echo -e "${GREEN}  ✓ Using package manager: ${WHITE}$pgm${RC}"
-      break
-    fi
-  done
-
-  if [ -z "$PACKAGER" ]; then
-    echo -e "${RED}  ✗ No supported package manager found${RC}"
-    exit 1
-  fi
-
   ## Check for privilege escalation tool
   if command_exists sudo; then
     SUDO_CMD="sudo"
-  elif command_exists doas && [ -f "/etc/doas.conf" ]; then
-    SUDO_CMD="doas"
   else
-    SUDO_CMD="su -c"
+    echo -e "${RED}  ✗ sudo is required for this installation${RC}"
+    exit 1
   fi
   echo -e "${GREEN}  ✓ Using ${WHITE}$SUDO_CMD${GREEN} for privilege escalation${RC}"
 
@@ -156,23 +139,42 @@ checkEnv() {
     exit 1
   fi
 
-  ## Check SuperUser Group
-  SUPERUSERGROUP='wheel sudo root'
-  for sug in $SUPERUSERGROUP; do
-    if groups | grep -q "$sug"; then
-      SUGROUP="$sug"
-      echo -e "${GREEN}  ✓ Found super user group: ${WHITE}$SUGROUP${RC}"
-      break
-    fi
-  done
-
   ## Ensure user has sudo privileges
-  if ! groups | grep -q "$SUGROUP"; then
-    echo -e "${RED}  ✗ You need to be a member of the ${WHITE}$SUGROUP${RED} group to run this script!${RC}"
+  if ! groups | grep -q "sudo"; then
+    echo -e "${RED}  ✗ You need to be a member of the ${WHITE}sudo${RED} group to run this script!${RC}"
     exit 1
   fi
 
   echo -e "${GREEN}▶ Environment check passed${RC}"
+  echo ""
+}
+
+#=================================================================
+# Distribution detection
+#=================================================================
+detectDistro() {
+  echo -e "${CYAN}▶ Detecting Linux distribution...${RC}"
+
+  # Detect if we're on Debian or Ubuntu
+  if [ -f /etc/debian_version ]; then
+    if [ -f /etc/lsb-release ] && grep -q "Ubuntu" /etc/lsb-release; then
+      echo -e "${GREEN}  ✓ Detected ${WHITE}Ubuntu Linux${RC}"
+      IS_DEBIAN_BASED=true
+    else
+      echo -e "${GREEN}  ✓ Detected ${WHITE}Debian Linux${RC}"
+      IS_DEBIAN_BASED=true
+    fi
+  else
+    echo -e "${RED}  ⚠ Warning: DXSBash is designed specifically for Debian and Ubuntu.${RC}"
+    echo -e "${YELLOW}  Your system appears to be running a different distribution.${RC}"
+    echo -e "${YELLOW}  Some features may not work as expected.${RC}"
+    echo ""
+    read -p "  Do you want to continue anyway? (y/N): " continue_install
+    if [[ ! "$continue_install" =~ ^[Yy]$ ]]; then
+      echo -e "${RED}  Installation aborted.${RC}"
+      exit 1
+    fi
+  fi
   echo ""
 }
 
@@ -187,39 +189,15 @@ installDepend() {
 
   # Shell-specific dependencies
   BASH_DEPENDENCIES=""
-  ZSH_DEPENDENCIES="zsh"
+  ZSH_DEPENDENCIES="zsh zsh-autosuggestions zsh-syntax-highlighting"
   FISH_DEPENDENCIES="fish"
 
-  # Combine dependencies based on the selected shell and distribution
-  DEPENDENCIES="$COMMON_DEPENDENCIES"
-
-  # Add distribution-specific packages
-  if [ "$PACKAGER" = "apt" ] || [ "$PACKAGER" = "nala" ]; then
-    DEPENDENCIES="$DEPENDENCIES nala plocate trash-cli powerline"
-  elif [ "$PACKAGER" = "dnf" ]; then
-    DEPENDENCIES="$DEPENDENCIES dnf-plugins-core dnf-utils plocate trash-cli powerline"
-  elif [ "$PACKAGER" = "pacman" ]; then
-    DEPENDENCIES="$DEPENDENCIES plocate trash-cli powerline"
-  fi
+  # Combine dependencies based on the selected shell
+  DEPENDENCIES="$COMMON_DEPENDENCIES nala plocate trash-cli powerline"
 
   # Add shell-specific dependencies
   if [ "$SELECTED_SHELL" = "zsh" ]; then
     DEPENDENCIES="$DEPENDENCIES $ZSH_DEPENDENCIES"
-
-    # Add distribution-specific Zsh plugins
-    if [ "$PACKAGER" = "apt" ] || [ "$PACKAGER" = "nala" ]; then
-      DEPENDENCIES="$DEPENDENCIES zsh-autosuggestions zsh-syntax-highlighting"
-    elif [ "$PACKAGER" = "dnf" ]; then
-      # Fedora/RHEL package names may differ
-      if ${SUDO_CMD} dnf list zsh-autosuggestions &>/dev/null; then
-        DEPENDENCIES="$DEPENDENCIES zsh-autosuggestions"
-      fi
-      if ${SUDO_CMD} dnf list zsh-syntax-highlighting &>/dev/null; then
-        DEPENDENCIES="$DEPENDENCIES zsh-syntax-highlighting"
-      fi
-    elif [ "$PACKAGER" = "pacman" ]; then
-      DEPENDENCIES="$DEPENDENCIES zsh-autosuggestions zsh-syntax-highlighting"
-    fi
   elif [ "$SELECTED_SHELL" = "fish" ]; then
     DEPENDENCIES="$DEPENDENCIES $FISH_DEPENDENCIES"
   fi
@@ -229,90 +207,46 @@ installDepend() {
   fi
 
   echo -e "${YELLOW}  Installing required packages: ${WHITE}$DEPENDENCIES${RC}"
-  if [ "$PACKAGER" = "pacman" ]; then
-    if ! command_exists yay && ! command_exists paru; then
-      echo -e "${YELLOW}  Installing yay as AUR helper...${RC}"
-      ${SUDO_CMD} ${PACKAGER} --noconfirm -S base-devel
-      cd /opt && ${SUDO_CMD} git clone https://aur.archlinux.org/yay-git.git && ${SUDO_CMD} chown -R "${USER}:${USER}" ./yay-git
-      cd yay-git && makepkg --noconfirm -si
-    else
-      echo -e "${GREEN}  ✓ AUR helper already installed${RC}"
-    fi
-    if command_exists yay; then
-      AUR_HELPER="yay"
-    elif command_exists paru; then
-      AUR_HELPER="paru"
-    else
-      echo -e "${RED}  ✗ No AUR helper found. Please install yay or paru.${RC}"
-      exit 1
-    fi
-    ${AUR_HELPER} --noconfirm -S ${DEPENDENCIES}
-  elif [ "$PACKAGER" = "nala" ]; then
-    ${SUDO_CMD} ${PACKAGER} install -y ${DEPENDENCIES}
-  elif [ "$PACKAGER" = "emerge" ]; then
-    ${SUDO_CMD} ${PACKAGER} -v app-shells/bash app-shells/bash-completion app-arch/tar app-editors/neovim sys-apps/bat app-text/tree app-text/multitail app-misc/fastfetch
-    if [ "$SELECTED_SHELL" = "zsh" ]; then
-      ${SUDO_CMD} ${PACKAGER} -v app-shells/zsh app-shells/zsh-completions
-    elif [ "$SELECTED_SHELL" = "fish" ]; then
-      ${SUDO_CMD} ${PACKAGER} -v app-shells/fish
-    fi
-  elif [ "$PACKAGER" = "xbps-install" ]; then
-    ${SUDO_CMD} ${PACKAGER} -v ${DEPENDENCIES}
-  elif [ "$PACKAGER" = "nix-env" ]; then
-    ${SUDO_CMD} ${PACKAGER} -iA nixos.bash nixos.bash-completion nixos.gnutar nixos.neovim nixos.bat nixos.tree nixos.multitail nixos.fastfetch nixos.pkgs.starship
-    if [ "$SELECTED_SHELL" = "zsh" ]; then
-      ${SUDO_CMD} ${PACKAGER} -iA nixos.zsh nixos.zsh-completions nixos.zsh-autosuggestions nixos.zsh-syntax-highlighting
-    elif [ "$SELECTED_SHELL" = "fish" ]; then
-      ${SUDO_CMD} ${PACKAGER} -iA nixos.fish nixos.fishPlugins.done
-    fi
-  elif [ "$PACKAGER" = "dnf" ]; then
-    # Fedora-specific handling
-    echo -e "${YELLOW}  Detected Fedora or RHEL-based distribution${RC}"
-
-    # Check for EPEL repository if on RHEL/CentOS
-    if [ -f /etc/redhat-release ] && ! grep -q "Fedora" /etc/redhat-release; then
-      if ! ${SUDO_CMD} ${PACKAGER} list installed epel-release >/dev/null 2>&1; then
-        echo -e "${YELLOW}  Installing EPEL repository for additional packages...${RC}"
-        ${SUDO_CMD} ${PACKAGER} install -y epel-release
-      fi
+  if [ "$IS_DEBIAN_BASED" = true ]; then
+    # First check if nala is installed, if not install it
+    if ! command_exists nala; then
+      echo -e "${YELLOW}  Installing nala package manager...${RC}"
+      ${SUDO_CMD} apt update
+      ${SUDO_CMD} apt install -y nala
     fi
 
-    # Install RPM Fusion repositories for Fedora
-    if grep -q "Fedora" /etc/redhat-release 2>/dev/null; then
-      if ! ${SUDO_CMD} ${PACKAGER} list installed rpmfusion-free-release >/dev/null 2>&1; then
-        echo -e "${YELLOW}  Installing RPM Fusion repositories...${RC}"
-        ${SUDO_CMD} ${PACKAGER} install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-        ${SUDO_CMD} ${PACKAGER} install -y https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-      fi
-    fi
-
-    # Adjust package names for Fedora/RHEL
-    FEDORA_DEPENDENCIES=$(echo "$DEPENDENCIES" | sed 's/batcat/bat/g' | sed 's/nala/dnf-utils/g')
-
-    # Install Fedora/RHEL packages
-    ${SUDO_CMD} ${PACKAGER} install -y $FEDORA_DEPENDENCIES
+    # Use nala for better package management experience
+    ${SUDO_CMD} nala update
+    ${SUDO_CMD} nala install -y $DEPENDENCIES
   else
-    ${SUDO_CMD} ${PACKAGER} install -yq ${DEPENDENCIES}
+    # Fallback to apt if available for non-Debian distros
+    if command_exists apt; then
+      ${SUDO_CMD} apt update
+      ${SUDO_CMD} apt install -y $DEPENDENCIES
+    else
+      echo -e "${RED}  ✗ Unable to find a supported package manager.${RC}"
+      echo -e "${YELLOW}  Please install the following packages manually: ${WHITE}$DEPENDENCIES${RC}"
+      read -p "  Press Enter to continue..."
+    fi
   fi
 
   echo -e "${GREEN}  ✓ Dependencies installed successfully${RC}"
 
   # Check to see if the FiraCode Nerd Font is installed
   FONT_NAME="FiraCode Nerd Font"
-  if fc-list :family | grep -iq "$FONT_NAME"; then
+  if fc-list | grep -q "FiraCode"; then
     echo -e "${GREEN}  ✓ Font '$FONT_NAME' is already installed${RC}"
   else
     echo -e "${YELLOW}  Installing font '$FONT_NAME'...${RC}"
-    # Change this URL to correspond with the correct font
     FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/FiraCode.zip"
     FONT_DIR="$HOME/.local/share/fonts"
     # check if the file is accessible
     if wget -q --spider "$FONT_URL"; then
       TEMP_DIR=$(mktemp -d)
-      wget -q --show-progress $FONT_URL -O "$TEMP_DIR"/"${FONT_NAME}".zip
-      unzip -q "$TEMP_DIR"/"${FONT_NAME}".zip -d "$TEMP_DIR"
-      mkdir -p "$FONT_DIR"/"$FONT_NAME"
-      mv "${TEMP_DIR}"/*.ttf "$FONT_DIR"/"$FONT_NAME"
+      wget -q --show-progress $FONT_URL -O "$TEMP_DIR/FiraCode.zip"
+      unzip -q "$TEMP_DIR/FiraCode.zip" -d "$TEMP_DIR"
+      mkdir -p "$FONT_DIR/FiraCode"
+      mv "$TEMP_DIR"/*.ttf "$FONT_DIR/FiraCode"
       # Update the font cache
       fc-cache -fv >/dev/null
       # delete the files created from this
@@ -340,7 +274,7 @@ installStarshipAndFzf() {
       echo -e "${GREEN}  ✓ Starship installed successfully${RC}"
     else
       echo -e "${RED}  ✗ Something went wrong during Starship installation!${RC}"
-      exit 1
+      echo -e "${YELLOW}  Continuing without Starship...${RC}"
     fi
   fi
 
@@ -368,62 +302,41 @@ installZoxide() {
     echo -e "${GREEN}  ✓ Zoxide installed successfully${RC}"
   else
     echo -e "${RED}  ✗ Something went wrong during Zoxide installation!${RC}"
-    exit 1
+    echo -e "${YELLOW}  Continuing without Zoxide...${RC}"
   fi
   echo ""
 }
 
-install_additional_dependencies() {
-  echo -e "${CYAN}▶ Setting up Neovim...${RC}"
-  # Check if Neovim needs to be installed or is already handled
-  if command_exists nvim; then
-    echo -e "${GREEN}  ✓ Neovim already installed${RC}"
-    return
-  fi
+#=================================================================
+# Shell selection dialog
+#=================================================================
+selectShell() {
+  echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${RC}"
+  echo -e "${CYAN}║             Select your preferred shell:               ║${RC}"
+  echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${RC}"
+  echo -e "  ${WHITE}1)${RC} ${GREEN}Bash${RC}      ${YELLOW}(default, most compatible)${RC}"
+  echo -e "  ${WHITE}2)${RC} ${GREEN}Zsh${RC}       ${YELLOW}(enhanced features, popular alternative)${RC}"
+  echo -e "  ${WHITE}3)${RC} ${GREEN}Fish${RC}      ${YELLOW}(modern, user-friendly, less POSIX-compatible)${RC}"
+  echo ""
 
-  echo -e "${YELLOW}  Installing Neovim...${RC}"
-  case "$PACKAGER" in
-    *apt)
-      if [ ! -d "/opt/neovim" ]; then
-        curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
-        chmod u+x nvim.appimage
-        ./nvim.appimage --appimage-extract
-        ${SUDO_CMD} mv squashfs-root /opt/neovim
-        ${SUDO_CMD} ln -s /opt/neovim/AppRun /usr/bin/nvim
-        echo -e "${GREEN}  ✓ Neovim installed via AppImage${RC}"
-      fi
-      ;;
-    *zypper)
-      ${SUDO_CMD} zypper refresh
-      ${SUDO_CMD} zypper -n install neovim
-      echo -e "${GREEN}  ✓ Neovim installed via zypper${RC}"
-      ;;
-    *dnf)
-      ${SUDO_CMD} dnf check-update
+  # Default to bash if no selection is made
+  SELECTED_SHELL="bash"
 
-      # Check if Neovim is available in standard repositories
-      if ${SUDO_CMD} dnf list neovim &>/dev/null; then
-        ${SUDO_CMD} dnf install -y neovim
-        echo -e "${GREEN}  ✓ Neovim installed via dnf${RC}"
-      else
-        # Try to install from COPR repository if not available
-        echo -e "${YELLOW}  Installing Neovim from COPR repository...${RC}"
-        ${SUDO_CMD} dnf copr enable -y agriffis/neovim-nightly
-        ${SUDO_CMD} dnf install -y neovim
-        echo -e "${GREEN}  ✓ Neovim installed via COPR repository${RC}"
-      fi
+  read -p "  Enter your choice [1-3] (default: 1): " shell_choice
+
+  case "$shell_choice" in
+    2)
+      SELECTED_SHELL="zsh"
       ;;
-    *pacman)
-      ${SUDO_CMD} pacman -Syu
-      ${SUDO_CMD} pacman -S --noconfirm neovim
-      echo -e "${GREEN}  ✓ Neovim installed via pacman${RC}"
+    3)
+      SELECTED_SHELL="fish"
       ;;
     *)
-      echo -e "${YELLOW}  No supported package manager found for Neovim installation.${RC}"
-      echo -e "${YELLOW}  Please install Neovim manually after setup completes.${RC}"
-      return
+      SELECTED_SHELL="bash"
       ;;
   esac
+
+  echo -e "${GREEN}  ✓ Selected shell: ${WHITE}$SELECTED_SHELL${RC}"
   echo ""
 }
 
@@ -444,66 +357,11 @@ create_fastfetch_config() {
   fi
   ln -svf "$GITPATH/config.jsonc" "$USER_HOME/.config/fastfetch/config.jsonc" || {
     echo -e "${RED}  ✗ Failed to create symbolic link for fastfetch config${RC}"
-    exit 1
+    echo -e "${YELLOW}  Using direct copy instead...${RC}"
+    cp -f "$GITPATH/config.jsonc" "$USER_HOME/.config/fastfetch/config.jsonc"
   }
   echo -e "${GREEN}  ✓ Fastfetch configuration set up successfully${RC}"
   echo ""
-}
-
-init_fedora_zsh_plugins() {
-  USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
-
-  # Handle Fedora/RHEL zsh plugins which might be in different locations
-  if [ "$PACKAGER" = "dnf" ] && [ "$SELECTED_SHELL" = "zsh" ]; then
-    echo -e "${YELLOW}  Setting up Zsh plugins for Fedora/RHEL...${RC}"
-
-    # Add plugin sourcing to .zshrc if files exist
-    ZSH_PLUGIN_DIR="/usr/share/zsh/plugins"
-
-    # Create plugin loader function
-    cat > "$USER_HOME/.zsh_plugins" <<EOL
-# Generated by dxsbash setup for Fedora/RHEL
-# Load Zsh plugins if available
-
-# Autosuggestions
-if [ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
-    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-elif [ -f $ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
-    source $ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh
-fi
-
-# Syntax highlighting
-if [ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
-    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-elif [ -f $ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
-    source $ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-fi
-EOL
-
-    # Try to install plugins manually if they're not found in standard locations
-    if [ ! -f "/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && [ ! -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
-      echo -e "${YELLOW}  Installing Zsh autosuggestions plugin manually...${RC}"
-      PLUGIN_DIR="$USER_HOME/.zsh/plugins"
-      mkdir -p "$PLUGIN_DIR"
-      git clone https://github.com/zsh-users/zsh-autosuggestions "$PLUGIN_DIR/zsh-autosuggestions"
-
-      # Add to .zsh_plugins
-      echo "# Manual installation" >> "$USER_HOME/.zsh_plugins"
-      echo "source $PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" >> "$USER_HOME/.zsh_plugins"
-    fi
-
-    if [ ! -f "/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && [ ! -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
-      echo -e "${YELLOW}  Installing Zsh syntax highlighting plugin manually...${RC}"
-      PLUGIN_DIR="$USER_HOME/.zsh/plugins"
-      mkdir -p "$PLUGIN_DIR"
-      git clone https://github.com/zsh-users/zsh-syntax-highlighting "$PLUGIN_DIR/zsh-syntax-highlighting"
-
-      # Add to .zsh_plugins
-      echo "source $PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> "$USER_HOME/.zsh_plugins"
-    fi
-
-    echo -e "${GREEN}  ✓ Zsh plugins configured for Fedora/RHEL${RC}"
-  fi
 }
 
 setupShellConfig() {
@@ -519,38 +377,27 @@ setupShellConfig() {
   # Backup existing config files and set up new ones based on selected shell
   if [ "$SELECTED_SHELL" = "bash" ]; then
     if [ -e "$USER_HOME/.bashrc" ]; then
-      BACKUP_FILE="$USER_HOME/.bashrc.bak"
-      if [ -e "$BACKUP_FILE" ]; then
-        TIMESTAMP=$(date +%Y%m%d%H%M%S)
-        BACKUP_FILE="$USER_HOME/.bashrc.bak.$TIMESTAMP"
-      fi
+      BACKUP_FILE="$USER_HOME/.bashrc.bak.$(date +%Y%m%d%H%M%S)"
       echo -e "${YELLOW}  Backing up old bash config to ${WHITE}$BACKUP_FILE${RC}"
-      if ! mv "$USER_HOME/.bashrc" "$BACKUP_FILE"; then
-        echo -e "${RED}  ✗ Warning: Can't move the old bash config file!${RC}"
-        echo -e "${YELLOW}  Continuing with installation anyway...${RC}"
-      fi
+      cp -f "$USER_HOME/.bashrc" "$BACKUP_FILE"
     fi
 
     # Link Bash config
     echo -e "${YELLOW}  Creating bash configuration links...${RC}"
     ln -svf "$GITPATH/.bashrc" "$USER_HOME/.bashrc" || {
-      echo -e "${RED}  ✗ Failed to create symbolic link for .bashrc${RC}"
-      exit 1
+      echo -e "${YELLOW}  Using direct copy for .bashrc...${RC}"
+      cp -f "$GITPATH/.bashrc" "$USER_HOME/.bashrc"
     }
     ln -svf "$GITPATH/.bashrc_help" "$USER_HOME/.bashrc_help" || {
-      echo -e "${RED}  ✗ Failed to create symbolic link for .bashrc_help${RC}"
-      exit 1
+      echo -e "${YELLOW}  Using direct copy for .bashrc_help...${RC}"
+      cp -f "$GITPATH/.bashrc_help" "$USER_HOME/.bashrc_help"
     }
 
     # Link Bash aliases file
     if [ -f "$GITPATH/.bash_aliases" ]; then
       ln -svf "$GITPATH/.bash_aliases" "$USER_HOME/.bash_aliases" || {
-        echo -e "${RED}  ✗ Failed to create symbolic link for .bash_aliases${RC}"
-        # If symlinking fails, try direct copy
-        echo -e "${YELLOW}  Attempting direct copy of .bash_aliases...${RC}"
-        cp -f "$GITPATH/.bash_aliases" "$USER_HOME/.bash_aliases" || {
-          echo -e "${RED}  ✗ Failed to copy .bash_aliases file!${RC}"
-        }
+        echo -e "${YELLOW}  Using direct copy for .bash_aliases...${RC}"
+        cp -f "$GITPATH/.bash_aliases" "$USER_HOME/.bash_aliases"
       }
       echo -e "${GREEN}  ✓ Added .bash_aliases file${RC}"
     else
@@ -567,38 +414,21 @@ setupShellConfig() {
     # Check if .zshrc exists and handle accordingly
     if [ -e "$USER_HOME/.zshrc" ]; then
       # Backup existing .zshrc
-      BACKUP_FILE="$USER_HOME/.zshrc.bak"
-      if [ -e "$BACKUP_FILE" ]; then
-        TIMESTAMP=$(date +%Y%m%d%H%M%S)
-        BACKUP_FILE="$USER_HOME/.zshrc.bak.$TIMESTAMP"
-      fi
+      BACKUP_FILE="$USER_HOME/.zshrc.bak.$(date +%Y%m%d%H%M%S)"
       echo -e "${YELLOW}  Backing up old zsh config to ${WHITE}$BACKUP_FILE${RC}"
-      if ! mv "$USER_HOME/.zshrc" "$BACKUP_FILE"; then
-        echo -e "${RED}  ✗ Warning: Can't move the old zsh config file!${RC}"
-        echo -e "${YELLOW}  Continuing with installation anyway...${RC}"
-      fi
+      cp -f "$USER_HOME/.zshrc" "$BACKUP_FILE"
     fi
 
-# Link Zsh config - whether .zshrc existed or not, we'll use the one from dxsbash
+    # Link Zsh config
     echo -e "${YELLOW}  Installing dxsbash Zsh configuration...${RC}"
     ln -svf "$GITPATH/.zshrc" "$USER_HOME/.zshrc" || {
-      echo -e "${RED}  ✗ Failed to create symbolic link for .zshrc${RC}"
-      # If symlinking fails, try direct copy
-      echo -e "${YELLOW}  Attempting direct copy of .zshrc...${RC}"
-      cp -f "$GITPATH/.zshrc" "$USER_HOME/.zshrc" || {
-        echo -e "${RED}  ✗ Failed to copy .zshrc file!${RC}"
-        exit 1
-      }
+      echo -e "${YELLOW}  Using direct copy for .zshrc...${RC}"
+      cp -f "$GITPATH/.zshrc" "$USER_HOME/.zshrc"
     }
 
     ln -svf "$GITPATH/.zshrc_help" "$USER_HOME/.zshrc_help" || {
-      echo -e "${RED}  ✗ Failed to create symbolic link for .zshrc_help${RC}"
-      # If symlinking fails, try direct copy
-      echo -e "${YELLOW}  Attempting direct copy of .zshrc_help...${RC}"
-      cp -f "$GITPATH/.zshrc_help" "$USER_HOME/.zshrc_help" || {
-        echo -e "${RED}  ✗ Failed to copy .zshrc_help file!${RC}"
-        exit 1
-      }
+      echo -e "${YELLOW}  Using direct copy for .zshrc_help...${RC}"
+      cp -f "$GITPATH/.zshrc_help" "$USER_HOME/.zshrc_help"
     }
 
     # Install Oh My Zsh if not already installed
@@ -610,46 +440,28 @@ setupShellConfig() {
       echo -e "${GREEN}  ✓ Oh My Zsh already installed${RC}"
     fi
 
-    # Setup Fedora/RHEL specific Zsh plugins
-    init_fedora_zsh_plugins
-
-    # Add plugin sourcing to .zshrc if it exists
-    if [ -f "$USER_HOME/.zsh_plugins" ]; then
-      # Add source line to .zshrc if not already present
-      if ! grep -q "source ~/.zsh_plugins" "$USER_HOME/.zshrc"; then
-        echo -e "${YELLOW}  Adding plugins to .zshrc...${RC}"
-        echo "" >> "$USER_HOME/.zshrc"
-        echo "# Source plugins" >> "$USER_HOME/.zshrc"
-        echo "[ -f ~/.zsh_plugins ] && source ~/.zsh_plugins" >> "$USER_HOME/.zshrc"
-      fi
-    fi
-
     echo -e "${GREEN}  ✓ Zsh configuration completed${RC}"
 
   elif [ "$SELECTED_SHELL" = "fish" ]; then
     if [ -e "$USER_HOME/.config/fish/config.fish" ]; then
       BACKUP_DIR="$USER_HOME/.config/fish/backup"
       mkdir -p "$BACKUP_DIR"
-      TIMESTAMP=$(date +%Y%m%d%H%M%S)
-      BACKUP_FILE="$BACKUP_DIR/config.fish.$TIMESTAMP"
+      BACKUP_FILE="$BACKUP_DIR/config.fish.$(date +%Y%m%d%H%M%S)"
       echo -e "${YELLOW}  Backing up old fish config to ${WHITE}$BACKUP_FILE${RC}"
-      if ! mv "$USER_HOME/.config/fish/config.fish" "$BACKUP_FILE"; then
-        echo -e "${RED}  ✗ Warning: Can't move the old fish config file!${RC}"
-        echo -e "${YELLOW}  Continuing with installation anyway...${RC}"
-      fi
+      cp -f "$USER_HOME/.config/fish/config.fish" "$BACKUP_FILE"
     fi
 
     # Link Fish config
     echo -e "${YELLOW}  Installing dxsbash Fish configuration...${RC}"
     ln -svf "$GITPATH/config.fish" "$USER_HOME/.config/fish/config.fish" || {
-      echo -e "${RED}  ✗ Failed to create symbolic link for config.fish${RC}"
-      exit 1
+      echo -e "${YELLOW}  Using direct copy for config.fish...${RC}"
+      cp -f "$GITPATH/config.fish" "$USER_HOME/.config/fish/config.fish"
     }
 
     # Create help file for fish
     ln -svf "$GITPATH/fish_help" "$USER_HOME/.config/fish/fish_help" || {
-      echo -e "${RED}  ✗ Failed to create symbolic link for fish_help${RC}"
-      exit 1
+      echo -e "${YELLOW}  Using direct copy for fish_help...${RC}"
+      cp -f "$GITPATH/fish_help" "$USER_HOME/.config/fish/fish_help"
     }
 
     # Setup Fisher plugin manager if not already installed
@@ -674,8 +486,8 @@ setupShellConfig() {
   # Link starship.toml for all shells
   echo -e "${YELLOW}  Setting up Starship prompt configuration...${RC}"
   ln -svf "$GITPATH/starship.toml" "$USER_HOME/.config/starship.toml" || {
-    echo -e "${RED}  ✗ Failed to create symbolic link for starship.toml${RC}"
-    exit 1
+    echo -e "${YELLOW}  Using direct copy for starship.toml...${RC}"
+    cp -f "$GITPATH/starship.toml" "$USER_HOME/.config/starship.toml"
   }
   echo -e "${GREEN}  ✓ Starship configuration completed${RC}"
   echo ""
@@ -761,7 +573,6 @@ installResetScript() {
           ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" /usr/local/bin/reset-shell-profile
         else
           ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-          echo -e "${YELLOW}  Note: Using bash reset script as fallback for zsh${RC}"
         fi
         ;;
       fish)
@@ -769,7 +580,6 @@ installResetScript() {
           ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-fish-profile.sh" /usr/local/bin/reset-shell-profile
         else
           ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-          echo -e "${YELLOW}  Note: Using bash reset script as fallback for fish${RC}"
         fi
         ;;
     esac
@@ -796,6 +606,10 @@ installUpdaterCommand() {
     # Create a symbolic link to make it available system-wide
     ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs
 
+    # Create a symlink in home directory for easy access
+    ln -sf "$LINUXTOOLBOXDIR/updater.sh" "$HOME/update-dxsbash.sh"
+    chmod +x "$HOME/update-dxsbash.sh"
+
     echo -e "${GREEN}  ✓ Updater script installed successfully${RC}"
     echo -e "    You can update dxsbash anytime by running: ${WHITE}upbashdxs${RC}"
   else
@@ -806,120 +620,28 @@ installUpdaterCommand() {
 }
 
 #=================================================================
-# Distribution detection
+# Configure terminal
 #=================================================================
-detectDistro() {
-  echo -e "${CYAN}▶ Detecting Linux distribution...${RC}"
-  # Detect the specific distribution for better handling
-  DISTRO="unknown"
-
-  if [ -f /etc/fedora-release ]; then
-    DISTRO="fedora"
-    echo -e "${GREEN}  ✓ Detected ${WHITE}Fedora Linux${RC}"
-  elif [ -f /etc/redhat-release ]; then
-    if grep -q "CentOS" /etc/redhat-release; then
-      DISTRO="centos"
-      echo -e "${GREEN}  ✓ Detected ${WHITE}CentOS Linux${RC}"
-    elif grep -q "Red Hat Enterprise Linux" /etc/redhat-release; then
-      DISTRO="rhel"
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Red Hat Enterprise Linux${RC}"
-    else
-      DISTRO="redhat-based"
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Red Hat-based Linux${RC}"
-    fi
-  elif [ -f /etc/lsb-release ] && grep -q "Ubuntu" /etc/lsb-release; then
-    DISTRO="ubuntu"
-    echo -e "${GREEN}  ✓ Detected ${WHITE}Ubuntu Linux${RC}"
-  elif [ -f /etc/debian_version ]; then
-    DISTRO="debian"
-    echo -e "${GREEN}  ✓ Detected ${WHITE}Debian Linux${RC}"
-  elif [ -f /etc/arch-release ]; then
-    DISTRO="arch"
-    echo -e "${GREEN}  ✓ Detected ${WHITE}Arch Linux${RC}"
-  elif [ -f /etc/SuSE-release ] || [ -f /etc/opensuse-release ]; then
-    DISTRO="suse"
-    echo -e "${GREEN}  ✓ Detected ${WHITE}SUSE Linux${RC}"
-  else
-    # Generic detection
-    if command_exists apt; then
-      DISTRO="debian-based"
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Debian-based Linux${RC}"
-    elif command_exists dnf; then
-      DISTRO="fedora-based"
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Fedora-based Linux${RC}"
-    elif command_exists pacman; then
-      DISTRO="arch-based"
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Arch-based Linux${RC}"
-    elif command_exists zypper; then
-      DISTRO="suse-based"
-      echo -e "${GREEN}  ✓ Detected ${WHITE}SUSE-based Linux${RC}"
-    fi
-  fi
-  echo ""
-}
-
-#=================================================================
-# Shell selection dialog
-#=================================================================
-selectShell() {
-  echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${RC}"
-  echo -e "${CYAN}║             Select your preferred shell:               ║${RC}"
-  echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${RC}"
-  echo -e "  ${WHITE}1)${RC} ${GREEN}Bash${RC}      ${YELLOW}(default, most compatible)${RC}"
-  echo -e "  ${WHITE}2)${RC} ${GREEN}Zsh${RC}       ${YELLOW}(enhanced features, popular alternative)${RC}"
-  echo -e "  ${WHITE}3)${RC} ${GREEN}Fish${RC}      ${YELLOW}(modern, user-friendly, less POSIX-compatible)${RC}"
-  echo ""
-
-  # Default to bash if no selection is made
-  SELECTED_SHELL="bash"
-
-  read -p "  Enter your choice [1-3] (default: 1): " shell_choice
-
-  case "$shell_choice" in
-    2)
-      if command_exists zsh; then
-        SELECTED_SHELL="zsh"
-      else
-        echo -e "${YELLOW}  Zsh is not installed yet. It will be installed during setup.${RC}"
-        SELECTED_SHELL="zsh"
-      fi
-      ;;
-    3)
-      if command_exists fish; then
-        SELECTED_SHELL="fish"
-      else
-        echo -e "${YELLOW}  Fish is not installed yet. It will be installed during setup.${RC}"
-        SELECTED_SHELL="fish"
-      fi
-      ;;
-    *)
-      SELECTED_SHELL="bash"
-      ;;
-  esac
-
-  echo -e "${GREEN}  ✓ Selected shell: ${WHITE}$SELECTED_SHELL${RC}"
-  echo ""
-}
-
-#=================================================================
-# Terminal configuration
-#=================================================================
-configure_konsole() {
-  echo -e "${YELLOW}  Configuring Konsole to use FiraCode Nerd Font...${RC}"
+configure_terminal() {
+  echo -e "${CYAN}▶ Configuring terminal emulators...${RC}"
 
   # Get user home directory
   USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
 
-  # Create Konsole profile directory if it doesn't exist
-  KONSOLE_DIR="$USER_HOME/.local/share/konsole"
-  mkdir -p "$KONSOLE_DIR"
+  # Configure Konsole if present
+  if command_exists konsole; then
+    echo -e "${YELLOW}  Configuring Konsole terminal...${RC}"
 
-  # Create/update Konsole profile with FiraCode Nerd Font
-  PROFILE_NAME="DXSBash.profile"
-  PROFILE_PATH="$KONSOLE_DIR/$PROFILE_NAME"
+    # Create Konsole profile directory if it doesn't exist
+    KONSOLE_DIR="$USER_HOME/.local/share/konsole"
+    mkdir -p "$KONSOLE_DIR"
 
-  # Create profile file
-  cat > "$PROFILE_PATH" << EOL
+    # Create/update Konsole profile with FiraCode Nerd Font
+    PROFILE_NAME="DXSBash.profile"
+    PROFILE_PATH="$KONSOLE_DIR/$PROFILE_NAME"
+
+    # Create profile file
+    cat > "$PROFILE_PATH" << EOL
 [Appearance]
 ColorScheme=Breeze
 Font=FiraCode Nerd Font,12,-1,5,50,0,0,0,0,0
@@ -938,94 +660,48 @@ ScrollBarPosition=2
 BlinkingCursorEnabled=true
 EOL
 
-  # Make sure permissions are correct
-  chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$PROFILE_PATH"
+    # Set correct permissions
+    chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$PROFILE_PATH"
 
-  # Create/update Konsole configuration to use the new profile by default
-  KONSOLERC="$USER_HOME/.config/konsolerc"
-
-  # Only create konsolerc if it doesn't exist
-  if [ ! -f "$KONSOLERC" ]; then
-    cat > "$KONSOLERC" << EOL
-[Desktop Entry]
-DefaultProfile=DXSBash.profile
-
-[MainWindow]
-MenuBar=Disabled
-ToolBarsMovable=Disabled
-
-[TabBar]
-NewTabButton=true
-EOL
-    chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$KONSOLERC"
-  else
-    # If konsolerc exists, just update the DefaultProfile line
-    if grep -q "DefaultProfile=" "$KONSOLERC"; then
-      # Replace existing DefaultProfile line
-      sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$KONSOLERC"
-    else
-      # Add DefaultProfile line if it doesn't exist
-      echo -e "DefaultProfile=DXSBash.profile" >> "$KONSOLERC"
-    fi
-  fi
-
-  echo -e "${GREEN}  ✓ Konsole configured to use FiraCode Nerd Font${RC}"
-}
-
-configure_kde_terminal_emulators() {
-  echo -e "${CYAN}▶ Configuring terminal emulators...${RC}"
-
-  # Check if running in KDE environment
-  if [ "$XDG_CURRENT_DESKTOP" = "KDE" ] || command_exists konsole; then
-    echo -e "${YELLOW}  KDE environment detected${RC}"
-
-    # Configure Konsole
-    if command_exists konsole; then
-      configure_konsole
-    fi
-
-    # Configure Yakuake if installed
-    if command_exists yakuake; then
-      echo -e "${YELLOW}  Configuring Yakuake to use FiraCode Nerd Font...${RC}"
-
-      # Yakuake uses the same profiles as Konsole, so we just need to update yakuakerc
-      USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
-      YAKUAKERC="$USER_HOME/.config/yakuakerc"
-
-      if [ -f "$YAKUAKERC" ]; then
-        # Update existing DefaultProfile
-        if grep -q "DefaultProfile=" "$YAKUAKERC"; then
-          sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$YAKUAKERC"
-        else
-          echo -e "DefaultProfile=DXSBash.profile" >> "$YAKUAKERC"
-        fi
+    # Update konsolerc to use this profile
+    KONSOLERC="$USER_HOME/.config/konsolerc"
+    if [ -f "$KONSOLERC" ]; then
+      if grep -q "DefaultProfile=" "$KONSOLERC"; then
+        sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$KONSOLERC"
       else
-        # Create new yakuakerc
-        mkdir -p "$USER_HOME/.config"
-        cat > "$YAKUAKERC" << EOL
-[Desktop Entry]
-DefaultProfile=DXSBash.profile
-
-[Dialogs]
-FirstRun=false
-
-[Window]
-KeepOpen=false
-EOL
-        chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$YAKUAKERC"
+        echo "DefaultProfile=DXSBash.profile" >> "$KONSOLERC"
       fi
-
-      echo -e "${GREEN}  ✓ Yakuake configured to use FiraCode Nerd Font${RC}"
     fi
-  else
-    echo -e "${YELLOW}  No KDE environment detected, skipping KDE terminal configuration${RC}"
+
+    echo -e "${GREEN}  ✓ Konsole configured${RC}"
   fi
+
+  # Configure Yakuake if present
+  if command_exists yakuake; then
+    echo -e "${YELLOW}  Configuring Yakuake terminal...${RC}"
+
+    YAKUAKERC="$USER_HOME/.config/yakuakerc"
+    if [ -f "$YAKUAKERC" ]; then
+      if grep -q "DefaultProfile=" "$YAKUAKERC"; then
+        sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$YAKUAKERC"
+      else
+        echo "DefaultProfile=DXSBash.profile" >> "$YAKUAKERC"
+      fi
+    fi
+
+    echo -e "${GREEN}  ✓ Yakuake configured${RC}"
+  fi
+
+  # No special configuration for generic terminals
+  echo -e "${GREEN}  ✓ Terminal configuration completed${RC}"
   echo ""
 }
 
 #=================================================================
 # Final setup and cleanup
 #=================================================================
+# Updated finalSetup() function that fixes the file copying issue
+
 finalSetup() {
   echo -e "${CYAN}▶ Performing final setup tasks...${RC}"
 
@@ -1035,20 +711,22 @@ finalSetup() {
   touch "$HOME/.dxsbash/logs/dxsbash.log"
   chmod 644 "$HOME/.dxsbash/logs/dxsbash.log"
 
-  # Copy the utilities file
-  echo -e "${YELLOW}  Installing utility scripts...${RC}"
-  if [ "$GITPATH/dxsbash-utils.sh" != "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh" ]; then
-    cp -f "$GITPATH/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
-  fi
-  chmod +x "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh"
+  # Copy the utilities file only if source and destination are different
+  if [ -f "$GITPATH/dxsbash-utils.sh" ]; then
+    # Get the full path of both files to compare
+    SOURCE="$(realpath "$GITPATH/dxsbash-utils.sh")"
+    DEST="$(realpath "$LINUXTOOLBOXDIR/dxsbash/dxsbash-utils.sh")"
 
-  # Create symlink to updater in home directory
-  USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
-  ln -svf "$GITPATH/updater.sh" "$USER_HOME/update-dxsbash.sh" || {
-    echo -e "${RED}  ✗ Failed to create symlink for updater in home directory${RC}"
-    echo -e "${YELLOW}  Continuing with installation anyway...${RC}"
-  }
-  chmod +x "$USER_HOME/update-dxsbash.sh"
+    # Only copy if they are different files
+    if [ "$SOURCE" != "$DEST" ]; then
+      echo -e "${YELLOW}  Installing utility scripts...${RC}"
+      cp -f "$SOURCE" "$DEST"
+      chmod +x "$DEST"
+    else
+      echo -e "${YELLOW}  Utility script already in place, ensuring executable permission...${RC}"
+      chmod +x "$DEST"
+    fi
+  fi
 
   echo -e "${GREEN}  ✓ Final setup completed${RC}"
   echo ""
@@ -1073,7 +751,6 @@ main() {
   # Install additional tools
   installStarshipAndFzf
   installZoxide
-  install_additional_dependencies
 
   # Configure the system
   create_fastfetch_config
@@ -1081,26 +758,30 @@ main() {
   setDefaultShell
   installResetScript
   installUpdaterCommand
-  configure_kde_terminal_emulators
+  configure_terminal
 
   # Final setup
   finalSetup
 
   # Display completion message
   echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
-  echo -e "${BLUE}║                                                         ${RC}"
-  echo -e "${BLUE}║  ${GREEN}Installation Complete!${BLUE}                  ${RC}"
-  echo -e "${BLUE}║                                                         ${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}       ${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE} ${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} upbashdxs${BLUE}            ${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Reset:${YELLOW} sudo reset-shell-profile [username]${BLUE} ${RC}"
-  echo -e "${BLUE}║                                                         ${RC}"
-  echo -e "${BLUE}║  ${YELLOW}Please log out and log back in to start using or close terminal${BLUE} ${RC}"
-  echo -e "${BLUE}║  ${YELLOW}your new $SELECTED_SHELL shell.${BLUE}        ${RC}"
-  echo -e "${BLUE}║                                                         ${RC}"
-  echo -e "${BLUE}║   ${RED}This Software is GNU/GPLv3${BLUE}               ${RC}"
-  echo -e "${BLUE}║                                                         ${RC}"
+  echo -e "${BLUE}║                                                        ║${RC}"
+  echo -e "${BLUE}║  ${GREEN}Installation Complete!${BLUE}                             ║${RC}"
+  echo -e "${BLUE}║                                                        ║${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}                           ║${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE}                   ║${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} upbashdxs${BLUE}                       ║${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Reset:${YELLOW} sudo reset-shell-profile [username]${BLUE} ║${RC}"
+  echo -e "${BLUE}║                                                        ║${RC}"
+  echo -e "${BLUE}║  ${YELLOW}Please log out and log back in to use your new shell${BLUE} ║${RC}"
+  echo -e "${BLUE}║                                                        ║${RC}"
+  if [ "$IS_DEBIAN_BASED" != true ]; then
+    echo -e "${BLUE}║  ${RED}Note: DXSBash is optimized for Debian/Ubuntu systems${BLUE} ║${RC}"
+    echo -e "${BLUE}║  ${RED}Some features may not work as expected on your system${BLUE}║${RC}"
+    echo -e "${BLUE}║                                                        ║${RC}"
+  fi
+  echo -e "${BLUE}║  ${RED}This Software is GNU/GPLv3${BLUE}                          ║${RC}"
+  echo -e "${BLUE}║                                                        ║${RC}"
   echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${RC}"
   echo -e "  ${CYAN}Made by Luis Miguel P. Freitas - DigitalXS.ca${RC}"
   echo ""
