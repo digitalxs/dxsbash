@@ -79,6 +79,97 @@ alias ve='python3 -m venv ./venv'                 # Create virtual environment
 alias va='source ./venv/bin/activate'             # Activate virtual environment
 alias vd='deactivate'                             # Deactivate virtual environment
 
+# Python environment management
+alias pyenv='python -m venv'               # Create virtualenv more easily
+alias pyact='source ./venv/bin/activate'   # Activate virtualenv in current directory 
+alias pydact='deactivate'                  # Deactivate current virtualenv
+alias pyreq='pip freeze > requirements.txt' # Generate requirements.txt
+alias pyup='pip install --upgrade pip'     # Upgrade pip
+alias pipi='pip install'                   # Shorter pip install
+alias pipun='pip uninstall'                # Shorter pip uninstall
+
+# Python execution shortcuts
+alias py3='python3'                        # Explicit Python 3
+alias ipy='ipython'                        # Launch IPython
+alias jpy='jupyter notebook'               # Launch Jupyter notebook
+alias jpyl='jupyter lab'                   # Launch Jupyter lab
+alias pt='pytest'                          # Run pytest
+alias ptr='pytest -xvs'                    # Run pytest with useful flags
+alias ptw='pytest-watch'                   # Run pytest-watch
+alias nose='nosetests'                     # Run nosetests
+
+# Django shortcuts
+alias djrun='python manage.py runserver'   # Run Django development server
+alias djmig='python manage.py migrate'     # Run Django migrations
+alias djmm='python manage.py makemigrations' # Make Django migrations
+alias djsh='python manage.py shell'        # Django shell
+alias djsu='python manage.py createsuperuser' # Create Django superuser
+alias djtest='python manage.py test'       # Run Django tests
+
+# Flask shortcuts
+alias flrun='flask run'                    # Run Flask development server
+alias flshell='flask shell'                # Flask shell
+
+# Python code quality
+alias lint='flake8'                        # Run flake8 linter
+alias black='black .'                      # Format code with Black
+alias mypy='mypy .'                        # Run type checking
+alias pylint='pylint'                      # Run pylint
+
+# Python dependency management
+alias pipoutdated='pip list --outdated'    # List outdated packages
+alias pipgraph='pipdeptree'                # Show dependency tree
+
+# Python documentation
+alias pydoc='python -m pydoc'              # Access Python documentation
+alias mkdocs='mkdocs serve'                # Serve documentation with MkDocs
+
+# Create a function to create and activate a virtualenv in one command
+pyvenv() {
+    python -m venv ${1:-venv} && source ${1:-venv}/bin/activate
+}
+
+# Create a function to run a Python script with timing information
+pytime() {
+    time python "$@"
+}
+
+# Create a function to profile Python script
+pyprofile() {
+    python -m cProfile -s tottime "$@" | head -20
+}
+
+# Create a function to run a Python simple HTTP server
+pyserver() {
+    local port=${1:-8000}
+    echo "Starting HTTP server on port $port..."
+    python -m http.server "$port"
+}
+
+# Create a function to prettify Python JSON
+pyjson() {
+    python -m json.tool "$@"
+}
+
+# Clean Python cache files
+pyclean() {
+    find . -type d -name "__pycache__" -exec rm -rf {} +
+    find . -type f -name "*.pyc" -delete
+    find . -type f -name "*.pyo" -delete
+    find . -type f -name "*.pyd" -delete
+    find . -type f -name ".coverage" -delete
+    find . -type d -name "*.egg-info" -exec rm -rf {} +
+    find . -type d -name "*.egg" -exec rm -rf {} +
+    find . -type d -name ".pytest_cache" -exec rm -rf {} +
+    find . -type d -name ".coverage" -exec rm -rf {} +
+    find . -type d -name "htmlcov" -exec rm -rf {} +
+    find . -type d -name ".tox" -exec rm -rf {} +
+    find . -type d -name "dist" -exec rm -rf {} +
+    find . -type d -name "build" -exec rm -rf {} +
+    echo "Cleaned Python cache files."
+}
+
+
 # JavaScript/Node.js developer shortcuts
 if command -v npm &> /dev/null; then
     alias ni='npm install'                        # Install dependencies
