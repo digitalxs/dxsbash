@@ -28,7 +28,7 @@ fi
 #######################################################################
 # SOURCED ALIAS'S AND SCRIPTS BY Luis Freitas and others (2025)
 # Get List of commands at README
-# Version 1.0.2
+# Version 2.3.0
 # Start updating .bashrc:
 # nano .bashrc
 # paste this bash script and save
