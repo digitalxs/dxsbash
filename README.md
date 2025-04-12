@@ -5,7 +5,7 @@ v2.2.1
     <a href="https://digitalxs.ca">
         <img src="https://blog.digitalxs.ca/wp-content/uploads/2023/11/cropped-logo300_1-1.png" alt="DXSBash Logo" width="80"></a>
 
-<h3>Professional Shell Environment for Linux Power Users</h3>
+<h3>Professional Shell Environment for Linux Power Users on Debian 12</h3>
 
 [![Debian](https://img.shields.io/badge/Tested%20on-Debian-D70A53?logo=debian&logoColor=white)](https://www.debian.org/)
 [![GPL License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
