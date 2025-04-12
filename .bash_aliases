@@ -2,7 +2,7 @@
 #
 # .bash_aliases - Additional professional-grade aliases for dxsbash
 # This file contains only aliases that don't conflict with the main dxsbash configuration
-#
+# You can add easily you own alias on this file without affecting .bashrc directly
 
 # System information aliases
 alias meminfo='free -m -l -t'                     # Detailed memory information
