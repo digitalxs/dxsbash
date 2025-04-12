@@ -149,7 +149,7 @@ alias password='pwgen -A'
 # (Both commands done as root only.)
 
 #######################################################
-# Update Computer - Debian - NALA
+# Update Computer - Debian/Ubuntu - NALA
 #######################################################
 alias install='sudo nala update && sudo nala install -y'
 alias update='sudo nala update && sudo nala upgrade -y'
@@ -158,6 +158,16 @@ alias remove='sudo nala update && sudo nala remove'
 alias removeall='sudo nala purge'
 alias historypkg='nala history'
 alias searchpkg='sudo nala search'
+
+# For Arch Linux
+if command -v pacman &> /dev/null; then
+    alias install='sudo pacman -Sy'
+    alias update='sudo pacman -Syu'
+    alias upgrade='sudo pacman -Syu'
+    alias remove='sudo pacman -R'
+    alias removeall='sudo pacman -Rns'
+    alias searchpkg='pacman -Ss'
+fi
 
 #######################################################
 # GENERAL ALIAS'S
@@ -312,11 +322,9 @@ alias sha1='openssl sha1'
 alias clickpaste='sleep 3; xdotool type "$(xclip -o -selection clipboard)"'
 
 # KITTY - alias to be able to use kitty features when connecting to remote servers(e.g use tmux on remote server)
-
 alias kssh="kitty +kitten ssh"
 
 # alias to cleanup unused docker containers, images, networks, and volumes
-
 alias docker-clean=' \
   docker container prune -f ; \
   docker image prune -f ; \
@@ -470,66 +478,42 @@ pwdtail() {
 # Show the current distribution
 distribution () 
 {
-    local dtype="unknown"  # Default to unknown
-
     # Use /etc/os-release for modern distro identification
     if [ -r /etc/os-release ]; then
         source /etc/os-release
         case $ID in
-            fedora|rhel|centos)
-                dtype="redhat"
-                ;;
-            sles|opensuse*)
-                dtype="suse"
-                ;;
             ubuntu|debian)
-                dtype="debian"
-                ;;
-            gentoo)
-                dtype="gentoo"
+                echo "debian"
                 ;;
             arch|manjaro)
-                dtype="arch"
-                ;;
-            slackware)
-                dtype="slackware"
+                echo "arch"
                 ;;
             *)
                 # Check ID_LIKE only if dtype is still unknown
                 if [ -n "$ID_LIKE" ]; then
                     case $ID_LIKE in
-                        *fedora*|*rhel*|*centos*)
-                            dtype="redhat"
-                            ;;
-                        *sles*|*opensuse*)
-                            dtype="suse"
-                            ;;
                         *ubuntu*|*debian*)
-                            dtype="debian"
-                            ;;
-                        *gentoo*)
-                            dtype="gentoo"
+                            echo "debian"
                             ;;
                         *arch*)
-                            dtype="arch"
+                            echo "arch"
                             ;;
-                        *slackware*)
-                            dtype="slackware"
+                        *)
+                            echo "unknown"
                             ;;
                     esac
+                else
+                    echo "unknown"
                 fi
-
-                # If ID or ID_LIKE is not recognized, keep dtype as unknown
                 ;;
         esac
+    else
+        echo "unknown"
     fi
-
-    echo $dtype
 }
 
-
 DISTRIBUTION=$(distribution)
-if [ "$DISTRIBUTION" = "redhat" ] || [ "$DISTRIBUTION" = "arch" ]; then
+if [ "$DISTRIBUTION" = "arch" ]; then
       alias cat='bat'
 else
       alias cat='batcat'
@@ -537,32 +521,12 @@ fi
 
 # Show the current version of the operating system
 ver() {
-    local dtype
-    dtype=$(distribution)
-
-    case $dtype in
-        "redhat")
-            if [ -s /etc/redhat-release ]; then
-                cat /etc/redhat-release
-            else
-                cat /etc/issue
-            fi
-            uname -a
-            ;;
-        "suse")
-            cat /etc/SuSE-release
-            ;;
+    case $(distribution) in
         "debian")
             lsb_release -a
             ;;
-        "gentoo")
-            cat /etc/gentoo-release
-            ;;
         "arch")
             cat /etc/os-release
-            ;;
-        "slackware")
-            cat /etc/slackware-version
             ;;
         *)
             if [ -s /etc/issue ]; then
@@ -577,29 +541,17 @@ ver() {
 
 # Automatically install the needed support files for this .bashrc file
 install_bashrc_support() {
-	local dtype
-	dtype=$(distribution)
-
-	case $dtype in
-		"redhat")
-			sudo yum install multitail tree zoxide trash-cli fzf bash-completion 
-			;;
-		"suse")
-			sudo zypper install multitail tree zoxide trash-cli fzf bash-completion 
-			;;
-		"debian")
-			sudo apt-get install bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
-			;;
-		"arch")
-			sudo paru multitail tree zoxide trash-cli fzf bash-completion
-			;;
-		"slackware")
-			echo "No install support for Slackware yet. Sorry my good old friend Patrick V."
-			;;
-		*)
-			echo "Unknown distribution"
-			;;
-	esac
+    case $(distribution) in
+        "debian")
+            sudo apt-get install bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
+            ;;
+        "arch")
+            sudo pacman -S bash bash-completion bat tree zoxide trash-cli fzf
+            ;;
+        *)
+            echo "Unsupported distribution. Only Debian, Ubuntu, and Arch are supported."
+            ;;
+    esac
 }
 
 # Show current network information
@@ -649,7 +601,7 @@ apacheconfig() {
 	fi
 }
 
-# Edit the PHP configuration file (WILL BE UPDATED VERY SOON)
+# Edit the PHP configuration file
 phpconfig() {
 	if [ -f /etc/php.ini ]; then
 		sedit /etc/php.ini
