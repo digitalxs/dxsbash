@@ -34,8 +34,8 @@ For a comprehensive list of all available commands and aliases in DXSBash, see t
 ## Requirements
 
 - Debian 12 install
-- sudo access
-
+- Administrative privileges (sudo or doa)
+  
 ## Installation
 
 ```bash
