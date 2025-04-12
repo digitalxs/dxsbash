@@ -44,10 +44,6 @@ cd dxsbash
 chmod +x setup.sh
 ./setup.sh
 ```
-## Installation with one command
-```
-curl -fsSL https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/install.sh | bash
-```
 
 The installer provides an interactive experience:
 1. Detects your Linux distribution automatically
@@ -55,7 +51,7 @@ The installer provides an interactive experience:
 3. Installs all required dependencies
 4. Configures your chosen shell with enhanced features
 5. Sets up visual elements and productivity tools
-6. Configures KDE terminal emulators when available
+6. Configures KDE terminal Konsole and Yakuake profiles and defaults
 
 ## Core Components
 
