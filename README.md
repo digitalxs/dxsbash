@@ -198,9 +198,10 @@ DXSBash installs and uses the following software packages to enhance the Linux t
 
 ## Customization
 
-You can customize your environment by editing:
+You can customize your environment even more by editing:
 
 - Shell configuration: `.bashrc`, `.zshrc`, or `~/.config/fish/config.fish`
+- Edit aliases: `.bash_aliases`
 - Prompt: `~/.config/starship.toml`
 - System info: `~/.config/fastfetch/config.jsonc`
 
