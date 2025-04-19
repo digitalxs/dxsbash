@@ -9,7 +9,452 @@ cat << 'EOF'
 ░█▀▄░█░█░█▀▀░░░█▀▄░█▀█░█▀▀░█░█░░░█░█░█▀▀░█░░░█▀█
 ░█░█░▄▀▄░▀▀█░░░█▀▄░█▀█░▀▀█░█▀█░░░█▀█░█▀▀░█░░░█▀▀
 ░▀▀░░▀░▀░▀▀▀░░░▀▀░░▀░▀░▀▀▀░▀░▀░░░▀░▀░▀▀▀░▀▀▀░▀░░
+#!/bin/bash
+#
+# .bashrc_help - Reference Guide for DXSBash Environment
+# Version 2.2.6
+# Author: Luis Miguel P. Freitas
+# Website: https://digitalxs.ca
 
+cat << 'EOT'
+DXSBASH - SHELL ENVIRONMENT REFERENCE GUIDE
+-------------------------------------------------------
+
+ESSENTIAL COMMANDS
+-----------------
+help                - Display this help message
+help <topic>        - Display help for specific topic (git, zsh, fish, etc.)
+update              - Update system packages
+install <pkg>       - Install package with system updates
+cls                 - Clear the screen
+whatsmyip           - Show internal and external IP addresses
+
+NAVIGATION
+----------
+home                - Go to home directory (~)
+..                  - Go up one directory
+...                 - Go up two directories
+....                - Go up three directories
+.....               - Go up four directories
+up N                - Go up N directories
+bd                  - Return to previous directory
+z <dir>             - Jump to frequently used directory (zoxide)
+zi                  - Interactive directory selection with zoxide
+mkdirg <dir>        - Create directory and change to it
+cpg <src> <dest>    - Copy and change to destination
+mvg <src> <dest>    - Move and change to destination
+
+FILE OPERATIONS
+--------------
+cp                  - Copy (interactive mode)
+mv                  - Move (interactive mode)
+rm                  - Remove (interactive verbose mode)
+delete              - Safer remove with confirmation (rm -rfi)
+rmd                 - Remove directory and all files
+cpp <src> <dest>    - Copy with progress bar
+extract <file>      - Extract any archive type automatically
+
+LISTING FILES
+------------
+ls                  - List with colors and file types
+la                  - List all files including hidden
+ll                  - Detailed list with permissions
+lt                  - List files sorted by date
+lx                  - Sort by extension
+lk                  - Sort by size
+lf                  - List files only (no directories)
+ldir                - List directories only
+countfiles          - Count all files in the current folder
+
+SEARCHING
+---------
+f <pattern>         - Find files in current folder
+ftext <text>        - Search for text in all files in current folder
+h <pattern>         - Search command history
+p <pattern>         - Search running processes
+grep <pattern>      - Enhanced grep with ripgrep if available
+
+PERMISSIONS
+----------
+mx <file>           - Make file executable (chmod a+x)
+000                 - Set permissions to 000 (chmod -R 000)
+644                 - Set permissions to 644 (chmod -R 644)
+666                 - Set permissions to 666 (chmod -R 666)
+755                 - Set permissions to 755 (chmod -R 755)
+777                 - Set permissions to 777 (chmod -R 777)
+
+ARCHIVES
+--------
+mktar <file>        - Create tar archive
+mkbz2 <file>        - Create bz2 archive
+mkgz <file>         - Create gz archive
+untar <file>        - Extract tar archive
+unbz2 <file>        - Extract bz2 archive
+ungz <file>         - Extract gz archive
+
+SYSTEM INFORMATION
+-----------------
+diskspace           - Show disk usage sorted by size
+folders             - Show top-level folder sizes
+folderssort         - Sort folders by size
+mountedinfo         - Show mounted filesystems (df -hT)
+netinfo             - Show network information
+ports               - Show listening ports
+openports           - Show open ports
+topcpu              - Show top CPU-consuming processes
+ver                 - Show detailed OS version information
+distribution        - Show current Linux distribution
+
+EDITING
+-------
+edit                - Auto-select best editor available
+sedit               - Auto-select best editor with sudo
+ebrc                - Edit .bashrc file
+vi                  - Alias for vim
+vim                 - Alias for nvim (Neovim)
+svi                 - Run vim with sudo
+snano               - Run nano with sudo
+
+GIT OPERATIONS
+-------------
+gs                  - Git status
+ga                  - Git add
+gc                  - Git commit
+gl                  - Git log
+gd                  - Git diff
+gb                  - Git branch
+gco                 - Git checkout
+gg                  - Git grep
+gri                 - Git rebase interactive
+grm                 - Git remove
+
+SERVER ADMIN
+-----------
+apachelog           - View Apache logs
+apacheconfig        - Edit Apache configuration
+phpconfig           - Edit PHP configuration
+mysqlconfig         - Edit MySQL configuration
+logs                - Show all logs in /var/log
+restart             - Safe reboot (sudo shutdown -r now)
+forcerestart        - Forced reboot (sudo shutdown -r -n now)
+turnoff             - Power off system (sudo poweroff)
+
+KEYBOARD SHORTCUTS
+-----------------
+Ctrl+R              - Search command history with fuzzy finding
+Ctrl+F              - Launch zoxide interactive (zi)
+Alt+C               - Change to selected directory (fzf)
+
+SYSTEM MANAGEMENT
+---------------
+install_bashrc_support - Install required dependencies
+upbashdxs           - Update dxsbash to latest version
+reset-shell-profile - Reset to default shell configuration
+
+MULTI-SHELL SUPPORT
+-----------------
+DXSBash supports three shells with equivalent functionality:
+- Bash (Traditional shell)
+- Zsh (Z-Shell with enhanced features)
+- Fish (Friendly interactive shell)
+
+To change your default shell:
+chsh -s $(which bash|zsh|fish)
+
+ADDITIONAL HELP TOPICS
+--------------------
+Run 'help <topic>' for more detailed information on:
+git, zoxide, fzf, nvim, shells, kde, starship, aliases, update, reset
+
+For more information and updates:
+https://github.com/digitalxs/dxsbash
+EOT
+
+# Function to show specific help topics
+show_help_topic() {
+    case "$1" in
+        "git")
+            echo "GIT COMMANDS REFERENCE"
+            echo "======================"
+            echo ""
+            echo "Basic Commands:"
+            echo "  gs      - git status            - Show working tree status"
+            echo "  ga      - git add               - Add file contents to the index"
+            echo "  gc      - git commit            - Record changes to the repository"
+            echo "  gp      - git push              - Update remote refs and objects"
+            echo "  gpl     - git pull              - Fetch and integrate with local repository"
+            echo "  gd      - git diff              - Show changes between commits, working tree, etc"
+            echo "  gl      - git log               - Show commit logs"
+            echo "  gb      - git branch            - List, create, or delete branches"
+            echo ""
+            echo "Advanced Commands:"
+            echo "  gco     - git checkout          - Switch branches or restore working tree files"
+            echo "  gg      - git grep              - Print lines matching a pattern"
+            echo "  grm     - git rm                - Remove files from working tree and index"
+            echo "  gri     - git rebase --interactive - Reapply commits on top of another base tip"
+            echo "  gcp     - git cherry-pick       - Apply changes from existing commits"
+            echo "  gsb     - git show-branch       - Show branches and their commits"
+            echo "  gk      - gitk --all            - Open graphical repository browser"
+            echo "  gr      - git rebase            - Reapply commits on top of another base tip"
+            ;;
+        "zoxide")
+            echo "ZOXIDE DIRECTORY NAVIGATION"
+            echo "=========================="
+            echo ""
+            echo "Zoxide is a smarter cd command that remembers your most frequent directories."
+            echo ""
+            echo "Basic Commands:"
+            echo "  z <dir>     - Jump to a directory you frequently use"
+            echo "  zi          - Interactive directory selection"
+            echo "  z -         - Go to previous directory"
+            echo "  z ..        - Go to parent directory"
+            echo "  z ...       - Go to grandparent directory"
+            echo ""
+            echo "Keyboard Shortcuts:"
+            echo "  Ctrl+F      - Launch zoxide interactive mode (zi)"
+            echo ""
+            echo "Examples:"
+            echo "  z doc       - Jump to a frequently used directory containing 'doc'"
+            echo "  z code pro  - Jump to a directory matching both 'code' and 'pro'"
+            echo "  zi          - Show interactive selection of recently used directories"
+            ;;
+        "fzf")
+            echo "FZF FUZZY FINDER"
+            echo "==============="
+            echo ""
+            echo "FZF is a general-purpose command-line fuzzy finder."
+            echo ""
+            echo "Keyboard Shortcuts:"
+            echo "  Ctrl+T      - Paste selected files/dirs onto command line"
+            echo "  Ctrl+R      - Search command history with fuzzy finding"
+            echo "  Alt+C       - cd into selected directory"
+            echo ""
+            echo "Command Usage:"
+            echo "  fzf         - Start fzf in current directory"
+            echo "  find . | fzf - Pipe find results through fzf"
+            echo "  **<TAB>     - Fuzzy file completion (may need configuration)"
+            echo ""
+            echo "FZF Options:"
+            echo "  --height=40%   - Adjust the height of the finder"
+            echo "  --reverse      - Display from top to bottom"
+            echo "  --preview '...' - Add a preview window with a command"
+            ;;
+        "nvim")
+            echo "NEOVIM EDITOR"
+            echo "============"
+            echo ""
+            echo "Neovim is an extension of Vim that provides improved functionality."
+            echo ""
+            echo "Aliases:"
+            echo "  vim         - Alias for nvim"
+            echo "  svi         - Run vim with sudo"
+            echo "  vis         - Run nvim with 'set si' (smart indent)"
+            echo ""
+            echo "Basic Keybindings:"
+            echo "  i           - Enter insert mode"
+            echo "  Esc         - Return to normal mode"
+            echo "  :w          - Save file"
+            echo "  :q          - Quit"
+            echo "  :wq         - Save and quit"
+            echo "  :q!         - Quit without saving"
+            echo ""
+            echo "Navigation:"
+            echo "  h,j,k,l     - Move left, down, up, right"
+            echo "  w           - Next word"
+            echo "  b           - Previous word"
+            echo "  gg          - Go to beginning of file"
+            echo "  G           - Go to end of file"
+            echo "  Ctrl+f      - Page down"
+            echo "  Ctrl+b      - Page up"
+            ;;
+        "shells")
+            echo "MULTI-SHELL SUPPORT"
+            echo "=================="
+            echo ""
+            echo "DXSBash supports three shells with equivalent features:"
+            echo ""
+            echo "Bash:"
+            echo "  • Most compatible with scripts"
+            echo "  • Widely used and stable"
+            echo "  • Configuration: ~/.bashrc"
+            echo "  • Help file: ~/.bashrc_help"
+            echo ""
+            echo "Zsh:"
+            echo "  • Enhanced features and plugins"
+            echo "  • Better tab completion and history handling"
+            echo "  • Configuration: ~/.zshrc"
+            echo "  • Help file: ~/.zshrc_help"
+            echo "  • Plugins: Oh My Zsh, syntax highlighting, autosuggestions"
+            echo ""
+            echo "Fish:"
+            echo "  • Most user-friendly with superior autocompletions"
+            echo "  • Syntax highlighting out of the box"
+            echo "  • Configuration: ~/.config/fish/config.fish"
+            echo "  • Help file: ~/.config/fish/fish_help"
+            echo "  • Plugins: fzf.fish, tide, z"
+            echo ""
+            echo "To switch your default shell:"
+            echo "  chsh -s $(which bash|zsh|fish)"
+            echo ""
+            echo "Note: After switching shells, log out and log back in to apply the change."
+            ;;
+        "kde")
+            echo "KDE TERMINAL INTEGRATION"
+            echo "======================="
+            echo ""
+            echo "DXSBash includes special support for KDE terminal emulators:"
+            echo ""
+            echo "Konsole:"
+            echo "  • Custom profile with FiraCode Nerd Font"
+            echo "  • Properly displays Starship prompt symbols"
+            echo "  • Configuration: ~/.local/share/konsole/DXSBash.profile"
+            echo ""
+            echo "Yakuake:"
+            echo "  • Drop-down terminal with same configuration as Konsole"
+            echo "  • Uses same custom profile with Nerd Font support"
+            echo "  • Configuration: ~/.config/yakuakerc"
+            echo ""
+            echo "Font Settings:"
+            echo "  • FiraCode Nerd Font provides programming ligatures and icons"
+            echo "  • Installs automatically during DXSBash setup"
+            echo ""
+            echo "To reset terminal configuration:"
+            echo "  rm ~/.local/share/konsole/DXSBash.profile"
+            echo "  Then edit ~/.config/konsolerc and ~/.config/yakuakerc"
+            ;;
+        "starship")
+            echo "STARSHIP PROMPT"
+            echo "=============="
+            echo ""
+            echo "Starship provides a rich terminal prompt with information:"
+            echo ""
+            echo "Git Status:"
+            echo "  • Branch name and status"
+            echo "  • Modified/added/deleted files"
+            echo "  • Ahead/behind remote status"
+            echo ""
+            echo "Programming Languages:"
+            echo "  • Shows version of detected language in current directory"
+            echo "  • Supports: Python, Node.js, Go, Rust, Java, and more"
+            echo ""
+            echo "System Info:"
+            echo "  • Command execution time for long-running commands"
+            echo "  • Exit status of previous command"
+            echo "  • Username and hostname (when connected via SSH)"
+            echo ""
+            echo "Configuration: ~/.config/starship.toml"
+            echo ""
+            echo "For more information, visit: https://starship.rs/"
+            ;;
+        "aliases")
+            echo "ALIASES REFERENCE"
+            echo "================"
+            echo ""
+            echo "Navigation Aliases:"
+            echo "  ..             Go up one directory"
+            echo "  ...            Go up two directories"
+            echo "  ....           Go up three directories"
+            echo "  .....          Go up four directories"
+            echo "  bd             Go back to previous directory"
+            echo ""
+            echo "Listing Aliases:"
+            echo "  ls             List with colors and file types"
+            echo "  la             List all including hidden files"
+            echo "  ll             Long listing format"
+            echo "  lt             Sort by date"
+            echo "  lf             List files only"
+            echo "  ldir           List directories only"
+            echo ""
+            echo "Safety Aliases:"
+            echo "  rm             Interactive remove"
+            echo "  cp             Interactive copy"
+            echo "  mv             Interactive move"
+            echo "  delete         Safe remove with confirmation"
+            echo ""
+            echo "System Aliases:"
+            echo "  update         Update system packages"
+            echo "  install        Install with system updates"
+            echo "  ports          Show network ports"
+            echo "  openports      Show open ports"
+            echo ""
+            echo "Git Aliases:"
+            echo "  ga             Git add"
+            echo "  gs             Git status"
+            echo "  gc             Git commit"
+            echo "  gp             Git push"
+            echo ""
+            echo "For a complete list, run: grep \"^alias\" ~/.bashrc"
+            ;;
+        "update")
+            echo "UPDATING DXSBASH"
+            echo "==============="
+            echo ""
+            echo "You can update dxsbash in several ways:"
+            echo ""
+            echo "Using the system-wide command:"
+            echo "  $ upbashdxs"
+            echo ""
+            echo "Using the home directory shortcut:"
+            echo "  $ ~/update-dxsbash.sh"
+            echo ""
+            echo "Updates will:"
+            echo "  • Pull latest changes from the repository"
+            echo "  • Update all configuration files"
+            echo "  • Maintain your customizations (in backup)"
+            echo "  • Update shell, terminal, and utility configurations"
+            echo ""
+            echo "To see your current version:"
+            echo "  $ cat ~/linuxtoolbox/dxsbash/version.txt"
+            echo ""
+            echo "Update frequency:"
+            echo "  • It's recommended to run updates monthly"
+            echo "  • Check the GitHub repository for new releases"
+            ;;
+        "reset")
+            echo "RESETTING YOUR SHELL"
+            echo "==================="
+            echo ""
+            echo "If you need to restore your shell to the default configuration:"
+            echo ""
+            echo "  $ sudo reset-shell-profile [username]"
+            echo ""
+            echo "This will:"
+            echo "  • Create a backup of your current configuration"
+            echo "  • Restore the default shell configuration files"
+            echo "  • Remove DXSBash settings and customizations"
+            echo ""
+            echo "Shell-specific reset commands:"
+            echo "  • sudo reset-bash-profile [username]"
+            echo "  • sudo reset-zsh-profile [username]"
+            echo "  • sudo reset-fish-profile [username]"
+            echo ""
+            echo "Note: This will not uninstall any software or remove the"
+            echo "repository from ~/linuxtoolbox/dxsbash"
+            ;;
+        *)
+            echo "AVAILABLE HELP TOPICS"
+            echo "===================="
+            echo ""
+            echo "  git        - Git commands and shortcuts"
+            echo "  zoxide     - Directory navigation with zoxide"
+            echo "  fzf        - Fuzzy finder usage and shortcuts"
+            echo "  nvim       - Neovim editor shortcuts"
+            echo "  shells     - Multi-shell support (Bash, Zsh, Fish)"
+            echo "  kde        - KDE terminal integration"
+            echo "  starship   - Starship prompt features"
+            echo "  aliases    - Overview of useful aliases"
+            echo "  update     - How to update dxsbash"
+            echo "  reset      - How to reset your shell configuration"
+            echo ""
+            echo "Usage: help <topic>"
+            ;;
+    esac
+}
+
+# If arguments are passed to the script, show specific help
+if [[ $# -gt 0 ]]; then
+    show_help_topic "$1"
+fi
 GENERAL COMMANDS
 ===============
 
