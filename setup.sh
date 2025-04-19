@@ -2,7 +2,7 @@
 #=================================================================
 # DXSBash - Enhanced Shell Environment for Debian and Ubuntu
 # Repository: https://github.com/digitalxs/dxsbash
-# Version: 2.2.3
+# Version: 2.2.6
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 # License: GPL-3.0
@@ -185,7 +185,7 @@ installDepend() {
   echo -e "${CYAN}▶ Installing dependencies...${RC}"
 
   ## Check for dependencies.
-  COMMON_DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nano zoxide fzf pwgen'
+  COMMON_DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nano zoxide fzf pwgen ripgrep'
 
   # Shell-specific dependencies
   BASH_DEPENDENCIES=""
