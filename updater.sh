@@ -1,7 +1,8 @@
 #!/bin/bash
-# dxsbash Updater Script - Fixed and Improved Version for 2.2.8
+# dxsbash Updater Script - Enhanced Version for Complete Repository Sync
 # This script checks for and installs updates to the dxsbash repository
 # With support for Bash, Zsh, and Fish shells
+# Version 2.2.9 - Now updates ALL repository files locally
 
 # Color codes
 RC='\033[0m'
@@ -12,7 +13,7 @@ BLUE='\033[34m'
 CYAN='\033[36m'
 
 # Script version for debugging
-UPDATER_VERSION="2.2.8"
+UPDATER_VERSION="2.2.9"
 
 # Load dxsbash utilities for logging if available
 DXSBASH_UTILS="$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
@@ -219,6 +220,131 @@ get_current_branch() {
     echo "${branch:-main}"
 }
 
+# Function to get list of all repository files
+get_repository_files() {
+    # Get all tracked files in the repository
+    git ls-files 2>/dev/null | grep -v '^\.git' || true
+}
+
+# Function to update all repository files locally
+update_all_repository_files() {
+    local user_home="$1"
+    local dxsbash_dir="$2"
+    
+    echo -e "${CYAN}Updating ALL repository files locally...${RC}"
+    
+    # Change to repository directory
+    if ! cd "$dxsbash_dir" 2>/dev/null; then
+        echo -e "${RED}Error: Cannot access dxsbash directory${RC}"
+        return 1
+    fi
+    
+    # Get list of all repository files
+    local repo_files
+    repo_files=$(get_repository_files)
+    
+    if [ -z "$repo_files" ]; then
+        echo -e "${YELLOW}Warning: Could not get repository file list${RC}"
+        return 1
+    fi
+    
+    local updated_count=0
+    local total_files=0
+    
+    # Count total files for progress indication
+    total_files=$(echo "$repo_files" | wc -l)
+    echo -e "${BLUE}Found $total_files files in repository to process${RC}"
+    
+    # Process each file in the repository
+    while IFS= read -r file; do
+        # Skip if file doesn't exist (might be deleted in remote)
+        if [ ! -f "$dxsbash_dir/$file" ]; then
+            continue
+        fi
+        
+        # Determine where this file should be linked/copied based on its location
+        local target_path=""
+        local should_link=false
+        
+        case "$file" in
+            # Shell configuration files - these get symlinked to home
+            ".bashrc"|".zshrc"|".bash_aliases"|".bashrc_help"|".zshrc_help")
+                target_path="$user_home/$file"
+                should_link=true
+                ;;
+            
+            # Fish configuration
+            "config.fish")
+                mkdir -p "$user_home/.config/fish"
+                target_path="$user_home/.config/fish/config.fish"
+                should_link=true
+                ;;
+            "fish_help")
+                mkdir -p "$user_home/.config/fish"
+                target_path="$user_home/.config/fish/fish_help"
+                should_link=true
+                ;;
+            
+            # Starship configuration
+            "starship.toml")
+                mkdir -p "$user_home/.config"
+                target_path="$user_home/.config/starship.toml"
+                should_link=true
+                ;;
+            
+            # Fastfetch configuration
+            "config.jsonc")
+                mkdir -p "$user_home/.config/fastfetch"
+                target_path="$user_home/.config/fastfetch/config.jsonc"
+                should_link=true
+                ;;
+            
+            # Konsole profile
+            "DXSBash.profile")
+                mkdir -p "$user_home/.local/share/konsole"
+                target_path="$user_home/.local/share/konsole/DXSBash.profile"
+                should_link=true
+                ;;
+            
+            # Executable scripts - these stay in the repository but get updated
+            "setup.sh"|"updater.sh"|"clean.sh"|"install.sh"|"reset-"*".sh"|"dxsbash-utils.sh")
+                # These files are already in the right place (repository)
+                # Just ensure they're executable
+                chmod +x "$dxsbash_dir/$file" 2>/dev/null
+                ;;
+            
+            # Documentation and other files - these stay in repository
+            "README.md"|"CHANGELOG.md"|"LICENSE"|"CONTRIBUTING.md"|"SECURITY.md"|"commands.md"|"version.txt")
+                # These files are already in the right place
+                ;;
+            
+            # Configuration files that stay in repository
+            ".github/"*|".vscode/"*|"*.md"|"*.yml"|"*.yaml"|"*.json"|"*.toml")
+                # These stay in the repository directory
+                ;;
+            
+            # Any other files - log them but don't process
+            *)
+                echo -e "${DIM}  Skipping: $file (no target location defined)${RC}"
+                continue
+                ;;
+        esac
+        
+        # If we have a target path, update the file
+        if [ -n "$target_path" ] && [ "$should_link" = true ]; then
+            if update_file_link "$dxsbash_dir/$file" "$target_path" "$file"; then
+                ((updated_count++))
+            fi
+        fi
+        
+    done <<< "$repo_files"
+    
+    echo -e "${GREEN}✓ Updated $updated_count files from repository${RC}"
+    log "INFO" "Updated $updated_count repository files locally"
+    
+    return 0
+}
+
 # Function to update shell configurations with better error handling
 update_shell_configs() {
     local user_home="$1"
@@ -272,6 +398,16 @@ update_file_link() {
     if [ ! -f "$source" ]; then
         echo -e "${YELLOW}Warning: Source file $source not found for $description${RC}"
         return 1
+    fi
+    
+    # Create target directory if needed
+    local target_dir
+    target_dir=$(dirname "$target")
+    if [ ! -d "$target_dir" ]; then
+        mkdir -p "$target_dir" 2>/dev/null || {
+            echo -e "${RED}  ✗ Failed to create directory for $description${RC}"
+            return 1
+        }
     fi
     
     # Remove existing file/link
@@ -342,7 +478,7 @@ detect_sudo_command() {
     fi
 }
 
-# Main update function with improved error handling
+# Main update function with improved error handling and complete file sync
 update_dxsbash() {
     echo -e "${YELLOW}Starting dxsbash update process...${RC}"
     log "INFO" "Starting dxsbash update (updater version: $UPDATER_VERSION)"
@@ -417,7 +553,13 @@ update_dxsbash() {
         local sudo_cmd
         sudo_cmd=$(detect_sudo_command)
         
-        # Update shell configurations
+        # Update ALL repository files locally - this is the main enhancement
+        echo -e "${CYAN}━━━ UPDATING ALL REPOSITORY FILES ━━━${RC}"
+        if ! update_all_repository_files "$HOME" "$DXSBASH_DIR"; then
+            echo -e "${RED}Warning: Some repository files failed to update${RC}"
+        fi
+        
+        # Update shell configurations (this might be redundant now, but keep for safety)
         if ! update_shell_configs "$HOME" "$DXSBASH_DIR" "$SHELL_TYPE"; then
             echo -e "${RED}Warning: Some shell configurations failed to update${RC}"
         fi
@@ -428,8 +570,8 @@ update_dxsbash() {
         # Update system-wide scripts
         update_system_scripts "$sudo_cmd"
         
-        echo -e "${GREEN}✓ Update completed successfully!${RC}"
-        log "INFO" "Update completed successfully"
+        echo -e "${GREEN}✓ Complete repository sync completed successfully!${RC}"
+        log "INFO" "Complete repository sync completed successfully"
         echo -e "${YELLOW}To apply changes to your current session, run: source ~/.${SHELL_TYPE}rc${RC}"
         
         # Clean up old backup (keep only recent ones)
@@ -527,6 +669,7 @@ cleanup_old_backups() {
 # Main function with comprehensive error handling
 main() {
     echo -e "${CYAN}DXSBash Updater v$UPDATER_VERSION${RC}"
+    echo -e "${CYAN}Enhanced Complete Repository Sync${RC}"
     echo -e "${CYAN}Checking for dxsbash updates...${RC}"
     log "INFO" "Starting update check (updater version: $UPDATER_VERSION)"
     
@@ -564,6 +707,26 @@ main() {
     if [ "$current_version" = "$latest_version" ]; then
         echo -e "${GREEN}✓ You already have the latest version of dxsbash.${RC}"
         log "INFO" "Already at latest version: $current_version"
+        
+        # Ask if user wants to force a complete sync anyway
+        echo ""
+        read -p "Do you want to force a complete repository sync anyway? (y/N): " -r force_sync
+        echo ""
+        
+        if [[ "$force_sync" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+            echo -e "${YELLOW}🔄 Performing forced complete repository sync...${RC}"
+            if update_dxsbash; then
+                echo -e "${GREEN}🎉 Complete repository sync completed successfully${RC}"
+                log "INFO" "Forced complete repository sync completed"
+            else
+                echo -e "${RED}❌ Repository sync failed. Please check the logs and try again.${RC}"
+                log "ERROR" "Forced repository sync failed"
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}No changes made.${RC}"
+            log "INFO" "User declined forced sync"
+        fi
     elif version_gt "$latest_version" "$current_version"; then
         echo -e "${YELLOW}📦 A newer version is available: $current_version → $latest_version${RC}"
         log "INFO" "Update available: $current_version → $latest_version"
@@ -576,6 +739,12 @@ main() {
         if [[ "$confirm" =~ ^[Yy]([Ee][Ss])?$ ]]; then
             if update_dxsbash; then
                 echo -e "${GREEN}🎉 dxsbash has been successfully updated to version $latest_version${RC}"
+                echo -e "${CYAN}━━━ UPDATE SUMMARY ━━━${RC}"
+                echo -e "${GREEN}✓ All repository files synchronized locally${RC}"
+                echo -e "${GREEN}✓ Shell configurations updated${RC}"
+                echo -e "${GREEN}✓ System scripts updated${RC}"
+                echo -e "${GREEN}✓ Terminal configurations updated${RC}"
+                echo -e "${YELLOW}Don't forget to reload your shell: source ~/.bashrc (or ~/.zshrc, ~/.config/fish/config.fish)${RC}"
                 log "INFO" "Update completed successfully to version $latest_version"
             else
                 echo -e "${RED}❌ Update failed. Please check the logs and try again.${RC}"
@@ -589,6 +758,26 @@ main() {
     else
         echo -e "${BLUE}ℹ️  You have a development version ($current_version) which is newer than the latest release ($latest_version).${RC}"
         log "INFO" "Running development version: $current_version"
+        
+        # Ask if user wants to sync anyway for development versions
+        echo ""
+        read -p "Do you want to sync with the repository anyway? (y/N): " -r dev_sync
+        echo ""
+        
+        if [[ "$dev_sync" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+            echo -e "${YELLOW}🔄 Syncing development version with repository...${RC}"
+            if update_dxsbash; then
+                echo -e "${GREEN}🎉 Development version synchronized successfully${RC}"
+                log "INFO" "Development version sync completed"
+            else
+                echo -e "${RED}❌ Development sync failed. Please check the logs and try again.${RC}"
+                log "ERROR" "Development sync failed"
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}No changes made.${RC}"
+            log "INFO" "User declined development sync"
+        fi
     fi
 }
 
