@@ -2,7 +2,7 @@
 #=================================================================
 # DXSBash - Enhanced Shell Environment for Debian and Ubuntu
 # Repository: https://github.com/digitalxs/dxsbash
-# Version: 2.2.6
+# Version: 2.2.7
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 # License: GPL-3.0
@@ -158,12 +158,12 @@ detectDistro() {
   # Detect if we're on Debian or Ubuntu
   if [ -f /etc/debian_version ]; then
     if [ -f /etc/lsb-release ] && grep -q "Ubuntu" /etc/lsb-release; then
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Ubuntu Linux${RC}"
-      IS_DEBIAN_BASED=true
-    else
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Debian Linux${RC}"
-      IS_DEBIAN_BASED=true
-    fi
+    echo -e "${GREEN}  ✓ Detected ${WHITE}Ubuntu Linux${RC}"
+    IS_DEBIAN_BASED=true
+    elif [ -f /etc/debian_version ]; then
+    echo -e "${GREEN}  ✓ Detected ${WHITE}Debian Linux${RC}"
+    IS_DEBIAN_BASED=true
+fi
   else
     echo -e "${RED}  ⚠ Warning: DXSBash is designed specifically for Debian and Ubuntu.${RC}"
     echo -e "${YELLOW}  Your system appears to be running a different distribution.${RC}"
