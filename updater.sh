@@ -1,5 +1,5 @@
 #!/bin/bash
-# dxsbash Updater Script
+# dxsbash Updater Script - Fixed and Improved Version for 2.2.8
 # This script checks for and installs updates to the dxsbash repository
 # With support for Bash, Zsh, and Fish shells
 
@@ -10,6 +10,9 @@ YELLOW='\033[33m'
 GREEN='\033[32m'
 BLUE='\033[34m'
 CYAN='\033[36m'
+
+# Script version for debugging
+UPDATER_VERSION="2.2.8"
 
 # Load dxsbash utilities for logging if available
 DXSBASH_UTILS="$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
@@ -22,12 +25,28 @@ else
     log() {
         local level="$1"
         local message="$2"
-        # Do nothing - silent fallback
+        local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+        local log_file="$HOME/.dxsbash/logs/updater.log"
+        
+        # Create log directory if it doesn't exist
+        mkdir -p "$(dirname "$log_file")"
+        
+        # Format and append the log message
+        echo "[$timestamp] [$level] $message" >> "$log_file"
     }
     
     rotate_logs() {
-        # Do nothing - silent fallback
-        :
+        local log_dir="$HOME/.dxsbash/logs"
+        local main_log="$log_dir/updater.log"
+        local max_size=1048576  # 1MB
+        
+        # Check if log exists and is larger than max size
+        if [ -f "$main_log" ] && [ $(stat -c %s "$main_log" 2>/dev/null || echo 0) -gt $max_size ]; then
+            local timestamp=$(date "+%Y%m%d_%H%M%S")
+            mv "$main_log" "$log_dir/updater_$timestamp.log"
+            # Keep only the 5 most recent log files
+            ls -t "$log_dir"/updater_*.log 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
+        fi
     }
 fi
 
@@ -36,53 +55,76 @@ LINUXTOOLBOXDIR="$HOME/linuxtoolbox"
 DXSBASH_DIR="$LINUXTOOLBOXDIR/dxsbash"
 VERSION_FILE="$DXSBASH_DIR/version.txt"
 
+# Rotate logs at start
+rotate_logs
+
 # Check if the required commands exist
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Required commands
-for cmd in git curl wget; do
-    if ! command_exists "$cmd"; then
-        echo -e "${RED}Error: $cmd is required but not installed.${RC}"
+# Required commands check with better error messages
+check_dependencies() {
+    local missing_deps=()
+    
+    for cmd in git curl; do
+        if ! command_exists "$cmd"; then
+            missing_deps+=("$cmd")
+        fi
+    done
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        echo -e "${RED}Error: Missing required dependencies: ${missing_deps[*]}${RC}"
+        echo -e "${YELLOW}Please install the missing dependencies and try again.${RC}"
+        log "ERROR" "Missing dependencies: ${missing_deps[*]}"
         exit 1
     fi
-done
+}
 
-# Check network connectivity
-echo -e "${YELLOW}Checking network connectivity...${RC}"
-if ! ping -c 1 github.com &>/dev/null; then
-    echo -e "${RED}Error: Cannot connect to GitHub. Check your internet connection.${RC}"
-    exit 1
-fi
-
-# Detect currently used shell
-detect_current_shell() {
-    # Try to determine from SHELL environment variable first
-    CURRENT_SHELL_PATH="$SHELL"
-    CURRENT_SHELL=$(basename "$CURRENT_SHELL_PATH")
+# Improved network connectivity check
+check_network() {
+    echo -e "${YELLOW}Checking network connectivity...${RC}"
     
-    # Check if the current shell is already a symlink to one of our configurations
-    if [ -L "$HOME/.bashrc" ] && [ "$(readlink "$HOME/.bashrc")" = "$DXSBASH_DIR/.bashrc" ]; then
+    # Try multiple methods for better reliability
+    if command_exists curl; then
+        if curl -s --connect-timeout 10 --max-time 15 https://api.github.com/repos/digitalxs/dxsbash >/dev/null 2>&1; then
+            return 0
+        fi
+    elif command_exists wget; then
+        if wget --spider --timeout=15 --tries=2 https://github.com/digitalxs/dxsbash >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    
+    # Fallback to ping
+    if ping -c 1 -W 5 github.com >/dev/null 2>&1; then
+        return 0
+    fi
+    
+    echo -e "${RED}Error: Cannot connect to GitHub. Please check your internet connection.${RC}"
+    log "ERROR" "Network connectivity check failed"
+    return 1
+}
+
+# Detect currently used shell with improved logic
+detect_current_shell() {
+    echo -e "${BLUE}Detecting current shell configuration...${RC}"
+    
+    # Check for existing symlinks to determine active shell
+    if [ -L "$HOME/.bashrc" ] && [ "$(readlink "$HOME/.bashrc" 2>/dev/null)" = "$DXSBASH_DIR/.bashrc" ]; then
         DETECTED_SHELL="bash"
-    elif [ -L "$HOME/.zshrc" ] && [ "$(readlink "$HOME/.zshrc")" = "$DXSBASH_DIR/.zshrc" ]; then
+    elif [ -L "$HOME/.zshrc" ] && [ "$(readlink "$HOME/.zshrc" 2>/dev/null)" = "$DXSBASH_DIR/.zshrc" ]; then
         DETECTED_SHELL="zsh"
-    elif [ -L "$HOME/.config/fish/config.fish" ] && [ "$(readlink "$HOME/.config/fish/config.fish")" = "$DXSBASH_DIR/config.fish" ]; then
+    elif [ -L "$HOME/.config/fish/config.fish" ] && [ "$(readlink "$HOME/.config/fish/config.fish" 2>/dev/null)" = "$DXSBASH_DIR/config.fish" ]; then
         DETECTED_SHELL="fish"
     else
-        # Default to detecting based on current shell
+        # Fallback to detecting based on current shell
+        CURRENT_SHELL=$(basename "${SHELL:-/bin/bash}")
         case "$CURRENT_SHELL" in
-            bash)
-                DETECTED_SHELL="bash"
-                ;;
-            zsh)
-                DETECTED_SHELL="zsh"
-                ;;
-            fish)
-                DETECTED_SHELL="fish"
+            bash|zsh|fish)
+                DETECTED_SHELL="$CURRENT_SHELL"
                 ;;
             *)
-                # Default to bash if we can't determine
                 DETECTED_SHELL="bash"
                 echo -e "${YELLOW}Could not determine shell type. Defaulting to bash.${RC}"
                 ;;
@@ -90,123 +132,161 @@ detect_current_shell() {
     fi
     
     echo -e "${BLUE}Detected shell: ${CYAN}$DETECTED_SHELL${RC}"
-    return 0
+    log "INFO" "Detected shell: $DETECTED_SHELL"
 }
 
 # Function to get current installed version
 get_current_version() {
     if [ -f "$VERSION_FILE" ]; then
-        cat "$VERSION_FILE"
+        cat "$VERSION_FILE" 2>/dev/null || echo "0.0.0"
     else
-        echo "0.0.0"  # Default if no version file exists
+        echo "0.0.0"
     fi
 }
 
-# Function to get latest version from repository
+# Function to get latest version from repository with better error handling
 get_latest_version() {
-    # First try with git ls-remote
-    if command_exists git; then
-        # Check if we can access GitHub
-        if git ls-remote --quiet https://github.com/digitalxs/dxsbash.git HEAD &>/dev/null; then
-            # Try to get version.txt content from the repository
-            local remote_version
-            remote_version=$(curl -s https://raw.githubusercontent.com/digitalxs/dxsbash/refs/heads/main/version.txt)
-            if [ -n "$remote_version" ]; then
-                echo "$remote_version"
-                return 0
-            fi
-        fi
+    local remote_version=""
+    
+    # Try to get version from GitHub API first (more reliable)
+    if command_exists curl; then
+        remote_version=$(curl -s --connect-timeout 10 --max-time 15 \
+            "https://raw.githubusercontent.com/digitalxs/dxsbash/main/version.txt" 2>/dev/null | tr -d '[:space:]')
+    elif command_exists wget; then
+        remote_version=$(wget -qO- --timeout=15 \
+            "https://raw.githubusercontent.com/digitalxs/dxsbash/main/version.txt" 2>/dev/null | tr -d '[:space:]')
     fi
     
-    # Fallback: Return current version if we can't get the latest
-    get_current_version
-    return 1
+    # Validate version format (should be like X.Y.Z)
+    if [[ "$remote_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$remote_version"
+        return 0
+    else
+        # Fallback: try git ls-remote to check if repository is accessible
+        if git ls-remote --quiet https://github.com/digitalxs/dxsbash.git HEAD >/dev/null 2>&1; then
+            echo "$(get_current_version)"
+            log "WARN" "Could not fetch remote version, but repository is accessible"
+            return 1
+        else
+            echo "$(get_current_version)"
+            log "ERROR" "Repository not accessible"
+            return 1
+        fi
+    fi
 }
 
-# Function to compare versions
+# Fixed version comparison function
 version_gt() {
-    test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"
+    # Returns 0 (true) if $1 is greater than $2
+    if [ "$1" = "$2" ]; then
+        return 1  # Equal versions
+    fi
+    
+    local sorted_versions
+    sorted_versions=$(printf '%s\n%s' "$1" "$2" | sort -V)
+    local highest_version
+    highest_version=$(echo "$sorted_versions" | tail -n1)
+    
+    [ "$highest_version" = "$1" ]
 }
 
-# Function to update shell configurations
+# Function to create safer backups
+create_backup() {
+    local source_dir="$1"
+    local backup_name="dxsbash_backup_$(date +%Y%m%d_%H%M%S)_$$"
+    local backup_path="$LINUXTOOLBOXDIR/$backup_name"
+    
+    echo -e "${YELLOW}Creating backup at $backup_path${RC}"
+    
+    if cp -r "$source_dir" "$backup_path" 2>/dev/null; then
+        echo "$backup_path"
+        log "INFO" "Created backup at $backup_path"
+        return 0
+    else
+        echo -e "${RED}Failed to create backup${RC}"
+        log "ERROR" "Failed to create backup at $backup_path"
+        return 1
+    fi
+}
+
+# Function to get current git branch
+get_current_branch() {
+    local branch
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+    if [ -z "$branch" ]; then
+        branch=$(git rev-parse --short HEAD 2>/dev/null)
+    fi
+    echo "${branch:-main}"
+}
+
+# Function to update shell configurations with better error handling
 update_shell_configs() {
     local user_home="$1"
     local dxsbash_dir="$2"
     local detected_shell="$3"
 
-    echo -e "${YELLOW}Updating shell configurations...${RC}"
+    echo -e "${YELLOW}Updating shell configurations for $detected_shell...${RC}"
     
-    # Update shell-specific configuration
     case "$detected_shell" in
         bash)
-            # Update Bash configuration
-            ln -svf "$dxsbash_dir/.bashrc" "$user_home/.bashrc" && \
-            (echo -e "${GREEN}Updated .bashrc${RC}"; log "INFO" "Updated .bashrc") || \
-            (echo -e "${RED}Failed to update .bashrc${RC}"; log "ERROR" "Failed to update .bashrc")
-            
-            ln -svf "$dxsbash_dir/.bashrc_help" "$user_home/.bashrc_help" && \
-            echo -e "${GREEN}Updated .bashrc_help${RC}" || \
-            echo -e "${RED}Failed to update .bashrc_help${RC}"
-
-            ln -svf "$dxsbash_dir/.bash_aliases" "$user_home/.bash_aliases" && \
-            echo -e "${GREEN}Updated .bash_aliases${RC}" || \
-            echo -e "${RED}Failed to update .bash_aliases${RC}"
+            update_file_link "$dxsbash_dir/.bashrc" "$user_home/.bashrc" "Bash config" || return 1
+            update_file_link "$dxsbash_dir/.bashrc_help" "$user_home/.bashrc_help" "Bash help" || true
+            update_file_link "$dxsbash_dir/.bash_aliases" "$user_home/.bash_aliases" "Bash aliases" || true
             ;;
-            
         zsh)
-            # Update Zsh configuration
-            ln -svf "$dxsbash_dir/.zshrc" "$user_home/.zshrc" && \
-            echo -e "${GREEN}Updated .zshrc${RC}" || \
-            echo -e "${RED}Failed to update .zshrc${RC}"
-            
-            ln -svf "$dxsbash_dir/.zshrc_help" "$user_home/.zshrc_help" && \
-            echo -e "${GREEN}Updated .zshrc_help${RC}" || \
-            echo -e "${RED}Failed to update .zshrc_help${RC}"
-            
-            # Check for Zsh plugins file and update if exists
-            if [ -f "$dxsbash_dir/.zsh_plugins" ]; then
-                ln -svf "$dxsbash_dir/.zsh_plugins" "$user_home/.zsh_plugins" && \
-                echo -e "${GREEN}Updated .zsh_plugins${RC}" || \
-                echo -e "${RED}Failed to update .zsh_plugins${RC}"
-            fi
+            update_file_link "$dxsbash_dir/.zshrc" "$user_home/.zshrc" "Zsh config" || return 1
+            update_file_link "$dxsbash_dir/.zshrc_help" "$user_home/.zshrc_help" "Zsh help" || true
             ;;
-            
         fish)
-            # Update Fish configuration
             mkdir -p "$user_home/.config/fish"
-            
-            ln -svf "$dxsbash_dir/config.fish" "$user_home/.config/fish/config.fish" && \
-            echo -e "${GREEN}Updated config.fish${RC}" || \
-            echo -e "${RED}Failed to update config.fish${RC}"
-            
-            ln -svf "$dxsbash_dir/fish_help" "$user_home/.config/fish/fish_help" && \
-            echo -e "${GREEN}Updated fish_help${RC}" || \
-            echo -e "${RED}Failed to update fish_help${RC}"
+            update_file_link "$dxsbash_dir/config.fish" "$user_home/.config/fish/config.fish" "Fish config" || return 1
+            update_file_link "$dxsbash_dir/fish_help" "$user_home/.config/fish/fish_help" "Fish help" || true
             ;;
-            
         *)
-            echo -e "${RED}Unknown shell type: $detected_shell. Shell configurations not updated.${RC}"
+            echo -e "${RED}Unknown shell type: $detected_shell${RC}"
+            log "ERROR" "Unknown shell type: $detected_shell"
             return 1
             ;;
     esac
     
     # Update common configurations
     mkdir -p "$user_home/.config"
-    
-    # Update Starship configuration
-    ln -svf "$dxsbash_dir/starship.toml" "$user_home/.config/starship.toml" && \
-    echo -e "${GREEN}Updated starship.toml${RC}" || \
-    echo -e "${RED}Failed to update starship.toml${RC}"
+    update_file_link "$dxsbash_dir/starship.toml" "$user_home/.config/starship.toml" "Starship config" || true
     
     # Update Fastfetch configuration if it exists
     if [ -f "$dxsbash_dir/config.jsonc" ]; then
         mkdir -p "$user_home/.config/fastfetch"
-        ln -svf "$dxsbash_dir/config.jsonc" "$user_home/.config/fastfetch/config.jsonc" && \
-        echo -e "${GREEN}Updated fastfetch configuration${RC}" || \
-        echo -e "${RED}Failed to update fastfetch configuration${RC}"
+        update_file_link "$dxsbash_dir/config.jsonc" "$user_home/.config/fastfetch/config.jsonc" "Fastfetch config" || true
     fi
     
+    log "INFO" "Updated shell configurations for $detected_shell"
     return 0
+}
+
+# Helper function to update file links safely
+update_file_link() {
+    local source="$1"
+    local target="$2"
+    local description="$3"
+    
+    if [ ! -f "$source" ]; then
+        echo -e "${YELLOW}Warning: Source file $source not found for $description${RC}"
+        return 1
+    fi
+    
+    # Remove existing file/link
+    if [ -e "$target" ] || [ -L "$target" ]; then
+        rm -f "$target"
+    fi
+    
+    # Create new symlink
+    if ln -sf "$source" "$target" 2>/dev/null; then
+        echo -e "${GREEN}  ✓ Updated $description${RC}"
+        return 0
+    else
+        echo -e "${RED}  ✗ Failed to update $description${RC}"
+        return 1
+    fi
 }
 
 # Function to update Konsole configuration if present
@@ -222,260 +302,299 @@ update_konsole_config() {
         mkdir -p "$user_home/.local/share/konsole"
         
         # Update Konsole profile
-        ln -svf "$dxsbash_dir/DXSBash.profile" "$user_home/.local/share/konsole/DXSBash.profile" && \
-        echo -e "${GREEN}Updated Konsole profile${RC}" || \
-        echo -e "${RED}Failed to update Konsole profile${RC}"
-        
-        # Check if konsolerc exists and update if it does
-        if [ -f "$user_home/.config/konsolerc" ]; then
-            # Check if DefaultProfile is already set to DXSBash.profile
-            if ! grep -q "DefaultProfile=DXSBash.profile" "$user_home/.config/konsolerc"; then
-                # Update DefaultProfile in konsolerc
-                if grep -q "DefaultProfile=" "$user_home/.config/konsolerc"; then
-                    # Replace existing DefaultProfile line
-                    sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$user_home/.config/konsolerc" && \
-                    echo -e "${GREEN}Updated Konsole default profile${RC}" || \
-                    echo -e "${RED}Failed to update Konsole default profile${RC}"
-                else
-                    # Add DefaultProfile line if it doesn't exist
-                    echo "DefaultProfile=DXSBash.profile" >> "$user_home/.config/konsolerc" && \
-                    echo -e "${GREEN}Added Konsole default profile${RC}" || \
-                    echo -e "${RED}Failed to add Konsole default profile${RC}"
-                fi
-            fi
-        fi
-        
-        # Do the same for Yakuake if it exists
-        if [ -f "$user_home/.config/yakuakerc" ]; then
-            echo -e "${YELLOW}Updating Yakuake configuration...${RC}"
-            
-            if ! grep -q "DefaultProfile=DXSBash.profile" "$user_home/.config/yakuakerc"; then
-                if grep -q "DefaultProfile=" "$user_home/.config/yakuakerc"; then
-                    # Replace existing DefaultProfile line
-                    sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$user_home/.config/yakuakerc" && \
-                    echo -e "${GREEN}Updated Yakuake default profile${RC}" || \
-                    echo -e "${RED}Failed to update Yakuake default profile${RC}"
-                else
-                    # Add DefaultProfile line if it doesn't exist
-                    echo "DefaultProfile=DXSBash.profile" >> "$user_home/.config/yakuakerc" && \
-                    echo -e "${GREEN}Added Yakuake default profile${RC}" || \
-                    echo -e "${RED}Failed to add Yakuake default profile${RC}"
-                fi
+        if update_file_link "$dxsbash_dir/DXSBash.profile" "$user_home/.local/share/konsole/DXSBash.profile" "Konsole profile"; then
+            # Update konsolerc
+            update_konsole_default_profile "$user_home/.config/konsolerc"
+            # Update yakuakerc if it exists
+            if [ -f "$user_home/.config/yakuakerc" ]; then
+                echo -e "${YELLOW}  Updating Yakuake configuration...${RC}"
+                update_konsole_default_profile "$user_home/.config/yakuakerc"
             fi
         fi
     fi
-    
-    return 0
 }
 
-# Function to update dxsbash
+# Helper function to update Konsole/Yakuake default profile
+update_konsole_default_profile() {
+    local config_file="$1"
+    
+    if [ -f "$config_file" ]; then
+        if grep -q "DefaultProfile=" "$config_file"; then
+            sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$config_file"
+        else
+            echo "DefaultProfile=DXSBash.profile" >> "$config_file"
+        fi
+    fi
+}
+
+# Enhanced privilege escalation detection
+detect_sudo_command() {
+    if command_exists sudo && sudo -n true 2>/dev/null; then
+        echo "sudo"
+    elif command_exists doas && [ -f "/etc/doas.conf" ]; then
+        echo "doas"
+    elif command_exists su; then
+        echo "su -c"
+    else
+        echo -e "${RED}Error: No suitable privilege escalation method found${RC}"
+        log "ERROR" "No suitable privilege escalation method found"
+        exit 1
+    fi
+}
+
+# Main update function with improved error handling
 update_dxsbash() {
-    echo -e "${YELLOW}Updating dxsbash...${RC}"
-    log "INFO" "Starting dxsbash update"
+    echo -e "${YELLOW}Starting dxsbash update process...${RC}"
+    log "INFO" "Starting dxsbash update (updater version: $UPDATER_VERSION)"
     
-    # Create backup of current installation
-    local backup_dir="$LINUXTOOLBOXDIR/dxsbash_backup_$(date +%Y%m%d_%H%M%S)"
-    echo -e "${YELLOW}Creating backup at $backup_dir${RC}"
-    cp -r "$DXSBASH_DIR" "$backup_dir"
-    log "INFO" "Created backup at $backup_dir"
+    # Validate dxsbash directory
+    if [ ! -d "$DXSBASH_DIR" ]; then
+        echo -e "${RED}Error: dxsbash directory not found at $DXSBASH_DIR${RC}"
+        log "ERROR" "dxsbash directory not found at $DXSBASH_DIR"
+        return 1
+    fi
     
-    # Store the old version before updating
-    local old_version=$(get_current_version)
-    log "INFO" "Updating from version $old_version"
+    # Change to dxsbash directory
+    if ! cd "$DXSBASH_DIR"; then
+        echo -e "${RED}Error: Cannot access dxsbash directory${RC}"
+        log "ERROR" "Cannot access dxsbash directory"
+        return 1
+    fi
     
-    # Get user home directory
-    USER_HOME="$HOME"
+    # Create backup before any changes
+    local backup_dir
+    backup_dir=$(create_backup "$DXSBASH_DIR")
+    if [ -z "$backup_dir" ]; then
+        echo -e "${RED}Error: Failed to create backup. Aborting update.${RC}"
+        return 1
+    fi
     
-    # Detect current shell before updating
+    # Store versions
+    local old_version
+    old_version=$(get_current_version)
+    log "INFO" "Current version: $old_version"
+    
+    # Detect shell configuration
     detect_current_shell
     local SHELL_TYPE="$DETECTED_SHELL"
     
-    # Pull latest changes
-    cd "$DXSBASH_DIR" || exit 1
+    # Get current branch
+    local current_branch
+    current_branch=$(get_current_branch)
+    echo -e "${BLUE}Current branch: $current_branch${RC}"
     
     # Check for local modifications
-    if [ -n "$(git status --porcelain)" ]; then
-        echo -e "${YELLOW}Local modifications detected. These will be preserved in the backup.${RC}"
+    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+        echo -e "${YELLOW}Local modifications detected. Stashing changes...${RC}"
+        git stash push -m "dxsbash-updater-$(date +%Y%m%d-%H%M%S)" 2>/dev/null || {
+            echo -e "${RED}Warning: Could not stash local changes${RC}"
+        }
     fi
     
-    # Store current branch
-    local current_branch
-    current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "detached")
+    # Attempt to update repository
+    echo -e "${YELLOW}Fetching latest changes from repository...${RC}"
+    if ! git fetch origin "$current_branch" 2>/dev/null; then
+        echo -e "${YELLOW}Warning: Could not fetch from origin, trying default remote...${RC}"
+        git fetch 2>/dev/null || {
+            echo -e "${RED}Error: Could not fetch updates from repository${RC}"
+            restore_from_backup "$backup_dir"
+            return 1
+        }
+    fi
     
-    # Stash any local changes
-    git stash -q
-    log "INFO" "Stashed local changes"
-    
-    # Fetch latest changes
-    if git pull origin main; then
-        echo -e "${GREEN}Successfully updated dxsbash repository!${RC}"
+    # Perform the actual pull
+    if git pull origin "$current_branch" 2>/dev/null || git pull 2>/dev/null; then
+        echo -e "${GREEN}✓ Successfully updated dxsbash repository${RC}"
         log "INFO" "Git pull successful"
         
-        # Get the new version after update
-        local new_version=$(get_current_version)
+        # Get new version
+        local new_version
+        new_version=$(get_current_version)
         echo -e "${GREEN}Updated from version ${YELLOW}$old_version${GREEN} to ${YELLOW}$new_version${RC}"
         log "INFO" "Updated from version $old_version to $new_version"
         
-        # Define sudo command
-        local sudo_cmd="sudo"
-        if ! command -v sudo >/dev/null 2>&1; then
-            if command -v doas >/dev/null 2>&1 && [ -f "/etc/doas.conf" ]; then
-                sudo_cmd="doas"
-            else
-                sudo_cmd="su -c"
-            fi
-        fi
+        # Detect and set sudo command
+        local sudo_cmd
+        sudo_cmd=$(detect_sudo_command)
         
         # Update shell configurations
-        update_shell_configs "$USER_HOME" "$DXSBASH_DIR" "$SHELL_TYPE"
-        log "INFO" "Updated shell configurations for $SHELL_TYPE"
-        
-        # Update Konsole configuration if present
-        update_konsole_config "$USER_HOME" "$DXSBASH_DIR"
-        
-        # Update the updater script in home directory
-        ln -svf "$DXSBASH_DIR/updater.sh" "$USER_HOME/update-dxsbash.sh"
-        chmod +x "$USER_HOME/update-dxsbash.sh" && \
-        echo -e "${GREEN}Updated updater script in home directory${RC}" || \
-        echo -e "${RED}Failed to update updater script in home directory${RC}"
-        
-        # Update system-wide commands
-        echo -e "${YELLOW}Updating system-wide commands...${RC}"
-        
-        # Update reset-shell-profile
-        if [ -f "$DXSBASH_DIR/reset-bash-profile.sh" ]; then
-            cp -p "$DXSBASH_DIR/reset-bash-profile.sh" "$LINUXTOOLBOXDIR/"
-            chmod +x "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
-            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-bash-profile && \
-            echo -e "${GREEN}Updated reset-bash-profile script${RC}" || \
-            echo -e "${RED}Failed to update reset-bash-profile script${RC}"
+        if ! update_shell_configs "$HOME" "$DXSBASH_DIR" "$SHELL_TYPE"; then
+            echo -e "${RED}Warning: Some shell configurations failed to update${RC}"
         fi
         
-        # Update shell-specific reset scripts if they exist
-        if [ -f "$DXSBASH_DIR/reset-zsh-profile.sh" ]; then
-            cp -p "$DXSBASH_DIR/reset-zsh-profile.sh" "$LINUXTOOLBOXDIR/"
-            chmod +x "$LINUXTOOLBOXDIR/reset-zsh-profile.sh"
-            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" /usr/local/bin/reset-zsh-profile && \
-            echo -e "${GREEN}Updated reset-zsh-profile script${RC}" || \
-            echo -e "${RED}Failed to update reset-zsh-profile script${RC}"
-        fi
+        # Update terminal configurations
+        update_konsole_config "$HOME" "$DXSBASH_DIR"
         
-        if [ -f "$DXSBASH_DIR/reset-fish-profile.sh" ]; then
-            cp -p "$DXSBASH_DIR/reset-fish-profile.sh" "$LINUXTOOLBOXDIR/"
-            chmod +x "$LINUXTOOLBOXDIR/reset-fish-profile.sh"
-            $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-fish-profile.sh" /usr/local/bin/reset-fish-profile && \
-            echo -e "${GREEN}Updated reset-fish-profile script${RC}" || \
-            echo -e "${RED}Failed to update reset-fish-profile script${RC}"
-        fi
+        # Update system-wide scripts
+        update_system_scripts "$sudo_cmd"
         
-        # Update the generic reset-shell-profile link based on detected shell
-        case "$SHELL_TYPE" in
-            bash)
-                $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-                ;;
-            zsh)
-                if [ -f "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" ]; then
-                    $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" /usr/local/bin/reset-shell-profile
-                else
-                    $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-                fi
-                ;;
-            fish)
-                if [ -f "$LINUXTOOLBOXDIR/reset-fish-profile.sh" ]; then
-                    $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-fish-profile.sh" /usr/local/bin/reset-shell-profile
-                else
-                    $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-                fi
-                ;;
-        esac
-        
-        # Update system-wide updater command
-        if [ -f "$DXSBASH_DIR/updater.sh" ]; then
-            cp -p "$DXSBASH_DIR/updater.sh" "$LINUXTOOLBOXDIR/"
-            chmod +x "$LINUXTOOLBOXDIR/updater.sh"
-            if $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs; then
-                echo -e "${GREEN}Updated system-wide updater command${RC}"
-                log "INFO" "Updated system-wide updater command"
-            else
-                echo -e "${RED}Failed to update system-wide updater command${RC}"
-                log "ERROR" "Failed to update system-wide updater command"
-            fi
-        fi
-
-        # Update utilities script
-        if [ -f "$DXSBASH_DIR/dxsbash-utils.sh" ]; then
-            cp -p "$DXSBASH_DIR/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/"
-            chmod +x "$LINUXTOOLBOXDIR/dxsbash-utils.sh"
-            log "INFO" "Updated dxsbash-utils.sh"
-        fi
-        
-        echo -e "${GREEN}Update completed successfully!${RC}"
+        echo -e "${GREEN}✓ Update completed successfully!${RC}"
         log "INFO" "Update completed successfully"
         echo -e "${YELLOW}To apply changes to your current session, run: source ~/.${SHELL_TYPE}rc${RC}"
+        
+        # Clean up old backup (keep only recent ones)
+        cleanup_old_backups
+        
         return 0
     else
-        echo -e "${RED}Failed to update dxsbash repository.${RC}"
-        log "ERROR" "Failed to update dxsbash repository"
-        echo -e "${YELLOW}Restoring from backup...${RC}"
-        rm -rf "$DXSBASH_DIR"
-        cp -r "$backup_dir" "$DXSBASH_DIR"
-        echo -e "${YELLOW}Restored from backup.${RC}"
-        log "INFO" "Restored from backup $backup_dir"
+        echo -e "${RED}✗ Failed to update dxsbash repository${RC}"
+        log "ERROR" "Git pull failed"
+        restore_from_backup "$backup_dir"
         return 1
     fi
 }
 
-# Main function
+# Function to restore from backup
+restore_from_backup() {
+    local backup_dir="$1"
+    
+    if [ -n "$backup_dir" ] && [ -d "$backup_dir" ]; then
+        echo -e "${YELLOW}Restoring from backup...${RC}"
+        rm -rf "$DXSBASH_DIR"
+        if mv "$backup_dir" "$DXSBASH_DIR"; then
+            echo -e "${GREEN}✓ Restored from backup${RC}"
+            log "INFO" "Restored from backup: $backup_dir"
+        else
+            echo -e "${RED}✗ Failed to restore from backup${RC}"
+            log "ERROR" "Failed to restore from backup: $backup_dir"
+        fi
+    fi
+}
+
+# Function to update system-wide scripts
+update_system_scripts() {
+    local sudo_cmd="$1"
+    
+    echo -e "${YELLOW}Updating system-wide commands...${RC}"
+    
+    # Update reset scripts
+    for script in "reset-bash-profile.sh" "reset-zsh-profile.sh" "reset-fish-profile.sh"; do
+        if [ -f "$DXSBASH_DIR/$script" ]; then
+            cp -p "$DXSBASH_DIR/$script" "$LINUXTOOLBOXDIR/" 2>/dev/null
+            chmod +x "$LINUXTOOLBOXDIR/$script" 2>/dev/null
+        fi
+    done
+    
+    # Create appropriate reset-shell-profile link
+    local reset_script="reset-bash-profile.sh"
+    case "$DETECTED_SHELL" in
+        zsh) [ -f "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" ] && reset_script="reset-zsh-profile.sh" ;;
+        fish) [ -f "$LINUXTOOLBOXDIR/reset-fish-profile.sh" ] && reset_script="reset-fish-profile.sh" ;;
+    esac
+    
+    $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/$reset_script" /usr/local/bin/reset-shell-profile 2>/dev/null && \
+        echo -e "${GREEN}  ✓ Updated reset-shell-profile command${RC}" || \
+        echo -e "${YELLOW}  Warning: Could not update reset-shell-profile command${RC}"
+    
+    # Update updater script
+    if [ -f "$DXSBASH_DIR/updater.sh" ]; then
+        cp -p "$DXSBASH_DIR/updater.sh" "$LINUXTOOLBOXDIR/" 2>/dev/null
+        chmod +x "$LINUXTOOLBOXDIR/updater.sh" 2>/dev/null
+        
+        # Update system-wide updater command
+        $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs 2>/dev/null && \
+            echo -e "${GREEN}  ✓ Updated system-wide updater command${RC}" || \
+            echo -e "${YELLOW}  Warning: Could not update system-wide updater command${RC}"
+        
+        # Update home directory shortcut
+        ln -sf "$LINUXTOOLBOXDIR/updater.sh" "$HOME/update-dxsbash.sh" 2>/dev/null
+        chmod +x "$HOME/update-dxsbash.sh" 2>/dev/null
+    fi
+    
+    # Update utilities script
+    if [ -f "$DXSBASH_DIR/dxsbash-utils.sh" ]; then
+        cp -p "$DXSBASH_DIR/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/" 2>/dev/null
+        chmod +x "$LINUXTOOLBOXDIR/dxsbash-utils.sh" 2>/dev/null
+    fi
+}
+
+# Function to clean up old backups (keep only 3 most recent)
+cleanup_old_backups() {
+    local backup_count
+    backup_count=$(find "$LINUXTOOLBOXDIR" -maxdepth 1 -name "dxsbash_backup_*" -type d | wc -l)
+    
+    if [ "$backup_count" -gt 3 ]; then
+        echo -e "${YELLOW}Cleaning up old backups (keeping 3 most recent)...${RC}"
+        find "$LINUXTOOLBOXDIR" -maxdepth 1 -name "dxsbash_backup_*" -type d -printf '%T@ %p\n' | \
+            sort -n | head -n -3 | cut -d' ' -f2- | \
+            while read -r old_backup; do
+                rm -rf "$old_backup" 2>/dev/null && \
+                    echo -e "${GREEN}  ✓ Removed old backup: $(basename "$old_backup")${RC}"
+            done
+    fi
+}
+
+# Main function with comprehensive error handling
 main() {
-    echo -e "${YELLOW}Checking for dxsbash updates...${RC}"
-    log "INFO" "Starting check for dxsbash updates"
+    echo -e "${CYAN}DXSBash Updater v$UPDATER_VERSION${RC}"
+    echo -e "${CYAN}Checking for dxsbash updates...${RC}"
+    log "INFO" "Starting update check (updater version: $UPDATER_VERSION)"
+    
+    # Check dependencies
+    check_dependencies
+    
+    # Check network connectivity
+    if ! check_network; then
+        exit 1
+    fi
     
     # Check if dxsbash directory exists
     if [ ! -d "$DXSBASH_DIR" ]; then
         echo -e "${RED}Error: dxsbash directory not found at $DXSBASH_DIR${RC}"
         log "ERROR" "dxsbash directory not found at $DXSBASH_DIR"
         echo -e "${YELLOW}Run the installer first:${RC}"
-        echo -e "git clone --depth=1 https://github.com/digitalxs/dxsbash.git"
-        echo -e "cd dxsbash"
-        echo -e "./setup.sh"
+        echo -e "${WHITE}curl -fsSL https://raw.githubusercontent.com/digitalxs/dxsbash/main/install.sh | bash${RC}"
         exit 1
     fi
     
     # Get current and latest versions
-    local current_version
-    local latest_version
-    
+    local current_version latest_version
     current_version=$(get_current_version)
+    echo -e "${BLUE}Current version: ${YELLOW}$current_version${RC}"
+    
     latest_version=$(get_latest_version)
+    if [ $? -eq 0 ]; then
+        echo -e "${BLUE}Latest version: ${GREEN}$latest_version${RC}"
+    else
+        echo -e "${YELLOW}Warning: Could not determine latest version. Proceeding with repository check...${RC}"
+        latest_version="$current_version"
+    fi
     
-    echo -e "Current version: ${YELLOW}$current_version${RC}"
-    echo -e "Latest version: ${GREEN}$latest_version${RC}"
-    
-    # Compare versions
+    # Compare versions and decide whether to update
     if [ "$current_version" = "$latest_version" ]; then
-        echo -e "${GREEN}You already have the latest version of dxsbash.${RC}"
+        echo -e "${GREEN}✓ You already have the latest version of dxsbash.${RC}"
+        log "INFO" "Already at latest version: $current_version"
     elif version_gt "$latest_version" "$current_version"; then
-        echo -e "${YELLOW}A newer version is available!${RC}"
-        log "INFO" "Found a new version available"
+        echo -e "${YELLOW}📦 A newer version is available: $current_version → $latest_version${RC}"
+        log "INFO" "Update available: $current_version → $latest_version"
         
         # Ask for user confirmation
-        read -p "Do you want to proceed with the update? (y/N): " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            echo -e "${YELLOW}Update cancelled.${RC}"
-            exit 0
-        fi
+        echo ""
+        read -p "Do you want to proceed with the update? (y/N): " -r confirm
+        echo ""
         
-        if update_dxsbash; then
-            echo -e "${GREEN}dxsbash has been updated to version $latest_version${RC}"
-            log "INFO" "dxsbash has been updated to version $latest_version"
+        if [[ "$confirm" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+            if update_dxsbash; then
+                echo -e "${GREEN}🎉 dxsbash has been successfully updated to version $latest_version${RC}"
+                log "INFO" "Update completed successfully to version $latest_version"
+            else
+                echo -e "${RED}❌ Update failed. Please check the logs and try again.${RC}"
+                log "ERROR" "Update process failed"
+                exit 1
+            fi
         else
-            echo -e "${RED}Update failed. Please try again later or update manually.${RC}"
-            log "ERROR" "Update failed"
+            echo -e "${YELLOW}Update cancelled by user.${RC}"
+            log "INFO" "Update cancelled by user"
         fi
     else
-        echo -e "${YELLOW}You have a newer version than the repository. No update needed.${RC}"
+        echo -e "${BLUE}ℹ️  You have a development version ($current_version) which is newer than the latest release ($latest_version).${RC}"
+        log "INFO" "Running development version: $current_version"
     fi
 }
+
+# Set error handling
+set -e
+trap 'echo -e "${RED}An unexpected error occurred. Check the logs for details.${RC}"; log "ERROR" "Script terminated unexpectedly at line $LINENO"' ERR
 
 # Run the main function
 main "$@"
