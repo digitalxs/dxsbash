@@ -2,7 +2,6 @@
 #=================================================================
 # DXSBash - Enhanced Shell Environment for Debian and Ubuntu
 # Repository: https://github.com/digitalxs/dxsbash
-# Version: 2.2.8
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 # License: GPL-3.0
@@ -764,25 +763,25 @@ main() {
   finalSetup
 
   # Display completion message
-  echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
-  echo -e "${BLUE}║                                                        ║${RC}"
-  echo -e "${BLUE}║  ${GREEN}Installation Complete!${BLUE}                             ║${RC}"
-  echo -e "${BLUE}║                                                        ║${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}                           ║${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE}                   ║${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} upbashdxs${BLUE}                       ║${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Reset:${YELLOW} sudo reset-shell-profile [username]${BLUE} ║${RC}"
-  echo -e "${BLUE}║                                                        ║${RC}"
-  echo -e "${BLUE}║  ${YELLOW}Please log out and log back in to use your new shell${BLUE} ║${RC}"
-  echo -e "${BLUE}║                                                        ║${RC}"
+  echo -e "${BLUE}╔════════════════════════════════════════════════════════╗ ${RC}"
+  echo -e "${BLUE}║                                                          ${RC}"
+  echo -e "${BLUE}║  ${GREEN}Installation Complete!${BLUE}                   ${RC}"
+  echo -e "${BLUE}║                                                          ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}        ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE} ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} upbashdxs${BLUE}             ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Reset:${YELLOW} sudo reset-shell-profile [username]${BLUE} ${RC}"
+  echo -e "${BLUE}║                                                          ${RC}"
+  echo -e "${BLUE}║  ${YELLOW}Please log out and log back in to use your new shell${BLUE} ${RC}"
+  echo -e "${BLUE}║                                                          ${RC}"
   if [ "$IS_DEBIAN_BASED" != true ]; then
-    echo -e "${BLUE}║  ${RED}Note: DXSBash is optimized for Debian/Ubuntu systems${BLUE} ║${RC}"
-    echo -e "${BLUE}║  ${RED}Some features may not work as expected on your system${BLUE}║${RC}"
-    echo -e "${BLUE}║                                                        ║${RC}"
+    echo -e "${BLUE}║  ${RED}Note: DXSBash is optimized for Debian/Ubuntu systems${BLUE}  ${RC}"
+    echo -e "${BLUE}║  ${RED}Some features may not work as expected on your system${BLUE} ${RC}"
+    echo -e "${BLUE}║                                                        ${RC}"
   fi
-  echo -e "${BLUE}║  ${RED}This Software is GNU/GPLv3${BLUE}                          ║${RC}"
-  echo -e "${BLUE}║                                                        ║${RC}"
-  echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${RC}"
+  echo -e "${BLUE}║  ${RED}This Software is GNU/GPLv3${BLUE}                 ${RC}"
+  echo -e "${BLUE}║                                                          ${RC}"
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════╝ ${RC}"
   echo -e "  ${CYAN}Made by Luis Miguel P. Freitas - DigitalXS.ca${RC}"
   echo ""
 }
