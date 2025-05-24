@@ -250,6 +250,10 @@ update_all_repository_files() {
     
     local updated_count=0
     local total_files=0
+    local shell_configs=0
+    local app_configs=0
+    local scripts_updated=0
+    local docs_found=0
     
     # Count total files for progress indication
     total_files=$(echo "$repo_files" | wc -l)
@@ -265,12 +269,14 @@ update_all_repository_files() {
         # Determine where this file should be linked/copied based on its location
         local target_path=""
         local should_link=false
+        local file_category=""
         
         case "$file" in
             # Shell configuration files - these get symlinked to home
             ".bashrc"|".zshrc"|".bash_aliases"|".bashrc_help"|".zshrc_help")
                 target_path="$user_home/$file"
                 should_link=true
+                file_category="shell_config"
                 ;;
             
             # Fish configuration
@@ -278,11 +284,13 @@ update_all_repository_files() {
                 mkdir -p "$user_home/.config/fish"
                 target_path="$user_home/.config/fish/config.fish"
                 should_link=true
+                file_category="fish_config"
                 ;;
             "fish_help")
                 mkdir -p "$user_home/.config/fish"
                 target_path="$user_home/.config/fish/fish_help"
                 should_link=true
+                file_category="fish_config"
                 ;;
             
             # Starship configuration
@@ -290,6 +298,7 @@ update_all_repository_files() {
                 mkdir -p "$user_home/.config"
                 target_path="$user_home/.config/starship.toml"
                 should_link=true
+                file_category="app_config"
                 ;;
             
             # Fastfetch configuration
@@ -297,6 +306,7 @@ update_all_repository_files() {
                 mkdir -p "$user_home/.config/fastfetch"
                 target_path="$user_home/.config/fastfetch/config.jsonc"
                 should_link=true
+                file_category="app_config"
                 ;;
             
             # Konsole profile
@@ -304,6 +314,7 @@ update_all_repository_files() {
                 mkdir -p "$user_home/.local/share/konsole"
                 target_path="$user_home/.local/share/konsole/DXSBash.profile"
                 should_link=true
+                file_category="terminal_config"
                 ;;
             
             # Executable scripts - these stay in the repository but get updated
@@ -311,21 +322,28 @@ update_all_repository_files() {
                 # These files are already in the right place (repository)
                 # Just ensure they're executable
                 chmod +x "$dxsbash_dir/$file" 2>/dev/null
+                file_category="executable_script"
+                echo -e "${GREEN}  ✓ Updated permissions for $file${RC}"
                 ;;
             
-            # Documentation and other files - these stay in repository
+            # Documentation and metadata files - these stay in repository
             "README.md"|"CHANGELOG.md"|"LICENSE"|"CONTRIBUTING.md"|"SECURITY.md"|"commands.md"|"version.txt")
                 # These files are already in the right place
+                file_category="documentation"
+                echo -e "${CYAN}  ℹ  Documentation: $file (repository)${RC}"
                 ;;
             
             # Configuration files that stay in repository
-            ".github/"*|".vscode/"*|"*.md"|"*.yml"|"*.yaml"|"*.json"|"*.toml")
+            ".github/"*|".vscode/"*|"*.yml"|"*.yaml")
                 # These stay in the repository directory
+                file_category="repo_config"
+                echo -e "${CYAN}  ℹ  Repository config: $file${RC}"
                 ;;
             
-            # Any other files - log them but don't process
+            # Any other files - categorize and log them
             *)
-                echo -e "${DIM}  Skipping: $file (no target location defined)${RC}"
+                file_category="unprocessed"
+                echo -e "${DIM}  Skipping: $file (unprocessed file type)${RC}"
                 continue
                 ;;
         esac
@@ -334,12 +352,27 @@ update_all_repository_files() {
         if [ -n "$target_path" ] && [ "$should_link" = true ]; then
             if update_file_link "$dxsbash_dir/$file" "$target_path" "$file"; then
                 ((updated_count++))
+                case "$file_category" in
+                    "shell_config"|"fish_config") ((shell_configs++)) ;;
+                    "app_config"|"terminal_config") ((app_configs++)) ;;
+                esac
             fi
+        elif [ "$file_category" = "executable_script" ]; then
+            ((scripts_updated++))
+        elif [ "$file_category" = "documentation" ]; then
+            ((docs_found++))
         fi
         
     done <<< "$repo_files"
     
-    echo -e "${GREEN}✓ Updated $updated_count files from repository${RC}"
+    echo -e "${GREEN}✓ Repository synchronization completed${RC}"
+    echo -e "${BLUE}━━━ SYNC SUMMARY ━━━${RC}"
+    echo -e "${GREEN}  • Shell configurations: $shell_configs updated${RC}"
+    echo -e "${GREEN}  • Application configs: $app_configs updated${RC}"
+    echo -e "${GREEN}  • Executable scripts: $scripts_updated processed${RC}"
+    echo -e "${CYAN}  • Documentation files: $docs_found found${RC}"
+    echo -e "${BLUE}  • Total files linked: $updated_count${RC}"
+    echo -e "${BLUE}  • Total files processed: $total_files${RC}"
     log "INFO" "Updated $updated_count repository files locally"
     
     return 0
@@ -610,10 +643,16 @@ update_system_scripts() {
     echo -e "${YELLOW}Updating system-wide commands...${RC}"
     
     # Update reset scripts
+    local reset_scripts_updated=0
     for script in "reset-bash-profile.sh" "reset-zsh-profile.sh" "reset-fish-profile.sh"; do
         if [ -f "$DXSBASH_DIR/$script" ]; then
-            cp -p "$DXSBASH_DIR/$script" "$LINUXTOOLBOXDIR/" 2>/dev/null
-            chmod +x "$LINUXTOOLBOXDIR/$script" 2>/dev/null
+            if cp -p "$DXSBASH_DIR/$script" "$LINUXTOOLBOXDIR/" 2>/dev/null && \
+               chmod +x "$LINUXTOOLBOXDIR/$script" 2>/dev/null; then
+                echo -e "${GREEN}  ✓ Updated $script${RC}"
+                ((reset_scripts_updated++))
+            else
+                echo -e "${YELLOW}  Warning: Could not update $script${RC}"
+            fi
         fi
     done
     
@@ -624,29 +663,82 @@ update_system_scripts() {
         fish) [ -f "$LINUXTOOLBOXDIR/reset-fish-profile.sh" ] && reset_script="reset-fish-profile.sh" ;;
     esac
     
-    $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/$reset_script" /usr/local/bin/reset-shell-profile 2>/dev/null && \
-        echo -e "${GREEN}  ✓ Updated reset-shell-profile command${RC}" || \
-        echo -e "${YELLOW}  Warning: Could not update reset-shell-profile command${RC}"
+    # Try to create system-wide reset command with better error handling
+    if [ -f "$LINUXTOOLBOXDIR/$reset_script" ]; then
+        if $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/$reset_script" /usr/local/bin/reset-shell-profile 2>/dev/null; then
+            echo -e "${GREEN}  ✓ Updated reset-shell-profile command${RC}"
+        else
+            # Try to provide helpful information about why it failed
+            if [ ! -d "/usr/local/bin" ]; then
+                echo -e "${YELLOW}  ℹ  /usr/local/bin doesn't exist - reset-shell-profile not installed system-wide${RC}"
+                echo -e "${YELLOW}  ℹ  You can still use: $LINUXTOOLBOXDIR/$reset_script${RC}"
+            elif [ ! -w "/usr/local/bin" ]; then
+                echo -e "${YELLOW}  ℹ  No write permission to /usr/local/bin - reset-shell-profile not installed system-wide${RC}"
+                echo -e "${YELLOW}  ℹ  You can still use: $LINUXTOOLBOXDIR/$reset_script${RC}"
+            else
+                echo -e "${YELLOW}  ℹ  Could not create system-wide reset-shell-profile command${RC}"
+                echo -e "${YELLOW}  ℹ  You can still use: $LINUXTOOLBOXDIR/$reset_script${RC}"
+            fi
+        fi
+    else
+        echo -e "${YELLOW}  Warning: Reset script $reset_script not found${RC}"
+    fi
     
     # Update updater script
     if [ -f "$DXSBASH_DIR/updater.sh" ]; then
-        cp -p "$DXSBASH_DIR/updater.sh" "$LINUXTOOLBOXDIR/" 2>/dev/null
-        chmod +x "$LINUXTOOLBOXDIR/updater.sh" 2>/dev/null
-        
-        # Update system-wide updater command
-        $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs 2>/dev/null && \
-            echo -e "${GREEN}  ✓ Updated system-wide updater command${RC}" || \
-            echo -e "${YELLOW}  Warning: Could not update system-wide updater command${RC}"
-        
-        # Update home directory shortcut
-        ln -sf "$LINUXTOOLBOXDIR/updater.sh" "$HOME/update-dxsbash.sh" 2>/dev/null
-        chmod +x "$HOME/update-dxsbash.sh" 2>/dev/null
+        if cp -p "$DXSBASH_DIR/updater.sh" "$LINUXTOOLBOXDIR/" 2>/dev/null && \
+           chmod +x "$LINUXTOOLBOXDIR/updater.sh" 2>/dev/null; then
+            echo -e "${GREEN}  ✓ Updated updater.sh in linuxtoolbox${RC}"
+            
+            # Try to update system-wide updater command
+            if $sudo_cmd ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs 2>/dev/null; then
+                echo -e "${GREEN}  ✓ Updated system-wide updater command (upbashdxs)${RC}"
+            else
+                # Provide helpful information about alternatives
+                if [ ! -d "/usr/local/bin" ]; then
+                    echo -e "${YELLOW}  ℹ  /usr/local/bin doesn't exist - upbashdxs not available system-wide${RC}"
+                elif [ ! -w "/usr/local/bin" ]; then
+                    echo -e "${YELLOW}  ℹ  No write permission to /usr/local/bin - upbashdxs not available system-wide${RC}"
+                else
+                    echo -e "${YELLOW}  ℹ  Could not create system-wide upbashdxs command${RC}"
+                fi
+                echo -e "${CYAN}  ℹ  Alternative ways to update dxsbash:${RC}"
+                echo -e "${CYAN}    • $LINUXTOOLBOXDIR/updater.sh${RC}"
+                echo -e "${CYAN}    • ~/update-dxsbash.sh${RC}"
+            fi
+            
+            # Always try to update home directory shortcut (this should work)
+            if ln -sf "$LINUXTOOLBOXDIR/updater.sh" "$HOME/update-dxsbash.sh" 2>/dev/null && \
+               chmod +x "$HOME/update-dxsbash.sh" 2>/dev/null; then
+                echo -e "${GREEN}  ✓ Updated ~/update-dxsbash.sh shortcut${RC}"
+            else
+                echo -e "${YELLOW}  Warning: Could not create ~/update-dxsbash.sh shortcut${RC}"
+            fi
+        else
+            echo -e "${YELLOW}  Warning: Could not update updater.sh${RC}"
+        fi
+    else
+        echo -e "${YELLOW}  Warning: updater.sh not found in repository${RC}"
     fi
     
     # Update utilities script
     if [ -f "$DXSBASH_DIR/dxsbash-utils.sh" ]; then
-        cp -p "$DXSBASH_DIR/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/" 2>/dev/null
-        chmod +x "$LINUXTOOLBOXDIR/dxsbash-utils.sh" 2>/dev/null
+        if cp -p "$DXSBASH_DIR/dxsbash-utils.sh" "$LINUXTOOLBOXDIR/" 2>/dev/null && \
+           chmod +x "$LINUXTOOLBOXDIR/dxsbash-utils.sh" 2>/dev/null; then
+            echo -e "${GREEN}  ✓ Updated dxsbash-utils.sh${RC}"
+        else
+            echo -e "${YELLOW}  Warning: Could not update dxsbash-utils.sh${RC}"
+        fi
+    fi
+    
+    # Summary of system script updates
+    echo -e "${BLUE}  System scripts update summary:${RC}"
+    echo -e "${BLUE}    • Reset scripts: $reset_scripts_updated updated${RC}"
+    echo -e "${BLUE}    • Updater available at: $LINUXTOOLBOXDIR/updater.sh${RC}"
+    if command -v upbashdxs &> /dev/null; then
+        echo -e "${BLUE}    • System-wide updater: upbashdxs (available)${RC}"
+    else
+        echo -e "${BLUE}    • System-wide updater: not available (use alternatives above)${RC}"
     fi
 }
 
