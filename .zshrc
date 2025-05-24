@@ -196,13 +196,23 @@ alias password='pwgen -A'
 
 # Package management aliases (distribution-specific)
 if [[ "$DISTRIBUTION" == "debian" ]]; then
-    alias install='sudo nala update && sudo nala install -y'
-    alias update='sudo nala update && sudo nala upgrade -y'
-    alias upgrade='sudo nala update && sudo apt-get dist-upgrade'
-    alias remove='sudo nala update && sudo nala remove'
-    alias removeall='sudo nala purge'
-    alias historypkg='nala history'
-    alias searchpkg='sudo nala search'
+    # Check if nala is available, otherwise use apt
+    if command -v nala &> /dev/null; then
+        alias install='sudo nala update && sudo nala install -y'
+        alias update='sudo nala update && sudo nala upgrade -y'
+        alias upgrade='sudo nala update && sudo apt-get dist-upgrade'
+        alias remove='sudo nala update && sudo nala remove'
+        alias removeall='sudo nala purge'
+        alias searchpkg='sudo nala search'
+    else
+        alias install='sudo apt update && sudo apt install -y'
+        alias update='sudo apt update && sudo apt upgrade -y'
+        alias upgrade='sudo apt update && sudo apt dist-upgrade'
+        alias remove='sudo apt update && sudo apt remove'
+        alias removeall='sudo apt purge'
+        alias searchpkg='apt search'
+    fi
+    alias historypkg='grep " install " /var/log/apt/history.log'
 elif [[ "$DISTRIBUTION" == "arch" ]]; then
     if command -v paru &> /dev/null; then
         alias install='paru -S'
