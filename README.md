@@ -33,8 +33,10 @@ For a comprehensive list of all available commands and aliases in DXSBash, see t
 
 ## Requirements
 
-- Debian 12 install
-- Administrative privileges (sudo)
+- Debian 12 (extensively tested)
+- Arch Linux (moderately tested)
+- Ubuntu 20.04+ (limited tested)
+- Administrative privileges (sudo mostly)
   
 ## Installation
 
