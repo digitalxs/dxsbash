@@ -1,791 +1,1372 @@
 #!/bin/bash
 #
-# .bashrc_help - Help file for the dxsbash environment
-#
-# This file contains helpful information about commands and shortcuts
-# available in the dxsbash environment.
-
-cat << 'EOF'
-░█▀▄░█░█░█▀▀░░░█▀▄░█▀█░█▀▀░█░█░░░█░█░█▀▀░█░░░█▀█
-░█░█░▄▀▄░▀▀█░░░█▀▄░█▀█░▀▀█░█▀█░░░█▀█░█▀▀░█░░░█▀▀
-░▀▀░░▀░▀░▀▀▀░░░▀▀░░▀░▀░▀▀▀░▀░▀░░░▀░▀░▀▀▀░▀▀▀░▀░░
-#!/bin/bash
-#
-# .bashrc_help - Reference Guide for DXSBash Environment
-# Version 2.2.6
+# .bashrc_help - Enhanced Help System for DXSBash Environment
+# Version 2.3.0 - Comprehensive Reference Guide
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 
-cat << 'EOT'
-DXSBASH - SHELL ENVIRONMENT REFERENCE GUIDE
--------------------------------------------------------
+# Color definitions for better readability
+if [[ -t 1 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    PURPLE='\033[0;35m'
+    CYAN='\033[0;36m'
+    WHITE='\033[1;37m'
+    BOLD='\033[1m'
+    DIM='\033[2m'
+    NC='\033[0m' # No Color
+else
+    RED='' GREEN='' YELLOW='' BLUE='' PURPLE='' CYAN='' WHITE='' BOLD='' DIM='' NC=''
+fi
 
-ESSENTIAL COMMANDS
------------------
-help                - Display this help message
-help <topic>        - Display help for specific topic (git, zsh, fish, etc.)
-update              - Update system packages
-install <pkg>       - Install package with system updates
-cls                 - Clear the screen
-whatsmyip           - Show internal and external IP addresses
+# Main help display function
+show_main_help() {
+    cat << EOF
+${CYAN}
+░█▀▄░█░█░█▀▀░░░█▀▄░█▀█░█▀▀░█░█░░░█░█░█▀▀░█░░░█▀█
+░█░█░▄▀▄░▀▀█░░░█▀▄░█▀█░▀▀█░█▀█░░░█▀█░█▀▀░█░░░█▀▀
+░▀▀░░▀░▀░▀▀▀░░░▀▀░░▀░▀░▀▀▀░▀░▀░░░▀░▀░▀▀▀░▀▀▀░▀░░${NC}
 
-NAVIGATION
-----------
-home                - Go to home directory (~)
-..                  - Go up one directory
-...                 - Go up two directories
-....                - Go up three directories
-.....               - Go up four directories
-up N                - Go up N directories
-bd                  - Return to previous directory
-z <dir>             - Jump to frequently used directory (zoxide)
-zi                  - Interactive directory selection with zoxide
-mkdirg <dir>        - Create directory and change to it
-cpg <src> <dest>    - Copy and change to destination
-mvg <src> <dest>    - Move and change to destination
+${BOLD}${WHITE}DXSBash - Professional Shell Environment${NC}
+${DIM}Enhanced Bash configuration for Linux power users${NC}
+${PURPLE}Version 2.2.8 | digitalxs.ca${NC}
 
-FILE OPERATIONS
---------------
-cp                  - Copy (interactive mode)
-mv                  - Move (interactive mode)
-rm                  - Remove (interactive verbose mode)
-delete              - Safer remove with confirmation (rm -rfi)
-rmd                 - Remove directory and all files
-cpp <src> <dest>    - Copy with progress bar
-extract <file>      - Extract any archive type automatically
+${BOLD}${GREEN}━━━ QUICK START ━━━${NC}
+${YELLOW}help <topic>${NC}     - Show detailed help for specific topic
+${YELLOW}help --list${NC}     - List all available help topics  
+${YELLOW}help --search${NC}   - Search commands by keyword
+${YELLOW}help --examples${NC} - Show practical usage examples
 
-LISTING FILES
-------------
-ls                  - List with colors and file types
-la                  - List all files including hidden
-ll                  - Detailed list with permissions
-lt                  - List files sorted by date
-lx                  - Sort by extension
-lk                  - Sort by size
-lf                  - List files only (no directories)
-ldir                - List directories only
-countfiles          - Count all files in the current folder
+${BOLD}${GREEN}━━━ ESSENTIAL COMMANDS ━━━${NC}
+${WHITE}Navigation:${NC}
+  ${CYAN}.., ..., ....${NC}    - Go up 1, 2, 3 directories
+  ${CYAN}bd${NC}               - Back to previous directory
+  ${CYAN}z <dir>${NC}          - Smart directory jumping (zoxide)
+  ${CYAN}zi${NC}               - Interactive directory picker
+  ${CYAN}mkdirg <dir>${NC}     - Create and enter directory
 
-SEARCHING
----------
-f <pattern>         - Find files in current folder
-ftext <text>        - Search for text in all files in current folder
-h <pattern>         - Search command history
-p <pattern>         - Search running processes
-grep <pattern>      - Enhanced grep with ripgrep if available
+${WHITE}File Operations:${NC}
+  ${CYAN}extract <file>${NC}   - Auto-extract any archive type
+  ${CYAN}cpg <src> <dst>${NC}  - Copy and go to destination
+  ${CYAN}mvg <src> <dst>${NC}  - Move and go to destination
+  ${CYAN}ftext <pattern>${NC}  - Search text in all files
 
-PERMISSIONS
-----------
-mx <file>           - Make file executable (chmod a+x)
-000                 - Set permissions to 000 (chmod -R 000)
-644                 - Set permissions to 644 (chmod -R 644)
-666                 - Set permissions to 666 (chmod -R 666)
-755                 - Set permissions to 755 (chmod -R 755)
-777                 - Set permissions to 777 (chmod -R 777)
+${WHITE}System Info:${NC}
+  ${CYAN}whatsmyip${NC}        - Show internal/external IP
+  ${CYAN}diskspace${NC}        - Show disk usage by size
+  ${CYAN}topcpu${NC}           - Show top CPU processes
+  ${CYAN}ports${NC}            - Show active network ports
 
-ARCHIVES
---------
-mktar <file>        - Create tar archive
-mkbz2 <file>        - Create bz2 archive
-mkgz <file>         - Create gz archive
-untar <file>        - Extract tar archive
-unbz2 <file>        - Extract bz2 archive
-ungz <file>         - Extract gz archive
+${WHITE}Git Shortcuts:${NC}
+  ${CYAN}gs${NC}               - git status
+  ${CYAN}ga <files>${NC}       - git add
+  ${CYAN}gc${NC}               - git commit
+  ${CYAN}gp${NC}               - git push
+  ${CYAN}gl${NC}               - git log
 
-SYSTEM INFORMATION
------------------
-diskspace           - Show disk usage sorted by size
-folders             - Show top-level folder sizes
-folderssort         - Sort folders by size
-mountedinfo         - Show mounted filesystems (df -hT)
-netinfo             - Show network information
-ports               - Show listening ports
-openports           - Show open ports
-topcpu              - Show top CPU-consuming processes
-ver                 - Show detailed OS version information
-distribution        - Show current Linux distribution
+${WHITE}Package Management:${NC}
+  ${CYAN}update${NC}           - Update system packages
+  ${CYAN}install <pkg>${NC}    - Install package + updates
+  ${CYAN}searchpkg <term>${NC} - Search for packages
 
-EDITING
--------
-edit                - Auto-select best editor available
-sedit               - Auto-select best editor with sudo
-ebrc                - Edit .bashrc file
-vi                  - Alias for vim
-vim                 - Alias for nvim (Neovim)
-svi                 - Run vim with sudo
-snano               - Run nano with sudo
+${BOLD}${GREEN}━━━ KEYBOARD SHORTCUTS ━━━${NC}
+  ${YELLOW}Ctrl+R${NC}         - Fuzzy search command history
+  ${YELLOW}Ctrl+F${NC}         - Launch interactive directory navigator
+  ${YELLOW}Alt+C${NC}          - cd to selected directory (fzf)
+  ${YELLOW}Tab${NC}            - Enhanced auto-completion
+  ${YELLOW}Ctrl+L${NC}         - Clear screen (same as 'cls')
 
-GIT OPERATIONS
--------------
-gs                  - Git status
-ga                  - Git add
-gc                  - Git commit
-gl                  - Git log
-gd                  - Git diff
-gb                  - Git branch
-gco                 - Git checkout
-gg                  - Git grep
-gri                 - Git rebase interactive
-grm                 - Git remove
+${BOLD}${GREEN}━━━ HELP TOPICS ━━━${NC}
+${PURPLE}Core Topics:${NC}
+  ${CYAN}navigation${NC}       - Directory navigation and shortcuts
+  ${CYAN}files${NC}            - File operations and management
+  ${CYAN}git${NC}              - Git commands and workflows
+  ${CYAN}search${NC}           - Finding files and text
+  ${CYAN}system${NC}           - System information and management
+  ${CYAN}network${NC}          - Network tools and diagnostics
 
-SERVER ADMIN
------------
-apachelog           - View Apache logs
-apacheconfig        - Edit Apache configuration
-phpconfig           - Edit PHP configuration
-mysqlconfig         - Edit MySQL configuration
-logs                - Show all logs in /var/log
-restart             - Safe reboot (sudo shutdown -r now)
-forcerestart        - Forced reboot (sudo shutdown -r -n now)
-turnoff             - Power off system (sudo poweroff)
+${PURPLE}Development:${NC}
+  ${CYAN}python${NC}           - Python development tools
+  ${CYAN}node${NC}             - Node.js and npm shortcuts
+  ${CYAN}docker${NC}           - Docker and container management
+  ${CYAN}kubernetes${NC}       - Kubernetes (k8s) commands
 
-KEYBOARD SHORTCUTS
------------------
-Ctrl+R              - Search command history with fuzzy finding
-Ctrl+F              - Launch zoxide interactive (zi)
-Alt+C               - Change to selected directory (fzf)
+${PURPLE}Advanced:${NC}
+  ${CYAN}shells${NC}           - Multi-shell support (Bash/Zsh/Fish)
+  ${CYAN}customization${NC}    - Personalizing your environment
+  ${CYAN}troubleshooting${NC}  - Common issues and solutions
+  ${CYAN}performance${NC}      - Optimization tips and tricks
 
-SYSTEM MANAGEMENT
----------------
-install_bashrc_support - Install required dependencies
-upbashdxs           - Update dxsbash to latest version
-reset-shell-profile - Reset to default shell configuration
+${PURPLE}Tools & Integration:${NC}
+  ${CYAN}starship${NC}         - Starship prompt features
+  ${CYAN}zoxide${NC}           - Smart directory navigation
+  ${CYAN}fzf${NC}              - Fuzzy finder usage
+  ${CYAN}kde${NC}              - KDE terminal integration
 
-MULTI-SHELL SUPPORT
------------------
-DXSBash supports three shells with equivalent functionality:
-- Bash (Traditional shell)
-- Zsh (Z-Shell with enhanced features)
-- Fish (Friendly interactive shell)
+${BOLD}${GREEN}━━━ MAINTENANCE ━━━${NC}
+  ${CYAN}upbashdxs${NC}                      - Update DXSBash
+  ${CYAN}install_bashrc_support${NC}         - Install dependencies
+  ${CYAN}sudo reset-shell-profile <user>${NC} - Reset to defaults
 
-To change your default shell:
-chsh -s $(which bash|zsh|fish)
+${DIM}For detailed information: ${YELLOW}help <topic>${NC}
+${DIM}For command examples: ${YELLOW}help --examples${NC}
+${DIM}Documentation: ${BLUE}https://github.com/digitalxs/dxsbash${NC}
 
-ADDITIONAL HELP TOPICS
---------------------
-Run 'help <topic>' for more detailed information on:
-git, zoxide, fzf, nvim, shells, kde, starship, aliases, update, reset
+EOF
+}
 
-For more information and updates:
-https://github.com/digitalxs/dxsbash
-EOT
+# List all available help topics
+show_topic_list() {
+    echo -e "${BOLD}${GREEN}Available Help Topics:${NC}\n"
+    
+    echo -e "${PURPLE}CORE FUNCTIONALITY${NC}"
+    echo -e "  ${CYAN}navigation${NC}       - Directory navigation, cd shortcuts, path manipulation"
+    echo -e "  ${CYAN}files${NC}            - File operations, permissions, archives, searching"
+    echo -e "  ${CYAN}git${NC}              - Git commands, workflows, and shortcuts"
+    echo -e "  ${CYAN}search${NC}           - Finding files, searching text, grep alternatives"
+    echo -e "  ${CYAN}system${NC}           - System info, processes, disk usage, monitoring"
+    echo -e "  ${CYAN}network${NC}          - Network diagnostics, IP info, port checking"
+    
+    echo -e "\n${PURPLE}DEVELOPMENT TOOLS${NC}"
+    echo -e "  ${CYAN}python${NC}           - Python development, virtual environments, testing"
+    echo -e "  ${CYAN}node${NC}             - Node.js, npm, JavaScript development"
+    echo -e "  ${CYAN}docker${NC}           - Docker containers, images, compose"
+    echo -e "  ${CYAN}kubernetes${NC}       - Kubernetes cluster management"
+    
+    echo -e "\n${PURPLE}ADVANCED FEATURES${NC}"
+    echo -e "  ${CYAN}shells${NC}           - Multi-shell support and configuration"
+    echo -e "  ${CYAN}customization${NC}    - Personalizing aliases, functions, prompt"
+    echo -e "  ${CYAN}troubleshooting${NC}  - Common problems and solutions"
+    echo -e "  ${CYAN}performance${NC}      - Optimization and efficiency tips"
+    
+    echo -e "\n${PURPLE}TOOLS & INTEGRATION${NC}"
+    echo -e "  ${CYAN}starship${NC}         - Cross-shell prompt customization"
+    echo -e "  ${CYAN}zoxide${NC}           - Smart directory jumping and navigation"
+    echo -e "  ${CYAN}fzf${NC}              - Fuzzy finder integration and usage"
+    echo -e "  ${CYAN}kde${NC}              - KDE Konsole and Yakuake integration"
+    
+    echo -e "\n${DIM}Usage: ${YELLOW}help <topic>${NC}"
+}
 
-# Function to show specific help topics
-show_help_topic() {
-    case "$1" in
-        "git")
-            echo "GIT COMMANDS REFERENCE"
-            echo "======================"
-            echo ""
-            echo "Basic Commands:"
-            echo "  gs      - git status            - Show working tree status"
-            echo "  ga      - git add               - Add file contents to the index"
-            echo "  gc      - git commit            - Record changes to the repository"
-            echo "  gp      - git push              - Update remote refs and objects"
-            echo "  gpl     - git pull              - Fetch and integrate with local repository"
-            echo "  gd      - git diff              - Show changes between commits, working tree, etc"
-            echo "  gl      - git log               - Show commit logs"
-            echo "  gb      - git branch            - List, create, or delete branches"
-            echo ""
-            echo "Advanced Commands:"
-            echo "  gco     - git checkout          - Switch branches or restore working tree files"
-            echo "  gg      - git grep              - Print lines matching a pattern"
-            echo "  grm     - git rm                - Remove files from working tree and index"
-            echo "  gri     - git rebase --interactive - Reapply commits on top of another base tip"
-            echo "  gcp     - git cherry-pick       - Apply changes from existing commits"
-            echo "  gsb     - git show-branch       - Show branches and their commits"
-            echo "  gk      - gitk --all            - Open graphical repository browser"
-            echo "  gr      - git rebase            - Reapply commits on top of another base tip"
-            ;;
-        "zoxide")
-            echo "ZOXIDE DIRECTORY NAVIGATION"
-            echo "=========================="
-            echo ""
-            echo "Zoxide is a smarter cd command that remembers your most frequent directories."
-            echo ""
-            echo "Basic Commands:"
-            echo "  z <dir>     - Jump to a directory you frequently use"
-            echo "  zi          - Interactive directory selection"
-            echo "  z -         - Go to previous directory"
-            echo "  z ..        - Go to parent directory"
-            echo "  z ...       - Go to grandparent directory"
-            echo ""
-            echo "Keyboard Shortcuts:"
-            echo "  Ctrl+F      - Launch zoxide interactive mode (zi)"
-            echo ""
-            echo "Examples:"
-            echo "  z doc       - Jump to a frequently used directory containing 'doc'"
-            echo "  z code pro  - Jump to a directory matching both 'code' and 'pro'"
-            echo "  zi          - Show interactive selection of recently used directories"
-            ;;
-        "fzf")
-            echo "FZF FUZZY FINDER"
-            echo "==============="
-            echo ""
-            echo "FZF is a general-purpose command-line fuzzy finder."
-            echo ""
-            echo "Keyboard Shortcuts:"
-            echo "  Ctrl+T      - Paste selected files/dirs onto command line"
-            echo "  Ctrl+R      - Search command history with fuzzy finding"
-            echo "  Alt+C       - cd into selected directory"
-            echo ""
-            echo "Command Usage:"
-            echo "  fzf         - Start fzf in current directory"
-            echo "  find . | fzf - Pipe find results through fzf"
-            echo "  **<TAB>     - Fuzzy file completion (may need configuration)"
-            echo ""
-            echo "FZF Options:"
-            echo "  --height=40%   - Adjust the height of the finder"
-            echo "  --reverse      - Display from top to bottom"
-            echo "  --preview '...' - Add a preview window with a command"
-            ;;
-        "nvim")
-            echo "NEOVIM EDITOR"
-            echo "============"
-            echo ""
-            echo "Neovim is an extension of Vim that provides improved functionality."
-            echo ""
-            echo "Aliases:"
-            echo "  vim         - Alias for nvim"
-            echo "  svi         - Run vim with sudo"
-            echo "  vis         - Run nvim with 'set si' (smart indent)"
-            echo ""
-            echo "Basic Keybindings:"
-            echo "  i           - Enter insert mode"
-            echo "  Esc         - Return to normal mode"
-            echo "  :w          - Save file"
-            echo "  :q          - Quit"
-            echo "  :wq         - Save and quit"
-            echo "  :q!         - Quit without saving"
-            echo ""
-            echo "Navigation:"
-            echo "  h,j,k,l     - Move left, down, up, right"
-            echo "  w           - Next word"
-            echo "  b           - Previous word"
-            echo "  gg          - Go to beginning of file"
-            echo "  G           - Go to end of file"
-            echo "  Ctrl+f      - Page down"
-            echo "  Ctrl+b      - Page up"
-            ;;
-        "shells")
-            echo "MULTI-SHELL SUPPORT"
-            echo "=================="
-            echo ""
-            echo "DXSBash supports three shells with equivalent features:"
-            echo ""
-            echo "Bash:"
-            echo "  • Most compatible with scripts"
-            echo "  • Widely used and stable"
-            echo "  • Configuration: ~/.bashrc"
-            echo "  • Help file: ~/.bashrc_help"
-            echo ""
-            echo "Zsh:"
-            echo "  • Enhanced features and plugins"
-            echo "  • Better tab completion and history handling"
-            echo "  • Configuration: ~/.zshrc"
-            echo "  • Help file: ~/.zshrc_help"
-            echo "  • Plugins: Oh My Zsh, syntax highlighting, autosuggestions"
-            echo ""
-            echo "Fish:"
-            echo "  • Most user-friendly with superior autocompletions"
-            echo "  • Syntax highlighting out of the box"
-            echo "  • Configuration: ~/.config/fish/config.fish"
-            echo "  • Help file: ~/.config/fish/fish_help"
-            echo "  • Plugins: fzf.fish, tide, z"
-            echo ""
-            echo "To switch your default shell:"
-            echo "  chsh -s $(which bash|zsh|fish)"
-            echo ""
-            echo "Note: After switching shells, log out and log back in to apply the change."
-            ;;
-        "kde")
-            echo "KDE TERMINAL INTEGRATION"
-            echo "======================="
-            echo ""
-            echo "DXSBash includes special support for KDE terminal emulators:"
-            echo ""
-            echo "Konsole:"
-            echo "  • Custom profile with FiraCode Nerd Font"
-            echo "  • Properly displays Starship prompt symbols"
-            echo "  • Configuration: ~/.local/share/konsole/DXSBash.profile"
-            echo ""
-            echo "Yakuake:"
-            echo "  • Drop-down terminal with same configuration as Konsole"
-            echo "  • Uses same custom profile with Nerd Font support"
-            echo "  • Configuration: ~/.config/yakuakerc"
-            echo ""
-            echo "Font Settings:"
-            echo "  • FiraCode Nerd Font provides programming ligatures and icons"
-            echo "  • Installs automatically during DXSBash setup"
-            echo ""
-            echo "To reset terminal configuration:"
-            echo "  rm ~/.local/share/konsole/DXSBash.profile"
-            echo "  Then edit ~/.config/konsolerc and ~/.config/yakuakerc"
-            ;;
-        "starship")
-            echo "STARSHIP PROMPT"
-            echo "=============="
-            echo ""
-            echo "Starship provides a rich terminal prompt with information:"
-            echo ""
-            echo "Git Status:"
-            echo "  • Branch name and status"
-            echo "  • Modified/added/deleted files"
-            echo "  • Ahead/behind remote status"
-            echo ""
-            echo "Programming Languages:"
-            echo "  • Shows version of detected language in current directory"
-            echo "  • Supports: Python, Node.js, Go, Rust, Java, and more"
-            echo ""
-            echo "System Info:"
-            echo "  • Command execution time for long-running commands"
-            echo "  • Exit status of previous command"
-            echo "  • Username and hostname (when connected via SSH)"
-            echo ""
-            echo "Configuration: ~/.config/starship.toml"
-            echo ""
-            echo "For more information, visit: https://starship.rs/"
-            ;;
-        "aliases")
-            echo "ALIASES REFERENCE"
-            echo "================"
-            echo ""
-            echo "Navigation Aliases:"
-            echo "  ..             Go up one directory"
-            echo "  ...            Go up two directories"
-            echo "  ....           Go up three directories"
-            echo "  .....          Go up four directories"
-            echo "  bd             Go back to previous directory"
-            echo ""
-            echo "Listing Aliases:"
-            echo "  ls             List with colors and file types"
-            echo "  la             List all including hidden files"
-            echo "  ll             Long listing format"
-            echo "  lt             Sort by date"
-            echo "  lf             List files only"
-            echo "  ldir           List directories only"
-            echo ""
-            echo "Safety Aliases:"
-            echo "  rm             Interactive remove"
-            echo "  cp             Interactive copy"
-            echo "  mv             Interactive move"
-            echo "  delete         Safe remove with confirmation"
-            echo ""
-            echo "System Aliases:"
-            echo "  update         Update system packages"
-            echo "  install        Install with system updates"
-            echo "  ports          Show network ports"
-            echo "  openports      Show open ports"
-            echo ""
-            echo "Git Aliases:"
-            echo "  ga             Git add"
-            echo "  gs             Git status"
-            echo "  gc             Git commit"
-            echo "  gp             Git push"
-            echo ""
-            echo "For a complete list, run: grep \"^alias\" ~/.bashrc"
-            ;;
-        "update")
-            echo "UPDATING DXSBASH"
-            echo "==============="
-            echo ""
-            echo "You can update dxsbash in several ways:"
-            echo ""
-            echo "Using the system-wide command:"
-            echo "  $ upbashdxs"
-            echo ""
-            echo "Using the home directory shortcut:"
-            echo "  $ ~/update-dxsbash.sh"
-            echo ""
-            echo "Updates will:"
-            echo "  • Pull latest changes from the repository"
-            echo "  • Update all configuration files"
-            echo "  • Maintain your customizations (in backup)"
-            echo "  • Update shell, terminal, and utility configurations"
-            echo ""
-            echo "To see your current version:"
-            echo "  $ cat ~/linuxtoolbox/dxsbash/version.txt"
-            echo ""
-            echo "Update frequency:"
-            echo "  • It's recommended to run updates monthly"
-            echo "  • Check the GitHub repository for new releases"
-            ;;
-        "reset")
-            echo "RESETTING YOUR SHELL"
-            echo "==================="
-            echo ""
-            echo "If you need to restore your shell to the default configuration:"
-            echo ""
-            echo "  $ sudo reset-shell-profile [username]"
-            echo ""
-            echo "This will:"
-            echo "  • Create a backup of your current configuration"
-            echo "  • Restore the default shell configuration files"
-            echo "  • Remove DXSBash settings and customizations"
-            echo ""
-            echo "Shell-specific reset commands:"
-            echo "  • sudo reset-bash-profile [username]"
-            echo "  • sudo reset-zsh-profile [username]"
-            echo "  • sudo reset-fish-profile [username]"
-            echo ""
-            echo "Note: This will not uninstall any software or remove the"
-            echo "repository from ~/linuxtoolbox/dxsbash"
-            ;;
-        *)
-            echo "AVAILABLE HELP TOPICS"
-            echo "===================="
-            echo ""
-            echo "  git        - Git commands and shortcuts"
-            echo "  zoxide     - Directory navigation with zoxide"
-            echo "  fzf        - Fuzzy finder usage and shortcuts"
-            echo "  nvim       - Neovim editor shortcuts"
-            echo "  shells     - Multi-shell support (Bash, Zsh, Fish)"
-            echo "  kde        - KDE terminal integration"
-            echo "  starship   - Starship prompt features"
-            echo "  aliases    - Overview of useful aliases"
-            echo "  update     - How to update dxsbash"
-            echo "  reset      - How to reset your shell configuration"
-            echo ""
-            echo "Usage: help <topic>"
-            ;;
+# Search for commands by keyword
+search_commands() {
+    local query="$1"
+    if [[ -z "$query" ]]; then
+        echo -e "${YELLOW}Enter search term:${NC}"
+        read -r query
+    fi
+    
+    echo -e "${BOLD}${GREEN}Search results for: ${YELLOW}'$query'${NC}\n"
+    
+    # Search in aliases
+    echo -e "${PURPLE}Aliases matching '$query':${NC}"
+    alias | grep -i "$query" | head -10 | while read -r line; do
+        echo -e "  ${CYAN}${line}${NC}"
+    done
+    
+    # Search in functions
+    echo -e "\n${PURPLE}Functions matching '$query':${NC}"
+    declare -F | grep -i "$query" | head -5 | while read -r line; do
+        func_name=$(echo "$line" | awk '{print $3}')
+        echo -e "  ${CYAN}${func_name}${NC} - $(type "$func_name" | head -1 | cut -d' ' -f3-)"
+    done
+    
+    # Search in help topics
+    echo -e "\n${PURPLE}Help topics matching '$query':${NC}"
+    case "$query" in
+        *nav*|*dir*|*cd*) echo -e "  ${CYAN}navigation${NC} - Directory navigation and shortcuts" ;;
+        *file*|*cp*|*mv*) echo -e "  ${CYAN}files${NC} - File operations and management" ;;
+        *git*) echo -e "  ${CYAN}git${NC} - Git commands and workflows" ;;
+        *find*|*grep*|*search*) echo -e "  ${CYAN}search${NC} - Finding files and searching text" ;;
+        *sys*|*proc*|*cpu*) echo -e "  ${CYAN}system${NC} - System information and monitoring" ;;
+        *net*|*ip*|*port*) echo -e "  ${CYAN}network${NC} - Network tools and diagnostics" ;;
+        *python*|*py*) echo -e "  ${CYAN}python${NC} - Python development tools" ;;
+        *node*|*npm*) echo -e "  ${CYAN}node${NC} - Node.js development" ;;
+        *docker*) echo -e "  ${CYAN}docker${NC} - Container management" ;;
+        *k8s*|*kube*) echo -e "  ${CYAN}kubernetes${NC} - Kubernetes commands" ;;
     esac
 }
 
-# If arguments are passed to the script, show specific help
-if [[ $# -gt 0 ]]; then
-    show_help_topic "$1"
-fi
-GENERAL COMMANDS
-===============
+# Show practical examples
+show_examples() {
+    cat << 'EOF'
+PRACTICAL USAGE EXAMPLES
+========================
 
-help                - Display this help message
-help <topic>        - Display help for specific topic (git, zsh, fish, etc.)
-update              - Update system packages
-install <pkg>       - Install package with system updates
-cls                 - Clear the screen
-mkcd <dir>          - Create and change to directory
-extract <file>      - Extract archive regardless of type
-trash <file>        - Move files to trash instead of deleting
-z <dir>             - Jump to directories you frequently use (zoxide)
-zi                  - Interactive directory selection with zoxide
-whatsmyip           - Show internal and external IP addresses
+📁 NAVIGATION EXAMPLES
+  cd ~/Downloads && ls -la          # Go to Downloads and list files
+  z doc                             # Jump to most-used directory containing "doc"
+  zi                                # Interactive directory picker
+  mkdirg new-project                # Create and enter directory
+  up 3                              # Go up 3 directories
+  bd                                # Go back to previous directory
 
-FILE NAVIGATION
-==============
+📄 FILE OPERATION EXAMPLES
+  extract myfile.tar.gz             # Auto-extract any archive
+  cpg important.txt ~/backup/       # Copy file and go to backup directory
+  ftext "TODO"                      # Find all files containing "TODO"
+  findlarge 100M                    # Find files larger than 100MB
+  showport 8080                     # See what's using port 8080
 
-l                   - List files in long format
-la                  - List all files including hidden
-ll                  - Detailed list with permissions
-lt                  - List files sorted by time
-lsd                 - List only directories
-lsf                 - List only files
-ff <pattern>        - Find files by name
-ftext <text>        - Search for text in files
-countfiles          - Count files, links, and directories in current location
+🔧 GIT WORKFLOW EXAMPLES
+  gs                                # Check git status
+  ga .                              # Add all changes
+  gc -m "Fix login bug"             # Commit with message
+  gp                                # Push to remote
+  glog                              # Pretty git log with graph
 
-GIT SHORTCUTS
-============
+🐍 PYTHON DEVELOPMENT EXAMPLES
+  pyvenv myproject                  # Create and activate virtual environment
+  pipinstall                        # Install from requirements.txt
+  pyclean                           # Clean all Python cache files
+  pt tests/                         # Run pytest on tests directory
+  pyserver 8000                     # Start HTTP server on port 8000
 
-gs                  - Git status
-gl                  - Git log
-ga                  - Git add
-gc                  - Git commit
-gp                  - Git push
-gpl                 - Git pull
-gb                  - Git branch
-gco                 - Git checkout
-gd                  - Git diff
-grm                 - Git remove
-gg                  - Git grep
+🌐 NETWORK DIAGNOSTICS EXAMPLES
+  whatsmyip                         # Show internal and external IP
+  ports                             # List all listening ports
+  showport 443                      # Check what's using HTTPS port
+  myip                              # Quick external IP check
 
-SYSTEM INFO
-==========
+📊 SYSTEM MONITORING EXAMPLES
+  topcpu                            # Show top CPU-consuming processes
+  diskspace                         # Show directories by disk usage
+  meminfo                           # Detailed memory information
+  services                          # List all system services
 
-diskspace           - Show disk usage sorted by size
-folders             - Show top-level folder sizes
-folderssort         - Sort folders by size
-df -h               - Show disk free space
-free -h             - Show memory usage
-netinfo             - Show network configuration
-ports               - Show listening ports
-topcpu              - Show top CPU processes
-ver                 - Show detailed OS version
+🔍 SEARCH AND FIND EXAMPLES
+  f "*.py"                          # Find all Python files
+  ftext "password"                  # Search for "password" in all files
+  h "git"                           # Search command history for git commands
+  p "nginx"                         # Find nginx processes
 
-FILE OPERATIONS
-==============
+🛠️ DEVELOPMENT WORKFLOW EXAMPLES
+  # Python project setup
+  mkdirg my-api && pyvenv venv && pip install flask
+  
+  # Git workflow
+  gs && ga . && gc -m "Initial commit" && gp
+  
+  # Docker development
+  dps                               # List running containers
+  dex myapp bash                    # Execute bash in container
+  docker-clean                      # Clean up unused resources
+  
+  # Quick file operations
+  extract archive.zip && cd extracted-folder && ls
 
-cp                  - Copy (safer, interactive mode)
-mv                  - Move (safer, interactive mode)
-rm                  - Remove (safer, verbose mode)
-mkdir               - Create directory (parents automatically)
-cpg                 - Copy and change to destination directory
-mvg                 - Move and change to destination directory
-cpp                 - Copy with progress bar
+💡 PRODUCTIVITY TIPS
+  # Chain commands with &&
+  update && install vim && vim ~/.bashrc
+  
+  # Use history expansion
+  !!                                # Repeat last command
+  !git                              # Repeat last git command
+  
+  # Background processes
+  bk long-running-command           # Run command in background
+  
+  # Quick edits
+  edit ~/.bashrc && source ~/.bashrc  # Edit and reload config
 
+EOF
+}
+
+# Detailed help for specific topics
+show_topic_help() {
+    local topic="$1"
+    
+    case "$topic" in
+        "navigation")
+            cat << 'EOF'
 DIRECTORY NAVIGATION
 ===================
 
-home                - Go to home directory
-..                  - Go up one directory
-...                 - Go up two directories
-....                - Go up three directories
-.....               - Go up four directories
-up N                - Go up N directories
-bd                  - Go back to previous directory
+🚀 SMART NAVIGATION
+  z <partial_name>      - Jump to frequently used directory
+  zi                    - Interactive directory picker (zoxide)
+  bd                    - Go back to previous directory ($OLDPWD)
 
-ARCHIVE OPERATIONS
-=================
+📁 DIRECTORY SHORTCUTS  
+  ..                    - Go up one directory
+  ...                   - Go up two directories  
+  ....                  - Go up three directories
+  .....                 - Go up four directories
+  up <N>                - Go up N directories
+  home                  - Go to home directory
+  root                  - Go to root directory (/)
+  web                   - Go to web directory (/var/www/html)
 
-mktar <file.tar>    - Create tar archive
-mkbz2 <file.tar.bz2>- Create bz2 archive
-mkgz <file.tar.gz>  - Create gz archive
-untar <file>        - Extract tar archive
-unbz2 <file>        - Extract bz2 archive
-ungz <file>         - Extract gz archive
-extract <file>      - Auto-extract based on extension
+🔧 DIRECTORY OPERATIONS
+  mkdirg <name>         - Create directory and cd into it
+  cpg <src> <dest>      - Copy file/directory and cd to destination
+  mvg <src> <dest>      - Move file/directory and cd to destination
+  pwdtail               - Show last 2 parts of current path
 
-SHELL FEATURES
-=============
+💡 NAVIGATION TIPS
+  - Use 'z' with partial directory names: z doc, z proj, z down
+  - Press Ctrl+F to launch interactive directory picker
+  - Use 'bd' to quickly return to where you came from
+  - Chain directory operations: mkdirg project && git init
 
-CTRL+R              - Search command history
-CTRL+F              - Launch zoxide interactive
-ALT+C               - cd into selected directory (fzf)
+🎯 EXAMPLES
+  z documents                       # Jump to Documents directory
+  zi                               # Pick directory interactively
+  mkdirg new-project && git init   # Create project and initialize git
+  cpg important.txt ~/backup/ && ls # Copy file and list backup contents
+EOF
+            ;;
+        "files")
+            cat << 'EOF'
+FILE OPERATIONS & MANAGEMENT
+============================
 
+📋 FILE LISTING
+  ls                    - Enhanced ls with colors and file types
+  la                    - List all files including hidden
+  ll                    - Detailed list with permissions
+  lt                    - List files sorted by modification time
+  lk                    - List files sorted by size
+  lf                    - List files only (no directories)  
+  ldir                  - List directories only
+  tree                  - Show directory tree structure
+
+📁 FILE OPERATIONS
+  cp                    - Copy (interactive, asks before overwrite)
+  mv                    - Move (interactive, asks before overwrite)
+  rm                    - Remove (interactive, verbose)
+  delete                - Safer remove with confirmation
+  rmd                   - Remove directory and all contents
+  extract <file>        - Auto-extract any archive type
+
+🔍 FILE SEARCHING
+  f <pattern>           - Find files matching pattern
+  ftext <text>          - Search for text in all files
+  findtext <pattern>    - Find files containing specific text
+  findf <name>          - Find files by name (excluding .git)
+  findd <name>          - Find directories by name
+  findlarge [size]      - Find files larger than size (default 100M)
+
+🗜️ ARCHIVE OPERATIONS
+  mktar <file.tar>      - Create tar archive
+  mkbz2 <file.tar.bz2>  - Create bzip2 archive
+  mkgz <file.tar.gz>    - Create gzip archive
+  untar <file>          - Extract tar archive
+  unbz2 <file>          - Extract bzip2 archive
+  ungz <file>           - Extract gzip archive
+  extract <file>        - Auto-detect and extract any archive
+
+🔒 PERMISSIONS
+  mx <file>             - Make file executable
+  644 <target>          - Set read/write for owner, read for others (with confirmation)
+  755 <target>          - Set rwx for owner, rx for others (with confirmation)
+  showport <port>       - Show what's using a specific port
+
+💡 FILE TIPS
+  - Use 'extract' for any archive type - it auto-detects format
+  - 'ftext' searches inside files, 'f' searches filenames
+  - Interactive rm/cp/mv prevents accidental overwrites
+  - Use 'findlarge 1G' to find files over 1 gigabyte
+
+🎯 EXAMPLES
+  extract project.zip && cd project/    # Extract and enter directory
+  ftext "TODO" | head -10              # Find first 10 TODO items
+  findlarge 500M                       # Find files over 500MB
+  findf "*.py" | head -5               # Find first 5 Python files
+EOF
+            ;;
+        "git")
+            cat << 'EOF'
+GIT COMMANDS & WORKFLOWS
+=======================
+
+📊 STATUS & INFO
+  gs                    - git status (show working tree status)
+  gl                    - git log (commit history)
+  glog                  - git log with pretty graph format
+  gloga                 - git log graph for all branches
+  gb                    - git branch (list branches)
+  gd                    - git diff (show changes)
+
+➕ STAGING & COMMITTING  
+  ga <files>            - git add (stage files)
+  ga .                  - git add all changes
+  gc                    - git commit (open editor for message)
+  gcm "message"         - git commit with inline message
+  gca                   - git commit --amend (modify last commit)
+
+🌿 BRANCHING & NAVIGATION
+  gco <branch>          - git checkout (switch branch)
+  gcob <name>           - git checkout -b (create and switch to branch)
+  gm <branch>           - git merge branch into current
+  gr                    - git rebase
+  gri                   - git rebase --interactive
+
+🔄 REMOTE OPERATIONS
+  gf                    - git fetch (download from remote)
+  gp                    - git push (upload to remote)
+  gpl                   - git pull (fetch and merge)
+
+🧹 CLEANUP & UTILITIES
+  grm <file>            - git rm (remove file from git)
+  gst                   - git stash (temporarily save changes)
+  gstp                  - git stash pop (restore stashed changes)
+  gundo                 - git reset --soft HEAD~1 (undo last commit, keep changes)
+  gcp <commit>          - git cherry-pick (apply specific commit)
+
+🔍 SEARCHING & INSPECTION
+  gg <pattern>          - git grep (search in repository)
+  gsb                   - git show-branch (show branch relationships)
+  gt                    - git tag (list tags)
+  gk                    - gitk --all (graphical git browser)
+
+💡 GIT WORKFLOW TIPS
+  - Always check status with 'gs' before committing
+  - Use 'glog' to see commit history with visual graph
+  - 'gca' lets you modify the last commit message/content
+  - 'gundo' is safe way to undo last commit while keeping changes
+
+🎯 COMMON WORKFLOWS
+  # Daily workflow
+  gs                                # Check status
+  ga .                              # Stage all changes
+  gcm "Fix user authentication"     # Commit with message
+  gp                                # Push to remote
+
+  # Feature branch workflow  
+  gcob feature/login-fix            # Create and switch to feature branch
+  # ... make changes ...
+  ga . && gcm "Implement login fix" # Stage and commit
+  gco main && gm feature/login-fix  # Switch to main and merge
+
+  # Emergency fixes
+  gst                               # Stash current work
+  gco hotfix && gcm "Critical fix"  # Switch branch and commit fix
+  gstp                              # Restore stashed work
+EOF
+            ;;
+        "search")
+            cat << 'EOF'
+SEARCHING & FINDING
+==================
+
+📁 FILE SEARCHING
+  f <pattern>           - Find files by name (using find + grep)
+  findf <pattern>       - Find files by name (excluding .git directories)
+  findd <pattern>       - Find directories by name
+  findlarge [size]      - Find files larger than specified size
+
+📄 TEXT SEARCHING  
+  ftext <pattern>       - Search for text inside all files
+  findtext <pattern>    - Find files containing specific text
+  grep <pattern>        - Enhanced grep (uses ripgrep if available)
+  gg <pattern>          - Git grep (search in git repository)
+
+📜 HISTORY SEARCHING
+  h <pattern>           - Search command history
+  Ctrl+R                - Interactive history search (with fzf)
+
+🔍 PROCESS SEARCHING
+  p <pattern>           - Search running processes
+  topcpu                - Show top CPU-consuming processes
+  showport <port>       - Find process using specific port
+
+💾 SYSTEM SEARCHING
+  where <command>       - Better alternative to 'which'
+  checkcommand <cmd>    - Check if command is alias, file, or builtin
+
+🔧 ADVANCED SEARCH OPTIONS
+  # Find with specific criteria
+  find . -name "*.py" -type f              # Python files only
+  find . -size +100M -type f               # Files over 100MB
+  find . -mtime -7 -type f                 # Files modified in last 7 days
+  find . -perm 777 -type f                 # Files with 777 permissions
+
+  # Text search with context
+  grep -n -A3 -B3 "pattern" file          # Show 3 lines before/after match
+  grep -r "pattern" --include="*.py" .     # Search only in Python files
+  
+  # Process search variations
+  ps aux | grep nginx                      # Find nginx processes
+  pgrep -f nginx                          # Find processes by name
+
+💡 SEARCH TIPS
+  - Use 'ftext' to search inside files, 'f' to search filenames
+  - Combine with other commands: f "*.py" | head -5
+  - Use quotes for patterns with spaces: ftext "error message"
+  - Ctrl+R provides fuzzy search through command history
+
+🎯 SEARCH EXAMPLES
+  ftext "TODO" | grep -v test          # Find TODOs excluding test files
+  findlarge 1G                         # Find files over 1GB
+  h "git commit" | tail -5             # Last 5 git commit commands
+  p nginx | head -3                    # First 3 nginx processes
+  findf "config" | grep -E "\.(json|yml)$"  # Find config files
+EOF
+            ;;
+        "system")
+            cat << 'EOF'
+SYSTEM INFORMATION & MONITORING
+==============================
+
+💻 SYSTEM INFO
+  ver                   - Show detailed OS version information
+  cpuinfo               - Display CPU information (lscpu)
+  meminfo               - Show detailed memory information
+  mountedinfo           - Show mounted filesystems (df -hT)
+
+📊 PROCESS MONITORING
+  ps                    - Enhanced process listing (ps auxf)
+  topcpu                - Show top 10 CPU-consuming processes
+  p <pattern>           - Search for specific processes
+  services              - List all system services (if systemctl available)
+
+💾 DISK USAGE
+  diskspace             - Show disk usage sorted by size
+  folders               - Show folder sizes in current directory
+  folderssort           - Show folders sorted by size
+  df -h                 - Show disk free space (human readable)
+
+🌐 NETWORK MONITORING
+  ports                 - Show all listening ports (netstat -tulanp)
+  openports             - Show open network connections
+  listening             - Show only listening connections
+  showport <port>       - Show what process is using specific port
+  netinfo               - Display network configuration
+  whatsmyip             - Show internal and external IP addresses
+
+⚡ SYSTEM CONTROL
+  restart               - Safe system reboot
+  forcerestart          - Forced system reboot
+  turnoff               - Power off system
+  update                - Update system packages
+  install <package>     - Install package with system update
+
+📈 PERFORMANCE MONITORING
+  # CPU usage over time
+  cpu                   - Show current CPU usage percentage
+  
+  # Memory monitoring
+  free -h               - Human readable memory usage
+  
+  # Process monitoring
+  watch -n 1 'ps aux --sort=-%cpu | head -10'  # Top CPU processes updated every second
+  
+  # Disk I/O
+  iostat 1              # Show I/O statistics (if available)
+
+🔧 SYSTEM UTILITIES
+  fastping              - Quick network connectivity test
+  myip                  - Show external IP address
+  localip               - Show local IP addresses  
+  ips                   - List all IP addresses
+  path                  - Show PATH entries one per line
+
+💡 MONITORING TIPS
+  - Use 'topcpu' for quick CPU hog identification
+  - 'diskspace' helps find what's using disk space
+  - 'showport 80' to see what's running on HTTP port
+  - Chain commands: diskspace | head -10
+
+🎯 SYSTEM EXAMPLES
+  topcpu                              # Find CPU-hungry processes
+  diskspace | head -5                 # Top 5 space-consuming directories
+  showport 22                         # Check SSH daemon
+  whatsmyip                           # Get both internal and external IPs
+  meminfo | grep -i available         # Check available memory
+EOF
+            ;;
+        "network")
+            cat << 'EOF'
+NETWORK TOOLS & DIAGNOSTICS
+===========================
+
+🌐 IP ADDRESS INFO
+  whatsmyip             - Show both internal and external IP addresses
+  myip                  - Show external IP address only
+  localip               - Show local IP addresses (simplified)
+  ips                   - List all network interface IP addresses
+
+🔌 PORT MANAGEMENT
+  ports                 - Show all active network ports
+  openports             - Show open network connections  
+  listening             - Show only listening ports
+  showport <port>       - Find what process is using specific port
+
+📡 NETWORK DIAGNOSTICS
+  ping <host>           - Enhanced ping (10 packets by default)
+  fastping <host>       - Quick connectivity test (100 small packets)
+  netinfo               - Display comprehensive network information
+
+🔍 CONNECTION MONITORING
+  ipview                - Show HTTP connections to server
+  # Real-time connection monitoring
+  watch -n 1 'netstat -an | grep ESTABLISHED | wc -l'
+
+🌍 EXTERNAL CONNECTIVITY
+  # Weather information (if curl available)
+  weather               - Full weather report from wttr.in
+  weather-short         - Compact weather info
+
+💡 NETWORK TROUBLESHOOTING
+  # Check if service is running
+  showport 80                         # Check if web server running
+  showport 22                         # Check if SSH daemon running
+  showport 443                        # Check if HTTPS server running
+  
+  # Test connectivity
+  ping google.com                     # Test internet connectivity
+  fastping 8.8.8.8                   # Quick test to Google DNS
+  
+  # Check local network
+  localip                             # See your local IP
+  ping $(localip | head -1)          # Ping your own interface
+
+🔧 ADVANCED NETWORK COMMANDS
+  # Show routing table
+  ip route show                       # Linux routing information
+  route -n                           # Traditional route display
+  
+  # Network interface info
+  ip addr show                        # Detailed interface information
+  ifconfig                           # Traditional interface config
+  
+  # DNS queries
+  nslookup google.com                # DNS lookup
+  dig google.com                     # Detailed DNS information
+
+🎯 NETWORK EXAMPLES
+  showport 3306                      # Check if MySQL is running
+  whatsmyip                          # Get complete IP information  
+  ports | grep :80                   # Find web server processes
+  ping -c 3 $(echo $(myip))          # Ping your external IP
+  netinfo | grep -i dns              # Find DNS configuration
+EOF
+            ;;
+        "python")
+            cat << 'EOF'
+PYTHON DEVELOPMENT TOOLS
+=======================
+
+🐍 PYTHON EXECUTION
+  py                    - Python 3 shortcut
+  py3                   - Explicit Python 3
+  py2                   - Python 2 (if available)
+  ipy                   - IPython interactive shell
+  pydoc <module>        - Access Python documentation
+
+🏠 VIRTUAL ENVIRONMENTS  
+  ve <name>             - Create virtual environment
+  va                    - Activate virtual environment (./venv)
+  vd                    - Deactivate virtual environment
+  pyvenv <name>         - Create and activate virtual environment in one step
+
+📦 PACKAGE MANAGEMENT
+  pipinstall            - Install from requirements.txt
+  pipoutdated           - List outdated packages
+  pipgraph              - Show dependency tree (if pipdeptree installed)
+
+🧪 TESTING & QUALITY
+  pt                    - Run pytest
+  ptr                   - Run pytest with verbose flags (-xvs)
+  ptw                   - Run pytest-watch (continuous testing)
+  lint                  - Run flake8 linter
+  black                 - Format code with Black
+  mypy                  - Run type checking with MyPy
+
+🌐 WEB FRAMEWORKS
+  # Django shortcuts
+  djrun                 - python manage.py runserver
+  djmig                 - python manage.py migrate  
+  djmm                  - python manage.py makemigrations
+  djsh                  - python manage.py shell
+  djsu                  - python manage.py createsuperuser
+  djtest                - python manage.py test
+
+  # Flask shortcuts
+  flrun                 - flask run
+  flshell               - flask shell
+
+🛠️ DEVELOPMENT UTILITIES
+  pytime <script>       - Run Python script with timing information
+  pyprofile <script>    - Profile Python script performance
+  pyserver [port]       - Start simple HTTP server (default port 8000)
+  pyjson <file>         - Pretty-print JSON file
+  pyclean               - Clean all Python cache files and directories
+
+📊 PROJECT ANALYSIS
+  # Find Python files
+  findf "*.py" | wc -l                # Count Python files
+  ftext "TODO" --include="*.py"       # Find TODOs in Python files
+  
+  # Code statistics
+  find . -name "*.py" -exec wc -l {} + | tail -1  # Total lines of Python code
+
+💡 PYTHON WORKFLOW TIPS
+  - Always use virtual environments for projects
+  - Run 'pyclean' before committing to remove cache files
+  - Use 'ptr' for detailed test output with immediate failure stops
+  - 'pyserver' is great for quick file sharing over HTTP
+
+🎯 PYTHON EXAMPLES
+  pyvenv myproject                    # Create and activate venv
+  pipinstall                          # Install dependencies
+  pt tests/ -v                        # Run tests verbosely
+  pyclean && git add .                # Clean cache and stage files
+  pyserver 8080                       # Start HTTP server on port 8080
+EOF
+            ;;
+        "node")
+            cat << 'EOF'
+NODE.JS & NPM DEVELOPMENT
+========================
+
+📦 NPM PACKAGE MANAGEMENT
+  ni                    - npm install (install dependencies)
+  nid                   - npm install --save-dev (install dev dependencies)  
+  nig                   - npm install -g (install global package)
+  noup                  - npm update (update packages)
+
+🚀 PROJECT COMMANDS
+  ns                    - npm start (start application)
+  nt                    - npm test (run tests)
+  nb                    - npm run build (build application)
+  nr <script>           - npm run <script> (run custom script)
+
+💡 NODE.JS WORKFLOW TIPS
+  - Check package.json for available scripts: cat package.json | grep -A10 scripts
+  - Use 'nid' for development dependencies like testing frameworks
+  - 'nig' for global tools like nodemon, create-react-app
+  - Always run 'ni' after cloning a Node.js project
+
+🎯 NODE.JS EXAMPLES  
+  ni                                  # Install all dependencies
+  nid jest                            # Install Jest as dev dependency
+  nig nodemon                         # Install nodemon globally
+  nr dev                              # Run custom 'dev' script
+  nt                                  # Run test suite
+EOF
+            ;;
+        "docker")
+            cat << 'EOF'
+DOCKER & CONTAINER MANAGEMENT
+============================
+
+📋 CONTAINER OPERATIONS
+  dps                   - List running containers (docker ps)
+  dpsa                  - List all containers (docker ps -a)
+  drun <image>          - Run interactive container
+  dex <container> <cmd> - Execute command in running container
+  dstop                 - Stop all running containers
+
+🖼️ IMAGE MANAGEMENT  
+  di                    - List all images (docker images)
+  dip <container>       - Get container IP address
+
+📊 MONITORING & LOGS
+  dlogs <container>     - Show container logs
+  # Real-time log following
+  docker logs -f <container>
+
+🧹 CLEANUP OPERATIONS
+  dclean                - Clean unused images and containers
+  docker-clean          - Comprehensive cleanup (containers, images, networks, volumes)
+
+🔧 DOCKER COMPOSE
+  dc                    - docker-compose shortcut
+  dcup                  - Start services in background (docker-compose up -d)
+  dcdown                - Stop and remove services (docker-compose down)
+  dcrestart             - Restart all services
+  dclogs                - Follow logs from all services
+
+💡 DOCKER TIPS
+  - Use 'dps' frequently to monitor running containers
+  - 'docker-clean' frees up significant disk space
+  - 'dex container bash' gives you shell access
+  - Always use 'dcdown' before 'dcup' when updating compose files
+
+🎯 DOCKER EXAMPLES
+  drun ubuntu bash                    # Run Ubuntu container with bash
+  dex myapp /bin/sh                   # Execute shell in 'myapp' container
+  dlogs myapp | tail -50              # Show last 50 log lines
+  docker-clean                        # Clean up unused resources
+  dcup && dclogs                      # Start services and follow logs
+EOF
+            ;;
+        "kubernetes")
+            cat << 'EOF'
+KUBERNETES (K8S) COMMANDS
+========================
+
+🎯 BASIC OPERATIONS
+  k                     - kubectl shortcut
+  kg                    - kubectl get (get resources)
+  kd                    - kubectl describe (describe resources)
+
+📦 RESOURCE MANAGEMENT
+  kgp                   - kubectl get pods
+  kgs                   - kubectl get services  
+  kgn                   - kubectl get nodes
+  kdp <pod>             - kubectl describe pod
+
+📋 FILE OPERATIONS
+  kaf <file>            - kubectl apply -f (apply configuration)
+  kdf <file>            - kubectl delete -f (delete from configuration)
+
+🔍 INSPECTION & DEBUGGING
+  kl <pod>              - kubectl logs (view pod logs)
+  ke <pod> <cmd>        - kubectl exec -it (execute command in pod)
+
+🌐 CLUSTER MANAGEMENT
+  kctx <context>        - Switch kubectl context
+  kns <namespace>       - Switch to namespace
+
+💡 KUBERNETES TIPS
+  - Use 'kgp' to quickly see pod status
+  - 'kl podname -f' to follow logs in real-time
+  - Always verify context with 'kubectl config current-context'
+  - Use 'kns' to work in specific namespaces
+
+🎯 KUBERNETES EXAMPLES
+  kgp -o wide                         # Get pods with more details
+  kl myapp-pod -f                     # Follow logs from myapp pod
+  ke myapp-pod bash                   # Execute shell in pod
+  kctx staging                        # Switch to staging context
+  kns development                     # Switch to development namespace
+EOF
+            ;;
+        "shells")
+            cat << 'EOF'
 MULTI-SHELL SUPPORT
 ==================
 
-dxsbash supports three shells with equivalent functionality:
+🐚 SUPPORTED SHELLS
+DXSBash provides equivalent functionality across three shells:
 
-bash                - Traditional shell (default)
-zsh                 - Z-Shell with enhanced features
-fish                - Friendly interactive shell
+  Bash                  - Traditional, most compatible shell
+  Zsh                   - Enhanced features, popular alternative  
+  Fish                  - Modern, user-friendly shell
 
-Configuration files:
-~/.bashrc           - Bash configuration
-~/.zshrc            - Zsh configuration 
-~/.config/fish/config.fish - Fish configuration
+🏠 CONFIGURATION FILES
+  ~/.bashrc             - Bash configuration
+  ~/.zshrc              - Zsh configuration
+  ~/.config/fish/config.fish - Fish configuration
 
-To change your default shell, use:
-chsh -s $(which bash|zsh|fish)
+📚 HELP FILES
+  ~/.bashrc_help        - This file (Bash help)
+  ~/.zshrc_help         - Zsh-specific help
+  ~/.config/fish/fish_help - Fish-specific help
 
-TERMINAL CUSTOMIZATION
-=====================
+🔄 SWITCHING SHELLS
+  chsh -s $(which bash) - Set Bash as default shell
+  chsh -s $(which zsh)  - Set Zsh as default shell
+  chsh -s $(which fish) - Set Fish as default shell
 
-Starship prompt shows:
-- Current directory
-- Git branch and status
-- Programming language versions
-- Command execution time
-- Error status of previous command
+⚙️ SHELL-SPECIFIC FEATURES
+  Bash:
+  - Most script-compatible
+  - Widely supported
+  - Extensive history and customization
 
-Fastfetch display includes:
-- Host information
-- OS and kernel details
-- CPU and memory stats
-- Uptime information
+  Zsh:
+  - Enhanced tab completion
+  - Better history handling
+  - Oh-My-Zsh plugin ecosystem
+  - Advanced globbing patterns
 
-MAINTENANCE COMMANDS
-===================
+  Fish:
+  - Syntax highlighting as you type
+  - Intelligent autosuggestions
+  - Web-based configuration
+  - Modern scripting syntax
 
-install_bashrc_support - Install required dependencies
-upbashdxs           - Update dxsbash to latest version
-reset-shell-profile - Reset to default shell configuration
+🛠️ INSTALLATION SUPPORT
+  install_bashrc_support - Install Bash dependencies
+  install_zshrc_support  - Install Zsh dependencies  
+  install_fish_support   - Install Fish dependencies
 
-For more information and updates, visit:
-https://github.com/digitalxs/dxsbash
+🔄 RESET TO DEFAULTS
+  sudo reset-shell-profile <user> - Reset current shell to defaults
+  sudo reset-bash-profile <user>  - Reset Bash specifically
+  sudo reset-zsh-profile <user>   - Reset Zsh specifically
+  sudo reset-fish-profile <user>  - Reset Fish specifically
+
+💡 SHELL TIPS
+  - All shells share the same aliases and functions
+  - Starship prompt works consistently across all shells
+  - Use the shell that matches your workflow needs
+  - You can switch between shells anytime
+
+🎯 SHELL EXAMPLES
+  echo $SHELL                         # See current shell
+  chsh -s $(which zsh)                # Switch to Zsh
+  install_zshrc_support               # Install Zsh tools
+  source ~/.zshrc                     # Reload configuration
 EOF
+            ;;
+        "customization")
+            cat << 'EOF'
+CUSTOMIZATION & PERSONALIZATION
+==============================
 
-# Function to show specific help topics
-show_help_topic() {
-    case "$1" in
-        "git")
-            echo "Git Commands:"
-            echo "  gs      - git status"
-            echo "  ga      - git add"
-            echo "  gc      - git commit"
-            echo "  gp      - git push"
-            echo "  gpl     - git pull"
-            echo "  gd      - git diff"
-            echo "  gl      - git log"
-            echo "  gb      - git branch"
-            echo "  gco     - git checkout"
-            echo "  gg      - git grep"
-            echo "  grm     - git remove"
-            echo "  gri     - git rebase interactive"
-            echo "  gcp     - git cherry-pick"
+⚙️ CONFIGURATION FILES
+  ~/.bashrc             - Main Bash configuration
+  ~/.bash_aliases       - Personal aliases (safe to edit)
+  ~/.config/starship.toml - Prompt customization
+  ~/.config/fastfetch/config.jsonc - System info display
+
+✏️ SAFE CUSTOMIZATION
+  ~/.bash_aliases       - Add your personal aliases here
+  ~/.bashrc.local       - Personal functions and variables (create if needed)
+
+🎨 PROMPT CUSTOMIZATION
+  Starship Configuration (~/.config/starship.toml):
+  - Modify colors, symbols, and information displayed
+  - Enable/disable modules (git, python, node, etc.)
+  - Customize format and layout
+
+📊 SYSTEM INFO CUSTOMIZATION  
+  Fastfetch Configuration (~/.config/fastfetch/config.jsonc):
+  - Change displayed information
+  - Modify colors and formatting
+  - Add or remove system details
+
+🔧 ADDING CUSTOM ALIASES
+  # Edit ~/.bash_aliases and add:
+  alias myproject='cd ~/projects/my-important-project'
+  alias ll='ls -alF'
+  alias grep='grep --color=auto'
+
+🛠️ ADDING CUSTOM FUNCTIONS
+  # Add to ~/.bash_aliases:
+  myfunction() {
+      echo "This is my custom function"
+      # Your code here
+  }
+
+🌈 TERMINAL CUSTOMIZATION
+  KDE Konsole/Yakuake:
+  - Profile: DXSBash (auto-configured)
+  - Font: FiraCode Nerd Font
+  - Colors: Based on your theme
+
+💡 CUSTOMIZATION TIPS
+  - Always edit ~/.bash_aliases for personal changes
+  - Test aliases before adding: type them in terminal first
+  - Use 'source ~/.bashrc' to reload after changes
+  - Backup your customizations before major updates
+
+🎯 CUSTOMIZATION EXAMPLES
+  # Add to ~/.bash_aliases
+  alias work='cd ~/work && ls -la'
+  alias backup='rsync -av ~/important/ /backup/location/'
+  
+  # Custom function example
+  gitpush() {
+      git add .
+      git commit -m "${1:-Quick update}"
+      git push
+  }
+  
+  # Environment variables
+  export EDITOR=nano
+  export BROWSER=firefox
+EOF
             ;;
-        "zoxide")
-            echo "Zoxide Commands:"
-            echo "  z <dir>  - Jump to a directory you frequently use"
-            echo "  zi       - Interactive directory selection"
-            echo "  z -      - Go to previous directory"
-            echo "  z ..     - Go to parent directory"
-            echo "  z ...    - Go to grandparent directory"
-            echo ""
-            echo "  Keyboard shortcuts:"
-            echo "  CTRL+F   - Launch zoxide interactive mode (zi)"
+        "troubleshooting")
+            cat << 'EOF'
+TROUBLESHOOTING & COMMON ISSUES
+==============================
+
+🚨 COMMON PROBLEMS
+
+❌ "Command not found" errors
+  - Check if tool is installed: command -v <tool>
+  - Reload shell configuration: source ~/.bashrc
+  - Check PATH: echo $PATH | tr ':' '\n'
+  - Install missing dependencies: install_bashrc_support
+
+❌ Git commands not working
+  - Verify git is installed: git --version
+  - Check git configuration: git config --list
+  - Common fix: git config --global user.name "Your Name"
+
+❌ Zoxide not working  
+  - Check installation: command -v zoxide
+  - Verify initialization: grep -i zoxide ~/.bashrc
+  - Restart shell or run: source ~/.bashrc
+
+❌ Starship prompt not showing
+  - Check installation: command -v starship  
+  - Verify config exists: ls ~/.config/starship.toml
+  - Reload: source ~/.bashrc
+
+❌ Permission denied errors
+  - Check file permissions: ls -la <file>
+  - Make executable: chmod +x <file>
+  - Check ownership: ls -la | grep <file>
+
+🔧 DIAGNOSTIC COMMANDS
+  # Check DXSBash installation
+  ls -la ~/linuxtoolbox/dxsbash/
+  
+  # Check shell configuration  
+  head -5 ~/.bashrc
+  
+  # Check aliases
+  alias | grep -E '^(gs|ga|gc)'
+  
+  # Check functions
+  declare -F | grep -E '(extract|ftext|up)'
+  
+  # Check PATH
+  echo $PATH | tr ':' '\n' | grep -E '(local|linuxtoolbox)'
+
+🩺 HEALTH CHECK SCRIPT
+  # Quick system check
+  echo "=== DXSBash Health Check ==="
+  echo "Shell: $SHELL"
+  echo "DXSBash dir: $(ls -d ~/linuxtoolbox/dxsbash 2>/dev/null || echo 'NOT FOUND')"
+  echo "Starship: $(command -v starship || echo 'NOT INSTALLED')"
+  echo "Zoxide: $(command -v zoxide || echo 'NOT INSTALLED')"
+  echo "Git: $(git --version 2>/dev/null || echo 'NOT INSTALLED')"
+
+🔄 RESET OPTIONS
+  # Soft reset (reload configuration)
+  source ~/.bashrc
+  
+  # Medium reset (reinstall dependencies)
+  install_bashrc_support
+  
+  # Hard reset (restore defaults)
+  sudo reset-shell-profile $(whoami)
+
+💡 TROUBLESHOOTING TIPS
+  - Always try 'source ~/.bashrc' first
+  - Check if you're in the right directory
+  - Verify file permissions before blaming the configuration
+  - Use 'type <command>' to see what a command actually is
+
+🎯 QUICK FIXES
+  # Reload everything
+  source ~/.bashrc && echo "Configuration reloaded"
+  
+  # Fix common PATH issues  
+  export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+  
+  # Restore alias if missing
+  alias ls='ls --color=auto'
+  
+  # Quick permission fix
+  chmod +x ~/update-dxsbash.sh
+EOF
             ;;
-        "fzf")
-            echo "FZF Commands:"
-            echo "  CTRL+T - Paste selected files/dirs onto command line"
-            echo "  CTRL+R - Search command history"
-            echo "  ALT+C  - cd into selected directory"
-            echo "  fzf    - Start fzf in current directory"
-            echo "  **<TAB> - Fuzzy file completion"
-            ;;
-        "nvim")
-            echo "Neovim Shortcuts:"
-            echo "  nv          - Open neovim"
-            echo "  nvconf      - Edit neovim config"
-            echo "  nvplugs     - Edit neovim plugins"
-            echo ""
-            echo "  Inside Neovim:"
-            echo "  <Space>     - Leader key"
-            echo "  <Leader>f   - Find files"
-            echo "  <Leader>g   - Live grep"
-            echo "  <Leader>b   - Buffers"
-            echo "  <Leader>h   - Help tags"
-            ;;
-        "shells")
-            echo "Shell Support:"
-            echo "  dxsbash supports three shells with equivalent features:"
-            echo ""
-            echo "  Bash:"
-            echo "  - Most compatible with scripts"
-            echo "  - Configuration: ~/.bashrc"
-            echo "  - Help file: ~/.bashrc_help"
-            echo ""
-            echo "  Zsh:"
-            echo "  - Enhanced features and plugins"
-            echo "  - Configuration: ~/.zshrc"
-            echo "  - Help file: ~/.zshrc_help"
-            echo "  - Plugins: Oh My Zsh, syntax highlighting, autosuggestions"
-            echo ""
-            echo "  Fish:"
-            echo "  - Most user-friendly with superior autocompletions"
-            echo "  - Configuration: ~/.config/fish/config.fish"
-            echo "  - Help file: ~/.config/fish/fish_help"
-            echo "  - Plugins: fzf.fish, tide, z"
-            echo ""
-            echo "  To switch your default shell:"
-            echo "  chsh -s \$(which bash|zsh|fish)"
-            ;;
-        "kde")
-            echo "KDE Terminal Integration:"
-            echo "  dxsbash includes special support for KDE terminal emulators:"
-            echo ""
-            echo "  Konsole:"
-            echo "  - Custom profile with FiraCode Nerd Font"
-            echo "  - Properly displays Starship prompt symbols"
-            echo "  - Configuration: ~/.local/share/konsole/DXSBash.profile"
-            echo ""
-            echo "  Yakuake:"
-            echo "  - Drop-down terminal with same configuration as Konsole"
-            echo "  - Uses same custom profile with Nerd Font support"
-            echo "  - Configuration: ~/.config/yakuakerc"
-            echo ""
-            echo "  To reset terminal configuration:"
-            echo "  rm ~/.local/share/konsole/DXSBash.profile"
-            echo "  Then edit ~/.config/konsolerc and ~/.config/yakuakerc"
+        "performance")
+            cat << 'EOF'
+PERFORMANCE & OPTIMIZATION
+=========================
+
+⚡ SHELL PERFORMANCE TIPS
+
+🚀 STARTUP OPTIMIZATION
+  - Minimize ~/.bashrc complexity
+  - Use conditional loading for optional tools
+  - Avoid expensive operations in shell initialization
+
+📈 COMMAND EFFICIENCY
+  # Use built-in alternatives
+  type <cmd>            # Instead of which
+  command -v <cmd>      # Check if command exists
+  
+  # Efficient file operations
+  ls -la                # Instead of ls -l -a
+  find . -name "*.py"   # More efficient than locate for small directories
+
+💾 DISK SPACE OPTIMIZATION
+  pyclean               # Clean Python cache files
+  docker-clean          # Clean Docker resources
+  diskspace | head -10  # Find space hogs
+
+🔍 MONITORING PERFORMANCE
+  topcpu                # Monitor CPU usage
+  meminfo | grep -i available # Check available memory
+  iostat 1              # Monitor disk I/O (if available)
+
+⚙️ SHELL CONFIGURATION TIPS
+  # Lazy loading of expensive tools
+  if command -v docker &> /dev/null; then
+      # Only load Docker aliases if Docker is installed
+  fi
+  
+  # Efficient history settings
+  HISTSIZE=1000         # Reasonable history size
+  HISTFILESIZE=2000     # Don't let history file grow too large
+
+🎯 PERFORMANCE EXAMPLES
+  # Find what's slowing down startup
+  time source ~/.bashrc
+  
+  # Monitor resource usage
+  ps aux --sort=-%cpu | head -10
+  
+  # Clean up disk space  
+  pyclean && docker-clean
+  
+  # Optimize git operations
+  git config --global core.preloadindex true
+  git config --global core.fscache true
+EOF
             ;;
         "starship")
-            echo "Starship Prompt Features:"
-            echo "  Starship provides a rich terminal prompt with information:"
-            echo ""
-            echo "  Git Status:"
-            echo "  - Branch name and status"
-            echo "  - Modified/added/deleted files"
-            echo "  - Ahead/behind remote status"
-            echo ""
-            echo "  Programming Languages:"
-            echo "  - Shows version of detected language in current directory"
-            echo "  - Supports: Python, Node.js, Go, Rust, Java, and more"
-            echo ""
-            echo "  System Info:"
-            echo "  - Command execution time for long-running commands"
-            echo "  - Exit status of previous command"
-            echo "  - Username and hostname (when connected via SSH)"
-            echo ""
-            echo "  Configuration: ~/.config/starship.toml"
+            cat << 'EOF'
+STARSHIP PROMPT CUSTOMIZATION
+============================
+
+🌟 STARSHIP FEATURES
+Starship provides a rich, cross-shell prompt with:
+- Git branch and status indicators
+- Programming language version detection  
+- Command execution time
+- Error status indicators
+- Custom modules and formatting
+
+⚙️ CONFIGURATION FILE
+  ~/.config/starship.toml - Main configuration file
+
+🎨 CUSTOMIZATION OPTIONS
+  # Edit the configuration
+  edit ~/.config/starship.toml
+  
+  # Reload after changes
+  source ~/.bashrc
+
+📊 DEFAULT MODULES
+  - Directory path with smart truncation
+  - Git branch, status, and ahead/behind indicators
+  - Python, Node.js, Docker context detection
+  - Command duration for long-running commands
+  - Exit code display for failed commands
+
+🛠️ COMMON CUSTOMIZATIONS
+  # Disable specific modules
+  [nodejs]
+  disabled = true
+  
+  # Change prompt format  
+  format = "$directory$git_branch$character"
+  
+  # Customize git module
+  [git_branch]
+  symbol = "🌱 "
+  truncation_length = 10
+
+💡 STARSHIP TIPS
+  - Test configurations with 'starship explain'
+  - Use 'starship config' to validate syntax
+  - Backup your config before major changes
+  - Check official docs: https://starship.rs/
+
+🎯 STARSHIP EXAMPLES
+  # Show current config
+  cat ~/.config/starship.toml
+  
+  # Test prompt rendering
+  starship explain
+  
+  # Reset to default
+  rm ~/.config/starship.toml && source ~/.bashrc
+EOF
             ;;
-        "aliases")
-            echo "Aliases Categories:"
-            echo "  dxsbash includes many useful aliases to improve productivity:"
-            echo ""
-            echo "  Navigation:"
-            echo "  - .. ... .... (go up directories)"
-            echo "  - bd (go back to previous directory)"
-            echo ""
-            echo "  Listing:"
-            echo "  - ls, la, ll, lt (different ls formats)"
-            echo "  - lsd (list directories only)"
-            echo "  - lsf (list files only)"
-            echo ""
-            echo "  Safety:"
-            echo "  - rm, cp, mv (interactive versions)"
-            echo "  - delete (safer remove with confirmation)"
-            echo ""
-            echo "  System:"
-            echo "  - update, install (update system)"
-            echo "  - ports, openports (network ports)"
-            echo ""
-            echo "  Git:"
-            echo "  - ga, gs, gc, gp (git operations)"
-            echo ""
-            echo "  For complete list, run: grep \"^alias\" ~/.bashrc"
+        "zoxide")
+            cat << 'EOF'
+ZOXIDE - SMART DIRECTORY NAVIGATION
+==================================
+
+🚀 BASIC USAGE
+  z <partial_name>      - Jump to directory matching partial name
+  zi                    - Interactive directory picker
+  z -                   - Go to previous directory
+  z ..                  - Go to parent directory
+
+🧠 SMART FEATURES
+  - Learns your most frequently visited directories
+  - Matches partial names and paths
+  - Ranks directories by frequency and recency
+  - Works across all supported shells
+
+⌨️ KEYBOARD SHORTCUTS
+  Ctrl+F                - Launch interactive picker (zi)
+
+🔍 ADVANCED USAGE
+  z foo                 # Jump to most frecent dir matching foo
+  z foo bar             # Jump to most frecent dir matching foo and bar
+  zi foo                # Interactive selection of dirs matching foo
+
+📊 ZOXIDE DATABASE
+  # View database
+  zoxide query -l       # List all directories
+  zoxide query -ls      # List with scores
+  
+  # Edit database
+  zoxide remove /path   # Remove directory from database
+  zoxide add /path      # Add directory to database
+
+💡 ZOXIDE TIPS
+  - Use it regularly to build up the database
+  - Partial matching works: 'z doc' might jump to ~/Documents
+  - Case-insensitive matching
+  - Works great with tab completion
+
+🎯 ZOXIDE EXAMPLES
+  z projects                          # Jump to ~/projects or similar
+  z conf vim                          # Jump to vim config directory
+  zi                                  # Interactive picker for all dirs
+  zoxide query -l | grep home         # Find all tracked dirs with 'home'
+EOF
             ;;
-        "update")
-            echo "Updating DXSBash:"
-            echo "  You can update dxsbash in several ways:"
-            echo ""
-            echo "  Using the system-wide command:"
-            echo "  $ upbashdxs"
-            echo ""
-            echo "  Using the home directory shortcut:"
-            echo "  $ ~/update-dxsbash.sh"
-            echo ""
-            echo "  Updates will:"
-            echo "  - Pull latest changes from the repository"
-            echo "  - Update all configuration files"
-            echo "  - Maintain your customizations (in backup)"
-            echo "  - Update shell, KDE, and utility configurations"
-            echo ""
-            echo "  To see your current version:"
-            echo "  $ cat ~/linuxtoolbox/dxsbash/version.txt"
+        "fzf")
+            cat << 'EOF'
+FZF - FUZZY FINDER
+=================
+
+⌨️ KEYBOARD SHORTCUTS
+  Ctrl+R                - Fuzzy search command history
+  Ctrl+T                - Fuzzy find files/directories
+  Alt+C                 - Fuzzy change directory
+
+🔍 COMMAND LINE USAGE  
+  fzf                   - Interactive file finder
+  command | fzf         - Pipe any output through fuzzy finder
+
+📁 FILE OPERATIONS
+  # Find and edit files
+  edit $(fzf)
+  
+  # Find and change to directory
+  cd $(find . -type d | fzf)
+
+📜 HISTORY INTEGRATION
+  # Search and execute from history
+  $(history | fzf | sed 's/^[0-9 ]*//')
+
+🔧 ADVANCED USAGE
+  # Multi-select mode
+  fzf -m                # Select multiple items
+  
+  # Preview files
+  fzf --preview 'cat {}'
+  
+  # Search with query
+  fzf -q "search term"
+
+💡 FZF TIPS
+  - Use fuzzy matching: 'pyjson' matches 'python_json_parser.py'
+  - Navigate with arrow keys, select with Enter
+  - Use Tab for multi-select mode
+  - Combine with other commands for powerful workflows
+
+🎯 FZF EXAMPLES
+  # Edit file with fuzzy search
+  edit $(find . -name "*.py" | fzf)
+  
+  # Kill process interactively
+  kill $(ps aux | fzf | awk '{print $2}')
+  
+  # Git checkout branch
+  git checkout $(git branch | fzf | sed 's/^..//')
+EOF
             ;;
-        "reset")
-            echo "Resetting Your Shell:"
-            echo "  If you need to restore your shell to the default configuration:"
-            echo ""
-            echo "  $ sudo reset-shell-profile [username]"
-            echo ""
-            echo "  This will:"
-            echo "  - Create a backup of your current configuration"
-            echo "  - Restore the default shell configuration files"
-            echo "  - Remove DXSBash settings and customizations"
-            echo ""
-            echo "  Note: This will not uninstall any software or remove the"
-            echo "  repository from ~/linuxtoolbox/dxsbash"
+        "kde")
+            cat << 'EOF'
+KDE TERMINAL INTEGRATION
+=======================
+
+🖥️ SUPPORTED TERMINALS
+  Konsole               - KDE's default terminal emulator
+  Yakuake               - Drop-down terminal
+
+⚙️ AUTO-CONFIGURATION
+DXSBash automatically configures:
+- Custom profile with FiraCode Nerd Font
+- Proper color scheme compatibility
+- Default profile selection
+
+📁 CONFIGURATION FILES
+  ~/.local/share/konsole/DXSBash.profile - Konsole profile
+  ~/.config/konsolerc   - Konsole settings
+  ~/.config/yakuakerc   - Yakuake settings
+
+🎨 PROFILE FEATURES
+  - Font: FiraCode Nerd Font, 12pt
+  - Color scheme: Breeze (default)
+  - Enhanced compatibility with Starship prompt
+  - Proper rendering of special characters and symbols
+
+🛠️ MANUAL CONFIGURATION
+If auto-configuration fails:
+1. Open Konsole/Yakuake
+2. Go to Settings → Manage Profiles
+3. Select DXSBash profile or create new
+4. Set font to "FiraCode Nerd Font"
+
+🔧 TROUBLESHOOTING
+  # Check if profile exists
+  ls ~/.local/share/konsole/DXSBash.profile
+  
+  # Verify font installation
+  fc-list | grep -i firacode
+  
+  # Reset terminal configuration
+  rm ~/.local/share/konsole/DXSBash.profile
+  
+💡 KDE TIPS
+  - Restart terminal after font installation
+  - Use Yakuake for quick terminal access (F12)
+  - Profile settings are preserved across updates
+  - Custom profiles work with both Konsole and Yakuake
+
+🎯 KDE EXAMPLES
+  # Check current profile
+  grep DefaultProfile ~/.config/konsolerc
+  
+  # List available profiles
+  ls ~/.local/share/konsole/*.profile
+  
+  # Verify Nerd Font features
+  echo "  "  # Should display folder and git icons
+EOF
             ;;
         *)
-            echo "Available help topics:"
-            echo "  git      - Git commands and shortcuts"
-            echo "  zoxide   - Directory navigation with zoxide"
-            echo "  fzf      - Fuzzy finder usage and shortcuts"
-            echo "  nvim     - Neovim editor shortcuts"
-            echo "  shells   - Multi-shell support (Bash, Zsh, Fish)"
-            echo "  kde      - KDE terminal integration"
-            echo "  starship - Starship prompt features"
-            echo "  aliases  - Overview of useful aliases"
-            echo "  update   - How to update dxsbash"
-            echo "  reset    - How to reset your shell configuration"
-            echo ""
-            echo "Usage: help <topic>"
+            echo -e "${RED}Unknown help topic: ${YELLOW}$topic${NC}"
+            echo -e "${WHITE}Available topics:${NC}"
+            show_topic_list
+            return 1
             ;;
     esac
 }
 
-# If arguments are passed to the script, show specific help
-if [[ $# -gt 0 ]]; then
-    show_help_topic "$1"
-fi
+# Main function to handle all help requests
+main() {
+    case "${1:-}" in
+        "--list"|"-l")
+            show_topic_list
+            ;;
+        "--search"|"-s")
+            search_commands "$2"
+            ;;
+        "--examples"|"-e")
+            show_examples
+            ;;
+        "")
+            show_main_help
+            ;;
+        *)
+            show_topic_help "$1"
+            ;;
+    esac
+}
+
+# Run the main function with all arguments
+main "$@"
