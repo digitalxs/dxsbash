@@ -2,7 +2,7 @@
 #=================================================================
 # DXSBash - Enhanced Shell Environment for Debian and Ubuntu
 # Repository: https://github.com/digitalxs/dxsbash
-# Version: 2.2.7
+# Version: 2.2.8
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 # License: GPL-3.0
