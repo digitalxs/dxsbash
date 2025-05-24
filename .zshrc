@@ -15,7 +15,7 @@ if [[ "$(tty)" == /dev/tty[1-9]* ]]; then
 # Website: https://digitalxs.ca
 
 #######################################################################
-# CHECK DISTRIBUTION - BLOCK UBUNTU
+# DISTRIBUTION DETECTION (UBUNTU SUPPORT)
 #######################################################################
 
 # Detect distribution
@@ -23,10 +23,9 @@ function detect_distribution() {
     if [ -f /etc/os-release ]; then
         source /etc/os-release
         if [[ "$ID" == "ubuntu" ]]; then
-            echo "⛔ Ubuntu is not supported by this configuration."
-            echo "This configuration is designed for Debian or Arch Linux only."
-            echo "Exiting..."
-            return 1
+            # Ubuntu is now supported - treat it like Debian
+            export DISTRIBUTION="debian"
+            return 0
         elif [[ "$ID" == "debian" ]]; then
             export DISTRIBUTION="debian"
             return 0
@@ -34,24 +33,22 @@ function detect_distribution() {
             export DISTRIBUTION="arch"
             return 0
         else
-            echo "⚠️ Warning: Unsupported distribution detected."
-            echo "This configuration is designed for Debian or Arch Linux."
+            echo "⚠️ Warning: Unsupported distribution detected: $ID"
+            echo "This configuration is designed for Debian, Ubuntu, or Arch Linux."
             echo "Some features may not work correctly."
             export DISTRIBUTION="unknown"
-            return 0
+            return 0  # Continue anyway instead of blocking
         fi
     else
         echo "⚠️ Warning: Unable to detect distribution."
-        echo "This configuration is designed for Debian or Arch Linux."
+        echo "This configuration is designed for Debian, Ubuntu, or Arch Linux."
         export DISTRIBUTION="unknown"
-        return 0
+        return 0  # Continue anyway instead of blocking
     fi
 }
 
-# Run distribution check
-if ! detect_distribution; then
-    return 1
-fi
+# Run distribution check - but don't exit if it fails
+detect_distribution
 
 #######################################################################
 # BASIC DETECTION AND LIGHT CONFIGURATION FOR TTY CONSOLE SESSIONS
