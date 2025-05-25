@@ -32,7 +32,7 @@ fi
 
 #######################################################################
 # SOURCED ALIAS'S AND SCRIPTS BY Luis Freitas and others (2025)
-# Version 2.2.7
+# Version 2.3.0
 #######################################################################
 
 # Source global definitions
