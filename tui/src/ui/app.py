@@ -111,7 +111,7 @@ class DXSBashConfigApp(App):
     }
     
     .info {
-        color: $info;
+        color: $text;
     }
     
     .working {
