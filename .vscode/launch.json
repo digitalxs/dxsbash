@@ -1,6 +1,5 @@
 {
     // IntelliSense sucks. Use some creativity.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.3.0",
     "configurations": [
         {
@@ -8,6 +7,26 @@
             "request": "launch",
             "name": "Bash-Debug (simplest configuration)",
             "program": "${file}"
-        }
+        },
+        {
+            "name": "Run DXSBash TUI",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tui/src/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/tui/venv/bin/python"
+        },
+        {
+            "name": "Debug DXSBash TUI",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tui/src/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/tui/venv/bin/python",
+            "justMyCode": false,
+            "args": ["--debug"]
+	}
     ]
 }
