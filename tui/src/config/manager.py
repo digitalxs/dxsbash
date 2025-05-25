@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Optional, Dict, List
 from datetime import datetime
 
-from .models import DXSBashConfig, ShellType, FeatureStatus
+# Fixed imports to work with current structure
+from config.models import DXSBashConfig, ShellType, FeatureStatus
 
 
 class ConfigManager:
@@ -221,7 +222,7 @@ class ConfigManager:
             
             if dxsbash_starship.exists():
                 # Create symlink to DXSBash starship config
-                if startship_config.exists() or starship_config.is_symlink():
+                if starship_config.exists() or starship_config.is_symlink():
                     starship_config.unlink()
                 starship_config.symlink_to(dxsbash_starship)
             

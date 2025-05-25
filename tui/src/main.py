@@ -9,6 +9,7 @@ from pathlib import Path
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
+# Fix imports to work with the current structure
 from ui.app import DXSBashConfigApp
 from config.manager import ConfigManager
 
