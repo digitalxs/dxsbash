@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
-# Check if this is a TTY session first (improved detection)
+#######################################################################
+# DXSBash Enhanced Bash Configuration
+# Version 2.3.0
+# Author: Luis Miguel P. Freitas
+# Website: https://digitalxs.ca
+#######################################################################
+
+# CRITICAL: Single TTY detection with early return
 if [[ "$(tty 2>/dev/null)" =~ ^/dev/tty[0-9]+$ ]]; then
-    # This is a TTY console session - minimal configuration
+    # This is a TTY console session - minimal configuration only
     
     # Basic history settings
     export HISTSIZE=1000
@@ -13,26 +20,25 @@ if [[ "$(tty 2>/dev/null)" =~ ^/dev/tty[0-9]+$ ]]; then
     shopt -s checkwinsize
     shopt -s histappend
     
-    # Simple prompt
+    # Simple prompt for TTY
     PS1='\u@\h:\w\$ '
     
-    # Basic color support for common commands
+    # Basic color support
     alias ls='ls --color=auto'
     alias grep='grep --color=auto'
     
-    # Set basic XDG paths for TTY sessions too
+    # Set basic XDG paths
     export XDG_DATA_HOME="$HOME/.local/share"
     export XDG_CONFIG_HOME="$HOME/.config"
     export XDG_STATE_HOME="$HOME/.local/state" 
     export XDG_CACHE_HOME="$HOME/.cache"
     
-    # Exit early, skipping all customizations including starship
+    # EXIT EARLY - Skip all advanced features for TTY sessions
     return
 fi
 
 #######################################################################
-# SOURCED ALIAS'S AND SCRIPTS BY Luis Freitas and others (2025)
-# Version 2.3.0
+# ADVANCED CONFIGURATION FOR TERMINAL EMULATORS ONLY
 #######################################################################
 
 # Source global definitions
@@ -45,7 +51,7 @@ if [ -f "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh" ]; then
     source "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
 fi
 
-# Enable bash programmable completion features in interactive shells
+# Enable bash programmable completion features
 if [ -f /usr/share/bash-completion/bash_completion ]; then
     . /usr/share/bash-completion/bash_completion
 elif [ -f /etc/bash_completion ]; then
@@ -73,7 +79,7 @@ shopt -s checkwinsize
 shopt -s histappend
 PROMPT_COMMAND='history -a'
 
-# XDZ directories
+# XDG directories
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_STATE_HOME="$HOME/.local/state"
@@ -100,7 +106,7 @@ export VISUAL=nano
 
 # Colors for ls and grep
 export CLICOLOR=1
-export LS_COLORS='no=00:fi=00:di=00;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.ogg=01;35:*.mp3=01;35:*.wav=01;35:*.xml=00;31:'
+export LS_COLORS='no=00:fi=00:di=00;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd01;35:*.ogg=01;35:*.mp3=01;35:*.wav=01;35:*.xml=00;31:'
 
 # Grep setup - prefer ripgrep if available
 if command -v rg &> /dev/null; then
@@ -209,8 +215,8 @@ setup_package_aliases() {
             alias historypkg='grep -E "installed|upgraded|removed" /var/log/pacman.log'
             ;;
         *)
-            # Generic fallbacks
-            echo "Warning: Unknown distribution, package management aliases not set"
+            # Generic fallbacks - avoid error messages
+            echo "Warning: Unknown distribution, package management aliases not set" >&2
             ;;
     esac
 }
@@ -646,7 +652,7 @@ if command -v zoxide &> /dev/null; then
     eval "$(zoxide init bash)"
 fi
 
-# Use starship prompt if available (comment out to use custom prompt)
+# Use starship prompt if available (overrides custom prompt)
 if command -v starship &> /dev/null; then
     eval "$(starship init bash)"
 fi
