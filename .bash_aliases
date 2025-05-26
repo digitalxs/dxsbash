@@ -373,13 +373,6 @@ set_permissions() {
     fi
 }
 
-# Safer permission aliases
-alias 644='set_permissions 644'
-alias 755='set_permissions 755'
-alias 000='echo "WARNING: 000 permissions make files inaccessible. Use: set_permissions 000 <target>"'
-alias 666='echo "INFO: 666 permissions allow read/write for all. Use: set_permissions 666 <target>"'
-alias 777='echo "WARNING: 777 permissions are security risk. Use: set_permissions 755 <target> for most cases"'
-
 #######################################################
 # ENHANCED FUNCTIONS
 #######################################################
