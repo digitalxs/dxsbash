@@ -2,7 +2,7 @@
 # dxsbash Updater Script - Enhanced Version for Complete Repository Sync
 # This script checks for and installs updates to the dxsbash repository
 # With support for Bash, Zsh, and Fish shells
-# Version 2.2.9 - Now updates ALL repository files locally
+# Version 2.3.1 - Now updates ALL repository files locally
 
 # Color codes
 RC='\033[0m'
