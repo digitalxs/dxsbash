@@ -13,7 +13,7 @@ BLUE='\033[34m'
 CYAN='\033[36m'
 
 # Script version for debugging
-UPDATER_VERSION="2.2.9"
+UPDATER_VERSION="2.3.1"
 
 # Load dxsbash utilities for logging if available
 DXSBASH_UTILS="$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
