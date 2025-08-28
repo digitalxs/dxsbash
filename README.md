@@ -232,8 +232,8 @@ sudo reset-shell-profile [username]
 ## Tested compatibility
 DXSBash was successfully compatibility tested with:
 - Debian 13
-- Konsole  22.12.3
-- Yakuake 22.12.3
+- Konsole  25.04.2
+- Yakuake 25.04.0
 - XFce Terminal 1.0.4 (Need to change font settings to Firacode Nerd Font Regular)
 - Kitty 0.26.5
 
