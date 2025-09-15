@@ -6,7 +6,8 @@ Versions of your project that are currently being supported with security update
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.2.x   | :white_check_mark: |
+| 3.0.x   | :white_check_mark: |
+| 2.2.x   | :x:                |
 | 1.9.x   | :x:                |
 | 1.8.x   | :x:                |
 | 1.7.x   | :x:                |
