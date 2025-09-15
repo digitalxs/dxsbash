@@ -393,7 +393,7 @@ perform_update() {
     
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${RC}"
-    echo -e "${GREEN}║           DXSBash Update Completed Successfully         ║${RC}"
+    echo -e "${GREEN}║           DXSBash Update Completed Successfully        ║${RC}"
     echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${RC}"
     echo ""
     echo -e "  ${CYAN}Previous version:${RC} ${current_version}"
@@ -412,7 +412,7 @@ perform_update() {
 #=================================================================
 main() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
-    echo -e "${BLUE}║              DXSBash Updater v3.0.2                     ║${RC}"
+    echo -e "${BLUE}║              DXSBash Updater 2025                      ║${RC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${RC}"
     echo ""
     
