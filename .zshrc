@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Zsh Configuration
-# Version 2.3.0
+# Version 3.0.3
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -135,29 +135,22 @@ path+="$HOME/.composer/vendor/bin"
 function detect_distribution() {
     if [ -f /etc/os-release ]; then
         source /etc/os-release
-        if [[ "$ID" == "ubuntu" ]]; then
-            # Ubuntu is now supported - treat it like Debian
+        if [[ "$ID" == "ubuntu" ]] || [[ "$ID" == "debian" ]]; then
             export DISTRIBUTION="debian"
-            return 0
-        elif [[ "$ID" == "debian" ]]; then
-            export DISTRIBUTION="debian"
-            return 0
         elif [[ "$ID" == "arch" || "$ID" == "manjaro" ]]; then
             export DISTRIBUTION="arch"
-            return 0
         else
             echo "⚠️ Warning: Unsupported distribution detected: $ID" >&2
             echo "This configuration is designed for Debian, Ubuntu, or Arch Linux." >&2
             echo "Some features may not work correctly." >&2
             export DISTRIBUTION="unknown"
-            return 0  # Continue anyway instead of blocking
         fi
     else
         echo "⚠️ Warning: Unable to detect distribution." >&2
         echo "This configuration is designed for Debian, Ubuntu, or Arch Linux." >&2
         export DISTRIBUTION="unknown"
-        return 0  # Continue anyway instead of blocking
     fi
+    # Remove all return statements - let function complete
 }
 
 # Run distribution check - but don't exit if it fails
