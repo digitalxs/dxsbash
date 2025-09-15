@@ -30,11 +30,9 @@ end
 
 #######################################################################
 # SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
-# ... rest of your config.fish file continues unchanged
 #######################################################################
-# SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
 # FISH version converted from dxsbash
-# Version 1.0.0
+# Version 3.0.3
 # Start updating fish config:
 # nano ~/.config/fish/config.fish
 # paste this script and save
@@ -273,8 +271,7 @@ function get_distribution
     set dtype "unknown"
     
     if test -r /etc/os-release
-        set distro_id (grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-        
+        set -l distro_id (cat /etc/os-release | grep "^ID=" | cut -d= -f2 | tr -d '"')
         switch $distro_id
             case 'fedora' 'rhel' 'centos'
                 set dtype "redhat"
@@ -326,7 +323,6 @@ end
 # Edit function
 function edit
     if type -q jpico
-        # Use JOE text editor
         jpico -nonotice -linums -nobackups $argv
     else if type -q nano
         nano -c $argv
@@ -396,12 +392,11 @@ function cpp
     set -l source $argv[1]
     set -l target $argv[2]
     
-    # Simple progress with rsync if available
     if type -q rsync
         rsync --progress $source $target
     else
-        # Fallback to regular cp
         cp $source $target
+        echo "Copied $source to $target"
     end
 end
 

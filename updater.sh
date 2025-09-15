@@ -2,7 +2,7 @@
 #=================================================================
 # DXSBash Updater - Cross-Distribution Compatible
 # Compatible with: Debian 13, Fedora 42, Arch Linux (latest)
-# Version: 3.0.2
+# Version: 3.0.3
 # Author: Luis Miguel P. Freitas
 # License: GPL-3.0
 #=================================================================
@@ -151,8 +151,15 @@ create_backup() {
     log INFO "Creating backup at ${backup_path}"
     
     if cp -r "${DXSBASH_DIR}" "${backup_path}" 2>/dev/null; then
-        log SUCCESS "Backup created successfully"
-        echo "${backup_path}"
+        # Verify backup
+        if [ -d "${backup_path}" ] && [ -f "${backup_path}/version.txt" ]; then
+            log SUCCESS "Backup created and verified successfully"
+            echo "${backup_path}"
+        else
+            log ERROR "Backup verification failed"
+            rm -rf "${backup_path}"
+            return 1
+        fi
     else
         log ERROR "Failed to create backup"
         return 1

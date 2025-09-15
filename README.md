@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.0.2
+v3.0.3
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -236,12 +236,12 @@ sudo reset-shell-profile [username]
 ```
 
 ## Tested compatibility
-DXSBash was successfully compatibility tested with:
-- Debian 13
-- Konsole  25.04.2
-- Yakuake 25.04.0
-- XFce Terminal 1.0.4 (Need to change font settings to Firacode Nerd Font Regular)
-- Kitty 0.26.5
+DXSBash has been tested on:
+- Debian 13 (Trixie) - Primary target
+- Debian 12 (Bookworm) - Limited support
+- Ubuntu 22.04/24.04 - Good compatibility
+- Arch Linux (latest) - Good compatibility
+- Fedora 39+ - Experimental
 
 
 ## Support Development

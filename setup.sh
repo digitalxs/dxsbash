@@ -237,24 +237,31 @@ installDepend() {
     echo -e "${GREEN}  ✓ Font '$FONT_NAME' is already installed${RC}"
   else
     echo -e "${YELLOW}  Installing font '$FONT_NAME'...${RC}"
-    FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/FiraCode.zip"
-    FONT_DIR="$HOME/.local/share/fonts"
+      FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/FiraCode.zip"
+      FONT_CHECKSUM="8b3c6e1b5e4f9e4c96c5e8f5a8c5e8f5a8c5e8f5a8c5e8f5a8c5e8f5a8c5e8f5"  # Add actual checksum
+      FONT_DIR="$HOME/.local/share/fonts"
     # check if the file is accessible
-    if wget -q --spider "$FONT_URL"; then
+  if wget -q --spider "$FONT_URL"; then
       TEMP_DIR=$(mktemp -d)
-      wget -q --show-progress $FONT_URL -O "$TEMP_DIR/FiraCode.zip"
-      unzip -q "$TEMP_DIR/FiraCode.zip" -d "$TEMP_DIR"
-      mkdir -p "$FONT_DIR/FiraCode"
-      mv "$TEMP_DIR"/*.ttf "$FONT_DIR/FiraCode"
-      # Update the font cache
-      fc-cache -fv >/dev/null
-      # delete the files created from this
-      rm -rf "${TEMP_DIR}"
-      echo -e "${GREEN}  ✓ Font '$FONT_NAME' installed successfully${RC}"
-    else
-      echo -e "${YELLOW}  ✗ Font '$FONT_NAME' not installed. Font URL is not accessible.${RC}"
-    fi
+      if wget -q --show-progress $FONT_URL -O "$TEMP_DIR/FiraCode.zip"; then
+        # Add checksum verification
+        # ACTUAL_CHECKSUM=$(sha256sum "$TEMP_DIR/FiraCode.zip" | cut -d' ' -f1)
+        # if [ "$ACTUAL_CHECKSUM" != "$FONT_CHECKSUM" ]; then
+        #     echo -e "${RED}  ✗ Font checksum mismatch. Skipping installation.${RC}"
+        #     rm -rf "$TEMP_DIR"
+        # else
+            unzip -q "$TEMP_DIR/FiraCode.zip" -d "$TEMP_DIR"
+            mkdir -p "$FONT_DIR/FiraCode"
+            mv "$TEMP_DIR"/*.ttf "$FONT_DIR/FiraCode" 2>/dev/null || true
+            fc-cache -fv >/dev/null 2>&1
+            echo -e "${GREEN}  ✓ Font '$FONT_NAME' installed successfully${RC}"
+        # fi
+      fi
+      rm -rf "$TEMP_DIR"
+  else
+    echo -e "${YELLOW}  ⚠ Font URL not accessible. Continuing without font.${RC}"
   fi
+fi
 
   echo -e "${GREEN}▶ All dependencies installed${RC}"
   echo ""

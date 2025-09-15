@@ -1,21 +1,15 @@
-#!/bin/bash
-# DXSBash Configuration TUI Launcher
-# This script launches the TUI from anywhere in the system
+# DXSBash Configuration Helper
+# This is a placeholder for future configuration interface
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TUI_DIR="$SCRIPT_DIR/tui"
-
-# Check if TUI is set up
-if [ ! -d "$TUI_DIR/venv" ]; then
-    echo "Setting up DXSBash Configuration TUI..."
-    cd "$TUI_DIR"
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    echo "Setup complete!"
-fi
-
-# Activate virtual environment and run TUI
-cd "$TUI_DIR"
-source venv/bin/activate
-python src/main.py --dxsbash-root "$SCRIPT_DIR" "$@"
+echo "DXSBash Configuration"
+echo "====================="
+echo "This feature is under development."
+echo ""
+echo "To configure DXSBash, edit the following files:"
+echo "  - ~/.bashrc (Bash configuration)"
+echo "  - ~/.zshrc (Zsh configuration)"
+echo "  - ~/.config/fish/config.fish (Fish configuration)"
+echo "  - ~/.config/starship.toml (Prompt configuration)"
+echo ""
+echo "For help, run: help"
+exit 0

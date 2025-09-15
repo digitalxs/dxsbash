@@ -340,8 +340,9 @@ fi
 
 # Clipboard operations (if xclip is available)
 if command -v xclip &> /dev/null; then
-    alias setclip='xclip -selection c'            # Copy to clipboard
-    alias getclip='xclip -selection c -o'         # Paste from clipboard
+    alias setclip='xclip -selection c'
+    alias getclip='xclip -selection c -o'
+    alias clickpaste='sleep 3; xdotool type "$(xclip -o -selection clipboard)"'
 fi
 
 # Random utilities
@@ -468,10 +469,12 @@ showport() {
     
     if ! command -v lsof &> /dev/null; then
         echo "Error: lsof not found. Please install lsof."
+        echo "Try: sudo apt install lsof  # for Debian/Ubuntu"
+        echo "     sudo pacman -S lsof  # for Arch"
         return 1
     fi
     
-    lsof -i :"$1"
+    sudo lsof -i :"$1"
 }
 
 # Find large files with improved error handling
