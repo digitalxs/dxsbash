@@ -656,3 +656,5 @@ fi
 if command -v starship &> /dev/null; then
     eval "$(starship init bash)"
 fi
+# Make it compatible with claude code
+export PATH="$HOME/.local/bin:$PATH"
