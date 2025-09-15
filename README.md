@@ -22,6 +22,12 @@ DXSBash is a shell enhancement suite designed for developers, system administrat
 
 Tested extensively on Debian 13. Please test on any system and send e-mail with detailed info with results, bugs, etc...
 
+- Always run setup.sh for a new install or after major changes.
+- Use the interactive help system (help <topic>, help --search, help --examples) for troubleshooting.
+- If a feature is missing, check for the required tool and install it.
+- For customizations, edit the appropriate shell config and document changes in commands.md. 
+- Change the default Profile on Konsole to DXSBash if it dowsn't change automatically. To do it permanently, go to Konsole >> Settings >> Configure Konsole >> Profiles, Select "DXSBash" and click button [Set as Default].
+
 ## Command Reference
 
 For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
