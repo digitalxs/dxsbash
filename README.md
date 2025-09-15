@@ -26,7 +26,7 @@ Tested extensively on Debian 13. Please test on any system and send e-mail with 
 - Use the interactive help system (help <topic>, help --search, help --examples) for troubleshooting.
 - If a feature is missing, check for the required tool and install it.
 - For customizations, edit the appropriate shell config and document changes in commands.md. 
-- Change the default Profile on Konsole to DXSBash if it dowsn't change automatically. To do it permanently, go to Konsole >> Settings >> Configure Konsole >> Profiles, Select "DXSBash" and click button [Set as Default].
+- Change the default Profile on Konsole to DXSBash if it doesn't change automatically. To do it permanently, go to Konsole >> Settings >> Configure Konsole >> Profiles, Select "DXSBash" and click button [Set as Default].
 
 ## Command Reference
 
