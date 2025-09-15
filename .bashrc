@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Bash Configuration
-# Version 2.3.1
+# Version 3.0.3
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -649,12 +649,18 @@ PROMPT_COMMAND='__setprompt'
 
 # Initialize external tools
 if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init bash)"
+    ZOXIDE_INIT=$(zoxide init bash 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$ZOXIDE_INIT" ]; then
+        eval "$ZOXIDE_INIT"
+    fi
 fi
 
 # Use starship prompt if available (overrides custom prompt)
 if command -v starship &> /dev/null; then
-    eval "$(starship init bash)"
+    STARSHIP_INIT=$(starship init bash 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$STARSHIP_INIT" ]; then
+        eval "$STARSHIP_INIT"
+    fi
 fi
 # Make it compatible with claude code
 export PATH="$HOME/.local/bin:$PATH"
