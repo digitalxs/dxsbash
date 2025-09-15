@@ -1,1178 +1,770 @@
 #!/usr/bin/env zsh
-#=================================================================
-# DXSBash Enhanced Zsh Configuration v3.0.2
-# Compatible with: Debian 13, Fedora 42, Arch Linux (latest)
+
+#######################################################################
+# DXSBash Enhanced Zsh Configuration
+# Version 2.3.0
 # Author: Luis Miguel P. Freitas
-# License: GPL-3.0
-#=================================================================
+# Website: https://digitalxs.ca
+#######################################################################
 
-# Early exit for non-interactive shells
-[[ -o interactive ]] || return
-
-#=================================================================
-# PERFORMANCE OPTIMIZATIONS
-#=================================================================
-
-# Enable Zsh's built-in profiling (uncomment to debug slow startup)
-# zmodload zsh/zprof
-
-# Compile zcompdump for faster loading
-autoload -Uz compinit
-if [[ -n ${ZDOTDIR}/.zcompdump(#qNmh+24) ]]; then
-    compinit
-    compdump
-else
-    compinit -C
-fi
-
-#=================================================================
-# MINIMAL CONFIGURATION FOR TTY/RECOVERY MODE
-#=================================================================
-
-# Detect if we're in a minimal environment
-if [[ "$(tty 2>/dev/null)" =~ ^/dev/tty[0-9]+$ ]] || [[ "${TERM}" == "linux" ]]; then
-    # Minimal configuration for TTY sessions
-    PS1='%n@%m:%~%# '
-    alias ls='ls --color=auto 2>/dev/null || ls'
-    alias ll='ls -la'
-    alias grep='grep --color=auto 2>/dev/null || grep'
+# CRITICAL: Single TTY detection with early return
+if [[ "$(tty 2>/dev/null)" =~ ^/dev/tty[0-9]+$ ]]; then
+    # This is a TTY console session - minimal configuration only
     
-    # Basic history
+    # Basic history settings
     HISTFILE=~/.zsh_history
     HISTSIZE=1000
     SAVEHIST=1000
-    setopt appendhistory
     
-    # Basic completion
+    # Basic ZSH options
+    setopt appendhistory
+    setopt hist_ignore_dups
+    setopt hist_ignore_space
+    
+    # Basic autocompletion
     autoload -Uz compinit && compinit
     
+    # Simple prompt for TTY
+    PS1='%n@%m:%~%# '
+    
+    # Basic color support
+    alias ls='ls --color=auto'
+    alias grep='grep --color=auto'
+    
+    # Set basic XDG paths
+    export XDG_DATA_HOME="$HOME/.local/share"
+    export XDG_CONFIG_HOME="$HOME/.config"
+    export XDG_STATE_HOME="$HOME/.local/state" 
+    export XDG_CACHE_HOME="$HOME/.cache"
+    
+    # EXIT EARLY - Skip all advanced features for TTY sessions
     return
 fi
 
-#=================================================================
-# SYSTEM DETECTION
-#=================================================================
+#######################################################################
+# ADVANCED CONFIGURATION FOR TERMINAL EMULATORS ONLY
+#######################################################################
 
-# Function to check command existence
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Safe source function
-safe_source() {
-    [[ -f "$1" ]] && source "$1"
-}
-
-# Comprehensive distribution detection
-detect_distribution() {
-    local distro_id=""
-    local distro_family=""
-    local distro_version=""
-    
-    if [[ -f /etc/os-release ]]; then
-        source /etc/os-release
-        distro_id="${ID:-unknown}"
-        distro_version="${VERSION_ID:-unknown}"
-        
-        case "${distro_id}" in
-            # Debian family
-            debian|ubuntu|linuxmint|pop|elementary|kali|parrot|raspbian|devuan|mx|antix|pureos|deepin|zorin)
-                distro_family="debian"
-                ;;
-            # RedHat family
-            fedora|rhel|centos|rocky|almalinux|oracle|scientific|clearos|eurolinux|amzn)
-                distro_family="redhat"
-                ;;
-            # Arch family
-            arch|manjaro|endeavouros|artix|arcolinux|garuda|archcraft|blackarch|parabola|rebornos)
-                distro_family="arch"
-                ;;
-            # SUSE family
-            opensuse*|sles|suse|gecko)
-                distro_family="suse"
-                ;;
-            # Gentoo family
-            gentoo|funtoo|calculate|redcore)
-                distro_family="gentoo"
-                ;;
-            # Alpine
-            alpine|postmarket)
-                distro_family="alpine"
-                ;;
-            # Void
-            void)
-                distro_family="void"
-                ;;
-            # NixOS
-            nixos)
-                distro_family="nixos"
-                ;;
-            # Slackware family
-            slackware|slackel|salix)
-                distro_family="slackware"
-                ;;
-            *)
-                # Try to detect from ID_LIKE
-                if [[ -n "${ID_LIKE:-}" ]]; then
-                    case "${ID_LIKE}" in
-                        *debian*|*ubuntu*) distro_family="debian" ;;
-                        *fedora*|*rhel*|*centos*) distro_family="redhat" ;;
-                        *arch*) distro_family="arch" ;;
-                        *suse*) distro_family="suse" ;;
-                        *gentoo*) distro_family="gentoo" ;;
-                        *) distro_family="unknown" ;;
-                    esac
-                else
-                    distro_family="unknown"
-                fi
-                ;;
-        esac
-    else
-        distro_family="unknown"
-    fi
-    
-    export DISTRO_ID="${distro_id}"
-    export DISTRO_FAMILY="${distro_family}"
-    export DISTRO_VERSION="${distro_version}"
-}
-
-# Run distribution detection
-detect_distribution
-
-#=================================================================
-# PRIVILEGE ESCALATION DETECTION
-#=================================================================
-
-if command_exists sudo; then
-    PRIV_ESC="sudo"
-elif command_exists doas; then
-    PRIV_ESC="doas"
-else
-    PRIV_ESC=""
+# Source global definitions if available
+if [ -f /etc/zshrc ]; then
+    source /etc/zshrc
 fi
 
-#=================================================================
-# ZSH OPTIONS
-#=================================================================
-
-# Directory navigation
-setopt auto_cd              # Type directory name to cd
-setopt auto_pushd          # Make cd push old directory onto stack
-setopt pushd_ignore_dups   # Don't push duplicates
-setopt pushd_minus         # Exchange + and - for pushd/popd
-setopt cdable_vars         # cd into variable values
-
-# History configuration
-setopt extended_history       # Save timestamp and duration
-setopt hist_expire_dups_first # Expire duplicates first
-setopt hist_ignore_dups       # Don't record duplicates
-setopt hist_ignore_all_dups   # Delete old recorded duplicates
-setopt hist_ignore_space      # Don't record commands starting with space
-setopt hist_find_no_dups      # Don't display duplicates in search
-setopt hist_reduce_blanks     # Remove extra blanks
-setopt hist_verify            # Show command before executing from history
-setopt inc_append_history     # Add to history immediately
-setopt share_history          # Share history between sessions
-
-# Completion options
-setopt always_to_end          # Move cursor to end after completion
-setopt auto_menu              # Show completion menu on tab
-setopt complete_in_word       # Complete from cursor position
-setopt menu_complete          # Cycle through completions with tab
-setopt list_ambiguous         # List ambiguous completions immediately
-setopt list_packed            # Compact completion list
-
-# Globbing and expansion
-setopt extended_glob          # Extended globbing patterns
-setopt glob_dots              # Include dotfiles in globbing
-setopt glob_star_short        # ** for recursive directory matching
-setopt brace_ccl              # Expand {a-z} to a b c ... z
-setopt numeric_glob_sort      # Sort numeric filenames numerically
-
-# Job control
-setopt long_list_jobs         # List jobs in long format
-setopt notify                 # Report job status immediately
-setopt auto_resume           # Resume jobs with same name
-
-# Input/Output
-setopt correct                # Spelling correction for commands
-setopt interactive_comments   # Allow comments in interactive shell
-setopt rc_quotes             # Allow 'quotes' in single quotes
-setopt mail_warning          # Warn if mail file has been accessed
-
-# Other options
-setopt combining_chars       # Combine zero-length chars with base
-setopt no_beep              # Don't beep
-setopt no_flow_control      # Disable flow control (ctrl-s/ctrl-q)
-setopt multios              # Multiple redirections
-setopt prompt_subst         # Expand parameters in prompt
-
-#=================================================================
-# ENVIRONMENT VARIABLES
-#=================================================================
-
-# XDG Base Directory Specification
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
-export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
-
-# Create XDG directories
-mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
-
-# History settings
-export HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
-export HISTSIZE=50000
-export SAVEHIST=50000
-
-# Editor configuration
-if command_exists nvim; then
-    export EDITOR="nvim"
-    export VISUAL="nvim"
-elif command_exists vim; then
-    export EDITOR="vim"
-    export VISUAL="vim"
-elif command_exists nano; then
-    export EDITOR="nano"
-    export VISUAL="nano"
-else
-    export EDITOR="vi"
-    export VISUAL="vi"
+# Source dxsbash utilities
+if [ -f "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh" ]; then
+    source "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
 fi
 
-# Pager configuration
-if command_exists less; then
-    export PAGER="less"
-    export LESS="-R -F -X"
-    export LESSCHARSET="UTF-8"
-    
-    # Less colors for man pages
-    export LESS_TERMCAP_mb=$'\E[01;31m'      # Begin blinking
-    export LESS_TERMCAP_md=$'\E[01;38;5;74m' # Begin bold
-    export LESS_TERMCAP_me=$'\E[0m'          # End mode
-    export LESS_TERMCAP_se=$'\E[0m'          # End standout
-    export LESS_TERMCAP_so=$'\E[38;5;246m'   # Begin standout
-    export LESS_TERMCAP_ue=$'\E[0m'          # End underline
-    export LESS_TERMCAP_us=$'\E[04;38;5;146m' # Begin underline
-else
-    export PAGER="more"
-fi
+export LINUXTOOLBOXDIR="$HOME/linuxtoolbox"
 
-# Terminal settings
-export TERM="${TERM:-xterm-256color}"
+#######################################################
+# ZSH-SPECIFIC SETTINGS
+#######################################################
 
-# Language settings
-export LANG="${LANG:-en_US.UTF-8}"
-export LC_ALL="${LC_ALL:-en_US.UTF-8}"
-
-# DXSBash directories
-export LINUXTOOLBOXDIR="${HOME}/linuxtoolbox"
-export DXSBASH_DIR="${LINUXTOOLBOXDIR}/dxsbash"
-
-# Zsh specific
-export WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
-
-#=================================================================
-# PATH CONFIGURATION
-#=================================================================
-
-# Function to add to PATH (Zsh style)
-path_prepend() {
-    [[ -d "$1" ]] && path=("$1" $path)
-}
-
-path_append() {
-    [[ -d "$1" ]] && path+=("$1")
-}
-
-# Configure PATH
-typeset -U path  # Remove duplicates
-path_prepend "/usr/local/sbin"
-path_prepend "/usr/local/bin"
-path_prepend "${HOME}/.local/bin"
-path_prepend "${HOME}/bin"
-path_append "/snap/bin"
-path_append "${HOME}/.cargo/bin"
-path_append "${HOME}/go/bin"
-path_append "${HOME}/.npm-global/bin"
-path_append "${HOME}/.composer/vendor/bin"
-
-export PATH
-
-#=================================================================
-# COLORS AND THEMING
-#=================================================================
-
-# Color definitions
-typeset -A colors=(
-    reset     $'\e[0m'
-    bold      $'\e[1m'
-    dim       $'\e[2m'
-    underline $'\e[4m'
-    blink     $'\e[5m'
-    reverse   $'\e[7m'
-    hidden    $'\e[8m'
-    
-    black     $'\e[30m'
-    red       $'\e[31m'
-    green     $'\e[32m'
-    yellow    $'\e[33m'
-    blue      $'\e[34m'
-    magenta   $'\e[35m'
-    cyan      $'\e[36m'
-    white     $'\e[37m'
-    
-    bg_black  $'\e[40m'
-    bg_red    $'\e[41m'
-    bg_green  $'\e[42m'
-    bg_yellow $'\e[43m'
-    bg_blue   $'\e[44m'
-    bg_magenta $'\e[45m'
-    bg_cyan   $'\e[46m'
-    bg_white  $'\e[47m'
-)
-
-# LS Colors
-export LS_COLORS='di=34:ln=36:so=35:pi=33:ex=32:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43'
-
-# Enable color support
+# Enable colors and change prompt
 autoload -U colors && colors
 
-#=================================================================
-# PACKAGE MANAGER ALIASES
-#=================================================================
+# Enable command completion
+autoload -Uz compinit && compinit
 
-setup_package_manager() {
-    case "${DISTRO_FAMILY}" in
-        debian)
-            if command_exists nala; then
-                alias install="${PRIV_ESC} nala install -y"
-                alias update="${PRIV_ESC} nala update && ${PRIV_ESC} nala upgrade -y"
-                alias search="nala search"
-                alias remove="${PRIV_ESC} nala remove"
-                alias autoremove="${PRIV_ESC} nala autoremove"
-                alias pkginfo="nala show"
-            elif command_exists apt; then
-                alias install="${PRIV_ESC} apt update && ${PRIV_ESC} apt install -y"
-                alias update="${PRIV_ESC} apt update && ${PRIV_ESC} apt upgrade -y"
-                alias search="apt search"
-                alias remove="${PRIV_ESC} apt remove"
-                alias autoremove="${PRIV_ESC} apt autoremove"
-                alias pkginfo="apt show"
-            fi
-            ;;
-            
-        redhat)
-            if command_exists dnf; then
-                alias install="${PRIV_ESC} dnf install -y"
-                alias update="${PRIV_ESC} dnf upgrade -y"
-                alias search="dnf search"
-                alias remove="${PRIV_ESC} dnf remove"
-                alias autoremove="${PRIV_ESC} dnf autoremove"
-                alias pkginfo="dnf info"
-            elif command_exists yum; then
-                alias install="${PRIV_ESC} yum install -y"
-                alias update="${PRIV_ESC} yum update -y"
-                alias search="yum search"
-                alias remove="${PRIV_ESC} yum remove"
-                alias autoremove="${PRIV_ESC} yum autoremove"
-                alias pkginfo="yum info"
-            fi
-            ;;
-            
-        arch)
-            if command_exists paru; then
-                alias install="paru -S --needed"
-                alias update="paru -Syu"
-                alias search="paru -Ss"
-                alias remove="paru -R"
-                alias autoremove="paru -Rns \$(paru -Qtdq) 2>/dev/null || echo 'No orphans'"
-                alias pkginfo="paru -Si"
-            elif command_exists yay; then
-                alias install="yay -S --needed"
-                alias update="yay -Syu"
-                alias search="yay -Ss"
-                alias remove="yay -R"
-                alias autoremove="yay -Rns \$(yay -Qtdq) 2>/dev/null || echo 'No orphans'"
-                alias pkginfo="yay -Si"
-            elif command_exists pacman; then
-                alias install="${PRIV_ESC} pacman -S --needed"
-                alias update="${PRIV_ESC} pacman -Syu"
-                alias search="pacman -Ss"
-                alias remove="${PRIV_ESC} pacman -R"
-                alias autoremove="${PRIV_ESC} pacman -Rns \$(pacman -Qtdq) 2>/dev/null || echo 'No orphans'"
-                alias pkginfo="pacman -Si"
-            fi
-            ;;
-            
-        suse)
-            if command_exists zypper; then
-                alias install="${PRIV_ESC} zypper install -y"
-                alias update="${PRIV_ESC} zypper update -y"
-                alias search="zypper search"
-                alias remove="${PRIV_ESC} zypper remove"
-                alias autoremove="${PRIV_ESC} zypper remove --clean-deps"
-                alias pkginfo="zypper info"
-            fi
-            ;;
-            
-        gentoo)
-            if command_exists emerge; then
-                alias install="${PRIV_ESC} emerge"
-                alias update="${PRIV_ESC} emerge --sync && ${PRIV_ESC} emerge -uDN @world"
-                alias search="emerge --search"
-                alias remove="${PRIV_ESC} emerge --unmerge"
-                alias autoremove="${PRIV_ESC} emerge --depclean"
-                alias pkginfo="emerge --info"
-            fi
-            ;;
-            
-        void)
-            if command_exists xbps-install; then
-                alias install="${PRIV_ESC} xbps-install -Sy"
-                alias update="${PRIV_ESC} xbps-install -Su"
-                alias search="xbps-query -Rs"
-                alias remove="${PRIV_ESC} xbps-remove"
-                alias autoremove="${PRIV_ESC} xbps-remove -O"
-                alias pkginfo="xbps-query -S"
-            fi
-            ;;
-            
-        alpine)
-            if command_exists apk; then
-                alias install="${PRIV_ESC} apk add"
-                alias update="${PRIV_ESC} apk upgrade"
-                alias search="apk search"
-                alias remove="${PRIV_ESC} apk del"
-                alias autoremove="${PRIV_ESC} apk cache clean"
-                alias pkginfo="apk info"
-            fi
-            ;;
-            
-        nixos)
-            if command_exists nix-env; then
-                alias install="nix-env -iA"
-                alias update="nix-channel --update && nix-env -u"
-                alias search="nix-env -qaP"
-                alias remove="nix-env -e"
-                alias autoremove="nix-collect-garbage -d"
-                alias pkginfo="nix-env -qa --description"
-            fi
-            ;;
-    esac
+# Case insensitive completion
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+
+# Enhanced completion menu
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+# History settings
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt appendhistory
+setopt sharehistory
+setopt incappendhistory
+setopt hist_ignore_dups
+setopt hist_ignore_space
+setopt hist_find_no_dups
+setopt hist_reduce_blanks
+
+# Enables cd when just typing a directory path
+setopt autocd
+
+# Allow ** glob pattern (recursive matching)
+setopt glob_star_short
+
+#######################################################
+# ENVIRONMENT VARIABLES
+#######################################################
+
+# Set up XDG folders
+export XDG_DATA_HOME="$HOME/.local/share"
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_STATE_HOME="$HOME/.local/state"
+export XDG_CACHE_HOME="$HOME/.cache"
+
+# Allow ctrl-S for history navigation
+stty -ixon
+
+# Set the default editor
+export EDITOR=nano
+export VISUAL=nano
+
+# Color for manpages in less
+export LESS_TERMCAP_mb=$'\E[01;31m'
+export LESS_TERMCAP_md=$'\E[01;31m'
+export LESS_TERMCAP_me=$'\E[0m'
+export LESS_TERMCAP_se=$'\E[0m'
+export LESS_TERMCAP_so=$'\E[01;44;33m'
+export LESS_TERMCAP_ue=$'\E[0m'
+export LESS_TERMCAP_us=$'\E[01;32m'
+
+# LS colors
+export CLICOLOR=1
+export LS_COLORS='no=00:fi=00:di=00;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.ogg=01;35:*.mp3=01;35:*.wav=01;35:*.xml=00;31:'
+
+# Path additions
+path+=/usr/sbin
+path+=/snap/bin
+path+="$HOME/.composer/vendor/bin"
+
+#######################################################
+# DISTRIBUTION DETECTION AND PACKAGE MANAGEMENT
+#######################################################
+
+# Distribution detection function
+function detect_distribution() {
+    if [ -f /etc/os-release ]; then
+        source /etc/os-release
+        if [[ "$ID" == "ubuntu" ]]; then
+            # Ubuntu is now supported - treat it like Debian
+            export DISTRIBUTION="debian"
+            return 0
+        elif [[ "$ID" == "debian" ]]; then
+            export DISTRIBUTION="debian"
+            return 0
+        elif [[ "$ID" == "arch" || "$ID" == "manjaro" ]]; then
+            export DISTRIBUTION="arch"
+            return 0
+        else
+            echo "⚠️ Warning: Unsupported distribution detected: $ID" >&2
+            echo "This configuration is designed for Debian, Ubuntu, or Arch Linux." >&2
+            echo "Some features may not work correctly." >&2
+            export DISTRIBUTION="unknown"
+            return 0  # Continue anyway instead of blocking
+        fi
+    else
+        echo "⚠️ Warning: Unable to detect distribution." >&2
+        echo "This configuration is designed for Debian, Ubuntu, or Arch Linux." >&2
+        export DISTRIBUTION="unknown"
+        return 0  # Continue anyway instead of blocking
+    fi
 }
 
-setup_package_manager
+# Run distribution check - but don't exit if it fails
+detect_distribution
 
-#=================================================================
-# ALIASES - CROSS-DISTRIBUTION COMPATIBLE
-#=================================================================
+#######################################################
+# ALIASES
+#######################################################
 
-# Core aliases
-alias reload='source ~/.zshrc'
-alias zshconfig="${EDITOR} ~/.zshrc"
-alias zshreload='source ~/.zshrc'
+# Editor aliases
+alias spico='sedit'
+alias snano='sudo nano'
+alias vim='nvim'
+alias vi='vim'
+alias svi='sudo vi'
+alias vis='nvim "+set si"'
 
-# Safety aliases
-alias rm='rm -i'
+# Set preferred tools based on distribution
+if command -v rg &> /dev/null; then
+    alias grep='rg'
+else
+    alias grep="/usr/bin/grep --color=auto"
+fi
+
+if [[ "$DISTRIBUTION" == "arch" ]]; then
+    alias cat='bat'
+else
+    alias cat='batcat'
+fi
+
+# Docker cleanup alias
+alias docker-clean='docker container prune -f ; docker image prune -f ; docker network prune -f ; docker volume prune -f'
+
+# Directory aliases
+alias root='cd /'
+alias web='cd /var/www/html'
+alias password='pwgen -A'
+
+# Package management aliases (distribution-specific)
+if [[ "$DISTRIBUTION" == "debian" ]]; then
+    # Check if nala is available, otherwise use apt
+    if command -v nala &> /dev/null; then
+        alias install='sudo nala update && sudo nala install -y'
+        alias update='sudo nala update && sudo nala upgrade -y'
+        alias upgrade='sudo nala update && sudo apt-get dist-upgrade'
+        alias remove='sudo nala update && sudo nala remove'
+        alias removeall='sudo nala purge'
+        alias searchpkg='sudo nala search'
+    else
+        alias install='sudo apt update && sudo apt install -y'
+        alias update='sudo apt update && sudo apt upgrade -y'
+        alias upgrade='sudo apt update && sudo apt dist-upgrade'
+        alias remove='sudo apt update && sudo apt remove'
+        alias removeall='sudo apt purge'
+        alias searchpkg='apt search'
+    fi
+    alias historypkg='grep " install " /var/log/apt/history.log'
+elif [[ "$DISTRIBUTION" == "arch" ]]; then
+    if command -v paru &> /dev/null; then
+        alias install='paru -S'
+        alias update='paru -Syu'
+        alias upgrade='paru -Syu'
+        alias remove='paru -R'
+        alias removeall='paru -Rns'
+        alias searchpkg='paru -Ss'
+    elif command -v yay &> /dev/null; then
+        alias install='yay -S'
+        alias update='yay -Syu'
+        alias upgrade='yay -Syu'
+        alias remove='yay -R'
+        alias removeall='yay -Rns'
+        alias searchpkg='yay -Ss'
+    else
+        alias install='sudo pacman -S'
+        alias update='sudo pacman -Syu'
+        alias upgrade='sudo pacman -Syu'
+        alias remove='sudo pacman -R'
+        alias removeall='sudo pacman -Rns'
+        alias searchpkg='pacman -Ss'
+    fi
+    alias historypkg='cat /var/log/pacman.log'
+fi
+
+# General aliases
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+alias ezrc='edit ~/.zshrc'
+alias help='less ~/.zshrc_help'
+alias da='date "+%Y-%m-%d %A %T %Z"'
 alias cp='cp -i'
 alias mv='mv -i'
-alias ln='ln -i'
+alias rm='rm -iv'
+alias delete='rm -rfi'
+alias mkdir='mkdir -p'
+alias ps='ps auxf'
+alias ping='ping -c 10'
+alias less='less -R'
+alias cls='clear'
+alias apt-get='sudo apt-get'
+alias multitail='multitail --no-repeat -c'
+alias freshclam='sudo freshclam'
 
-# Directory navigation
+# Git aliases
+alias gs='git status'
+alias gc='git commit'
+alias ga='git add'
+alias gd='git diff'
+alias gb='git branch'
+alias gl='git log'
+alias gsb='git show-branch'
+alias gco='git checkout'
+alias gg='git grep'
+alias gk='gitk --all'
+alias gr='git rebase'
+alias gri='git rebase --interactive'
+alias gcp='git cherry-pick'
+alias grm='git rm'
+
+# Navigation aliases
+alias home='cd ~'
+alias cd..='cd ..'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias .....='cd ../../../..'
-alias ~='cd ~'
-alias -- -='cd -'
+alias bd='cd "$OLDPWD"'
+alias rmd='/bin/rm --recursive --force --verbose'
 
-# Directory stack
-alias d='dirs -v'
-for index ({1..9}) alias "$index"="cd +${index}"; unset index
+# Directory listing aliases
+alias la='ls -Alh'
+alias ls='ls -aFh --color=always'
+alias lx='ls -lXBh'
+alias lk='ls -lSrh'
+alias lc='ls -ltcrh'
+alias lu='ls -lturh'
+alias lr='ls -lRh'
+alias lt='ls -ltrh'
+alias lm='ls -alh |more'
+alias lw='ls -xAh'
+alias ll='ls -Fls'
+alias labc='ls -lap'
+alias lf="ls -l | grep -v '^d'"
+alias ldir="ls -l | grep '^d'"
+alias lla='ls -Al'
+alias las='ls -A'
+alias lls='ls -l'
 
-# Listing with modern tools fallback
-if command_exists eza; then
-    alias ls='eza --group-directories-first'
-    alias ll='eza -la --group-directories-first --icons'
-    alias la='eza -a --group-directories-first --icons'
-    alias lt='eza -T --level=2 --group-directories-first --icons'
-    alias l='eza -l --group-directories-first --icons'
-elif command_exists exa; then
-    alias ls='exa --group-directories-first'
-    alias ll='exa -la --group-directories-first --icons'
-    alias la='exa -a --group-directories-first --icons'
-    alias lt='exa -T --level=2 --group-directories-first --icons'
-    alias l='exa -l --group-directories-first --icons'
-else
-    alias ls='ls --color=auto --group-directories-first 2>/dev/null || ls --color=auto'
-    alias ll='ls -alF'
-    alias la='ls -A'
-    alias l='ls -CF'
-    alias lt='ls -alt'
-fi
+# Permission aliases
+alias mx='chmod a+x'
+alias 000='chmod -R 000'
+alias 644='chmod -R 644'
+alias 666='chmod -R 666'
+alias 755='chmod -R 755'
+alias 777='chmod -R 777'
 
-# Color support
-alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
-alias diff='diff --color=auto 2>/dev/null || diff'
-alias ip='ip --color=auto 2>/dev/null || ip'
+# Search aliases
+alias h="history | grep "
+alias busy="cat /dev/urandom | hexdump -C | grep 'ca fe'"
+alias p="ps aux | grep "
+alias topcpu="/bin/ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10"
+alias f="find . | grep "
+alias countfiles="for t in files links directories; do echo \`find . -type \${t:0:1} | wc -l\` \$t; done 2> /dev/null"
 
-# Clear screen
-alias c='clear'
-alias cls='clear'
+# Network aliases
+alias openports='netstat -nape --inet'
+alias ports='netstat -tulanp'
+alias ipview="netstat -anpl | grep :80 | awk {'print \$5'} | cut -d\":\" -f1 | sort | uniq -c | sort -n | sed -e 's/^ *//' -e 's/ *\$//'"
+alias restart='sudo shutdown -r now'
+alias forcerestart='sudo shutdown -r -n now'
+alias turnoff='sudo poweroff'
 
-# System information
-alias meminfo='free -h'
-alias cpuinfo='lscpu'
-alias diskinfo='df -h'
-alias mountinfo='mount | column -t'
+# Disk usage aliases
+alias diskspace="du -S | sort -n -r |more"
+alias folders='du -h --max-depth=1'
+alias folderssort='find . -maxdepth 1 -type d -print0 | xargs -0 du -sk | sort -rn'
+alias tree='tree -CAhF --dirsfirst'
+alias treed='tree -CAFd'
+alias mountedinfo='df -hT'
 
-# Process management
-alias psg='ps aux | grep -v grep | grep -i'
-alias psm='ps aux --sort=-%mem | head -20'
-alias psc='ps aux --sort=-%cpu | head -20'
-
-# Network
-alias ports='netstat -tulanp 2>/dev/null || ss -tulanp'
-alias listening='netstat -tlnp 2>/dev/null || ss -tlnp'
-alias myip='curl -s http://ipinfo.io/ip 2>/dev/null || wget -qO- http://ipinfo.io/ip'
-alias localip='hostname -I | cut -d" " -f1'
-
-# File operations
-alias mkdir='mkdir -pv'
-alias tree='tree -C'
-alias duh='du -h --max-depth=1 | sort -hr'
-alias biggest='find . -type f -exec ls -s {} \; | sort -n -r | head -10'
-
-# Modern tool replacements
-if command_exists batcat; then
-    alias bat='batcat'
-    alias cat='batcat --style=plain'
-elif command_exists bat; then
-    alias cat='bat --style=plain'
-fi
-
-if command_exists rg; then
-    alias grep='rg'
-elif command_exists ag; then
-    alias grep='ag'
-fi
-
-if command_exists fd; then
-    alias find='fd'
-fi
-
-# Archive operations
+# Archive aliases
 alias mktar='tar -cvf'
 alias mkbz2='tar -cvjf'
 alias mkgz='tar -cvzf'
 alias untar='tar -xvf'
 alias unbz2='tar -xvjf'
 alias ungz='tar -xvzf'
+alias logs="sudo find /var/log -type f -exec file {} \; | grep 'text' | cut -d' ' -f1 | sed -e's/:$//g' | grep -v '[0-9]$' | xargs tail -f"
+alias sha1='openssl sha1'
+alias clickpaste='sleep 3; xdotool type "$(xclip -o -selection clipboard)"'
+alias kssh="kitty +kitten ssh"
 
-# Git aliases
-if command_exists git; then
-    alias g='git'
-    alias gs='git status'
-    alias gss='git status -s'
-    alias ga='git add'
-    alias gaa='git add --all'
-    alias gc='git commit'
-    alias gcm='git commit -m'
-    alias gca='git commit --amend'
-    alias gp='git push'
-    alias gpl='git pull'
-    alias gco='git checkout'
-    alias gcb='git checkout -b'
-    alias gb='git branch'
-    alias gba='git branch -a'
-    alias gbd='git branch -d'
-    alias gbD='git branch -D'
-    alias gd='git diff'
-    alias gds='git diff --staged'
-    alias gl='git log --oneline --graph --decorate'
-    alias gla='git log --oneline --graph --decorate --all'
-    alias glg='git log --graph --pretty=format:"%C(yellow)%h%C(reset) - %C(green)(%cr)%C(reset) %s %C(dim white)- %an%C(reset) %C(auto)%d%C(reset)"'
-    alias gst='git stash'
-    alias gstp='git stash pop'
-    alias gstl='git stash list'
-    alias gr='git remote'
-    alias grv='git remote -v'
-    alias gf='git fetch'
-    alias gm='git merge'
-    alias grb='git rebase'
+# Source additional aliases if they exist
+if [ -f ~/.zsh_aliases ]; then
+    source ~/.zsh_aliases
 fi
 
-# Docker aliases
-if command_exists docker; then
-    alias d='docker'
-    alias dps='docker ps'
-    alias dpsa='docker ps -a'
-    alias di='docker images'
-    alias dex='docker exec -it'
-    alias dlog='docker logs'
-    alias dstop='docker stop $(docker ps -q)'
-    alias drm='docker rm $(docker ps -aq)'
-    alias drmi='docker rmi $(docker images -q)'
-    alias dprune='docker system prune -af'
-    alias dc='docker-compose'
-    alias dcup='docker-compose up'
-    alias dcupd='docker-compose up -d'
-    alias dcdown='docker-compose down'
-fi
+#######################################################
+# SPECIAL FUNCTIONS
+#######################################################
 
-# Kubernetes aliases
-if command_exists kubectl; then
-    alias k='kubectl'
-    alias kgp='kubectl get pods'
-    alias kgs='kubectl get services'
-    alias kgd='kubectl get deployments'
-    alias kaf='kubectl apply -f'
-    alias kdel='kubectl delete'
-    alias klog='kubectl logs'
-    alias kexec='kubectl exec -it'
-fi
-
-# Systemd aliases
-if command_exists systemctl; then
-    alias systart='${PRIV_ESC} systemctl start'
-    alias systop='${PRIV_ESC} systemctl stop'
-    alias syrestart='${PRIV_ESC} systemctl restart'
-    alias systatus='systemctl status'
-    alias syenable='${PRIV_ESC} systemctl enable'
-    alias sydisable='${PRIV_ESC} systemctl disable'
-    alias syjobs='systemctl list-units --type=service'
-fi
-
-# Editor shortcuts
-alias e="${EDITOR}"
-alias se="${PRIV_ESC} ${EDITOR}"
-
-# Help command
-alias help='cat ~/.zshrc_help 2>/dev/null || echo "Help file not found"'
-
-# Suffix aliases (Zsh specific)
-alias -s {txt,md,markdown}="${EDITOR}"
-alias -s {jpg,jpeg,png,gif}="xdg-open 2>/dev/null || open"
-alias -s {pdf,doc,docx}="xdg-open 2>/dev/null || open"
-alias -s {mp3,mp4,avi,mkv}="xdg-open 2>/dev/null || open"
-alias -s {html,htm}="xdg-open 2>/dev/null || open"
-
-# Global aliases (Zsh specific)
-alias -g L='| less'
-alias -g G='| grep'
-alias -g T='| tail'
-alias -g H='| head'
-alias -g W='| wc -l'
-alias -g N='> /dev/null 2>&1'
-
-#=================================================================
-# FUNCTIONS - CROSS-DISTRIBUTION COMPATIBLE
-#=================================================================
-
-# Enhanced cd with auto-ls
-cd() {
-    builtin cd "$@" && ls
-}
-
-# Make directory and cd into it
-mkcd() {
-    mkdir -p "$1" && cd "$1"
-}
-
-# Extract any archive
-extract() {
-    if [[ -f "$1" ]]; then
-        case "$1" in
-            *.tar.bz2)   tar xjf "$1"     ;;
-            *.tar.gz)    tar xzf "$1"     ;;
-            *.tar.xz)    tar xJf "$1"     ;;
-            *.tar.zst)   tar --zstd -xf "$1" ;;
-            *.bz2)       bunzip2 "$1"     ;;
-            *.rar)       unrar e "$1"     ;;
-            *.gz)        gunzip "$1"      ;;
-            *.tar)       tar xf "$1"      ;;
-            *.tbz2)      tar xjf "$1"     ;;
-            *.tgz)       tar xzf "$1"     ;;
-            *.zip)       unzip "$1"       ;;
-            *.Z)         uncompress "$1"  ;;
-            *.7z)        7z x "$1"        ;;
-            *.deb)       ar x "$1"        ;;
-            *.rpm)       rpm2cpio "$1" | cpio -idmv ;;
-            *)           echo "'$1' cannot be extracted" ;;
-        esac
+# Editor function
+function edit() {
+    if [ "$(type -p jpico)" != "" ]; then
+        jpico -nonotice -linums -nobackups "$@"
+    elif [ "$(type -p nano)" != "" ]; then
+        nano -c "$@"
+    elif [ "$(type -p pico)" != "" ]; then
+        pico "$@"
     else
-        echo "'$1' is not a valid file"
+        vim "$@"
     fi
+}
+
+function sedit() {
+    if [ "$(type -p jpico)" != "" ]; then
+        sudo jpico -nonotice -linums -nobackups "$@"
+    elif [ "$(type -p nano)" != "" ]; then
+        sudo nano -c "$@"
+    elif [ "$(type -p pico)" != "" ]; then
+        sudo pico "$@"
+    else
+        sudo vim "$@"
+    fi
+}
+
+# Archive extraction function
+function extract() {
+    for archive in "$@"; do
+        if [ -f "$archive" ]; then
+            case $archive in
+            *.tar.bz2) tar xvjf $archive ;;
+            *.tar.gz) tar xvzf $archive ;;
+            *.bz2) bunzip2 $archive ;;
+            *.rar) rar x $archive ;;
+            *.gz) gunzip $archive ;;
+            *.tar) tar xvf $archive ;;
+            *.tbz2) tar xvjf $archive ;;
+            *.tgz) tar xvzf $archive ;;
+            *.zip) unzip $archive ;;
+            *.Z) uncompress $archive ;;
+            *.7z) 7z x $archive ;;
+            *) echo "don't know how to extract '$archive'..." ;;
+            esac
+        else
+            echo "'$archive' is not a valid file!"
+        fi
+    done
 }
 
 # Search for text in files
-ftext() {
-    if command_exists rg; then
-        rg --color=always "$@" | less -R
-    elif command_exists ag; then
-        ag --color "$@" | less -R
+function ftext() {
+    grep -iIHrn --color=always "$1" . | less -r
+}
+
+# Copy with progress bar
+function cpp() {
+    set -e
+    strace -q -ewrite cp -- "${1}" "${2}" 2>&1 |
+    awk '{
+        count += $NF
+        if (count % 10 == 0) {
+            percent = count / total_size * 100
+            printf "%3d%% [", percent
+            for (i=0;i<=percent;i++)
+                printf "="
+            printf ">"
+            for (i=percent;i<100;i++)
+                printf " "
+            printf "]\r"
+        }
+    }
+    END { print "" }' total_size="$(stat -c '%s' "${1}")" count=0
+}
+
+# Directory manipulation functions
+function cpg() {
+    if [ -d "$2" ]; then
+        cp "$1" "$2" && cd "$2"
     else
-        grep -r --color=always "$@" . | less -R
+        cp "$1" "$2"
     fi
 }
 
-# Find file by name
-fname() {
-    if command_exists fd; then
-        fd "$@"
+function mvg() {
+    if [ -d "$2" ]; then
+        mv "$1" "$2" && cd "$2"
     else
-        find . -name "*$@*" 2>/dev/null
+        mv "$1" "$2"
     fi
 }
 
-# Directory sizes
-dirsize() {
-    du -sh "${1:-.}"/* 2>/dev/null | sort -h
+function mkdirg() {
+    mkdir -p "$1"
+    cd "$1"
 }
 
-# Show PATH
-path() {
-    echo -e "${PATH//:/\\n}"
+function up() {
+    local d=""
+    limit=$1
+    for ((i = 1; i <= limit; i++)); do
+        d=$d/..
+    done
+    d=$(echo $d | sed 's/^\///')
+    if [ -z "$d" ]; then
+        d=..
+    fi
+    cd $d
 }
 
-# Backup file with timestamp
-backup() {
-    if [[ -e "$1" ]]; then
-        cp "$1" "$1.backup.$(date +%Y%m%d_%H%M%S)"
-        echo "Backup created: $1.backup.$(date +%Y%m%d_%H%M%S)"
+# Enhanced cd command
+function cd() {
+    if [ -n "$1" ]; then
+        builtin cd "$@" && ls
     else
-        echo "File not found: $1"
+        builtin cd ~ && ls
     fi
 }
 
-# IP information
-ipinfo() {
-    echo "Local IP addresses:"
-    if command_exists ip; then
-        ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+function pwdtail() {
+    pwd | awk -F/ '{nlast = NF -1;print $nlast"/"$NF}'
+}
+
+# Network information
+function whatsmyip() {
+    # Internal IP Lookup
+    if command -v ip &> /dev/null; then
+        echo -n "Internal IP Addresses: "
+        ip addr | grep "inet " | awk '{print $2}' | cut -d/ -f1
     else
-        ifconfig 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+        echo -n "Internal IP Addresses: "
+        ifconfig | grep "inet " | awk '{print $2}'
     fi
-    echo -e "\nPublic IP address:"
-    curl -s http://ipinfo.io/ip 2>/dev/null || echo "Unable to fetch public IP"
+    # External IP Lookup
+    echo -n "External IP Address: "
+    curl -s ifconfig.me
+}
+alias whatismyip="whatsmyip"
+
+function netinfo() {
+    echo "--------------- Network Information --------------------------"
+    nmcli
+    echo "--------------------------------------------------------------"
 }
 
-# System information
-sysinfo() {
-    print -P "%B%F{green}System Information%f%b"
-    echo "==================="
-    print -P "%F{green}Hostname:%f $(hostname)"
-    print -P "%F{green}OS:%f ${(C)DISTRO_ID} ${DISTRO_VERSION} (${DISTRO_FAMILY})"
-    print -P "%F{green}Kernel:%f $(uname -r)"
-    print -P "%F{green}Architecture:%f $(uname -m)"
-    print -P "%F{green}CPU:%f $(lscpu | grep 'Model name' | cut -d: -f2 | xargs)"
-    print -P "%F{green}Memory:%f $(free -h | awk '/^Mem:/ {print $2 " total, " $3 " used"}')"
-    print -P "%F{green}Disk:%f $(df -h / | awk 'NR==2 {print $2 " total, " $3 " used (" $5 ")"}')"
-    print -P "%F{green}Load:%f $(uptime | awk -F'load average:' '{print $2}')"
-    print -P "%F{green}Uptime:%f $(uptime -p)"
-    print -P "%F{green}Shell:%f Zsh ${ZSH_VERSION}"
+# Server administration functions
+function apachelog() {
+    if [ -f /etc/httpd/conf/httpd.conf ]; then
+        cd /var/log/httpd && ls -xAh && multitail --no-repeat -c -s 2 /var/log/httpd/*_log
+    else
+        cd /var/log/apache2 && ls -xAh && multitail --no-repeat -c -s 2 /var/log/apache2/*.log
+    fi
 }
 
-# Weather (works everywhere)
-weather() {
-    local location="${1:-}"
-    curl -s "http://wttr.in/${location}?format=3" 2>/dev/null || echo "Unable to fetch weather"
+function apacheconfig() {
+    if [ -f /etc/httpd/conf/httpd.conf ]; then
+        sedit /etc/httpd/conf/httpd.conf
+    elif [ -f /etc/apache2/apache2.conf ]; then
+        sedit /etc/apache2/apache2.conf
+    else
+        echo "Error: Apache config file could not be found."
+        echo "Searching for possible locations:"
+        sudo updatedb && locate httpd.conf && locate apache2.conf
+    fi
 }
 
-# Quick notes
-note() {
-    local note_file="${HOME}/notes.txt"
-    if [[ $# -eq 0 ]]; then
-        if [[ -f "$note_file" ]]; then
-            cat "$note_file"
+function phpconfig() {
+    if [ -f /etc/php.ini ]; then
+        sedit /etc/php.ini
+    elif [ -f /etc/php/php.ini ]; then
+        sedit /etc/php/php.ini
+    elif [ -f /etc/php5/php.ini ]; then
+        sedit /etc/php5/php.ini
+    elif [ -f /usr/bin/php5/bin/php.ini ]; then
+        sedit /usr/bin/php5/bin/php.ini
+    elif [ -f /etc/php5/apache2/php.ini ]; then
+        sedit /etc/php5/apache2/php.ini
+    else
+        echo "Error: php.ini file could not be found."
+        echo "Searching for possible locations:"
+        sudo updatedb && locate php.ini
+    fi
+}
+
+function mysqlconfig() {
+    if [ -f /etc/my.cnf ]; then
+        sedit /etc/my.cnf
+    elif [ -f /etc/mysql/my.cnf ]; then
+        sedit /etc/mysql/my.cnf
+    elif [ -f /usr/local/etc/my.cnf ]; then
+        sedit /usr/local/etc/my.cnf
+    elif [ -f /usr/bin/mysql/my.cnf ]; then
+        sedit /usr/bin/mysql/my.cnf
+    elif [ -f ~/my.cnf ]; then
+        sedit ~/my.cnf
+    elif [ -f ~/.my.cnf ]; then
+        sedit ~/.my.cnf
+    else
+        echo "Error: my.cnf file could not be found."
+        echo "Searching for possible locations:"
+        sudo updatedb && locate my.cnf
+    fi
+}
+
+function trim() {
+    local var=$*
+    var="${var#"${var%%[![:space:]]*}"}" # remove leading whitespace 
+    var="${var%"${var##*[![:space:]]}"}" # remove trailing whitespace
+    echo -n "$var"
+}
+
+#######################################################
+# DISTRIBUTION-SPECIFIC SUPPORT FUNCTIONS
+#######################################################
+
+function install_zshrc_support() {
+    if [[ "$DISTRIBUTION" == "debian" ]]; then
+        echo "Installing dependencies for Debian..."
+        sudo apt-get install zsh zsh-autosuggestions zsh-syntax-highlighting bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
+    elif [[ "$DISTRIBUTION" == "arch" ]]; then
+        echo "Installing dependencies for Arch Linux..."
+        if command -v paru &> /dev/null; then
+            paru -S --needed multitail tree zoxide trash-cli fzf zsh zsh-completions zsh-autosuggestions zsh-syntax-highlighting
+        elif command -v yay &> /dev/null; then
+            yay -S --needed multitail tree zoxide trash-cli fzf zsh zsh-completions zsh-autosuggestions zsh-syntax-highlighting
         else
-            echo "No notes found"
+            sudo pacman -S --needed multitail tree zoxide trash-cli fzf zsh zsh-completions zsh-autosuggestions zsh-syntax-highlighting
         fi
     else
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$note_file"
-        echo "Note added"
+        echo "Unsupported distribution. Please install dependencies manually."
+        return 1
     fi
+    
+    # Install Oh My Zsh if not already installed
+    if [ ! -d "$HOME/.oh-my-zsh" ]; then
+        echo "Installing Oh My Zsh..."
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    fi
+    
+    return 0
 }
 
-# Process lookup
-psfind() {
-    ps aux | grep -v grep | grep -i "$1"
+#######################################################
+# ZSH PLUGINS AND PROMPT CONFIGURATION
+#######################################################
+
+# CPU usage function for prompt
+function cpu() {
+    grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}' | awk '{printf("%.1f\n", $1)}'
 }
 
-# Kill process by name
-pskill() {
-    local pid
-    pid=$(ps aux | grep -v grep | grep -i "$1" | awk '{print $2}')
-    if [[ -n "$pid" ]]; then
-        echo "Killing process: $1 (PID: $pid)"
-        kill $pid
+# Custom ZSH prompt
+function setprompt() {
+    local LAST_EXIT_CODE=$?
+    
+    # Define colors
+    local LIGHTGRAY="%F{240}"
+    local WHITE="%F{255}"
+    local DARKGRAY="%F{238}"
+    local RED="%F{160}"
+    local LIGHTRED="%F{196}"
+    local GREEN="%F{40}"
+    local BROWN="%F{130}"
+    local YELLOW="%F{226}"
+    local BLUE="%F{33}"
+    local MAGENTA="%F{125}"
+    local CYAN="%F{37}"
+    local NOCOLOR="%f"
+    
+    PROMPT=""
+    
+    # Show error exit code if there is one
+    if [[ $LAST_EXIT_CODE != 0 ]]; then
+        PROMPT+="${DARKGRAY}(${LIGHTRED}ERROR${DARKGRAY})-(${RED}Exit Code ${LIGHTRED}${LAST_EXIT_CODE}${DARKGRAY})-(${RED}"
+        case $LAST_EXIT_CODE in
+            1) PROMPT+="General error" ;;
+            2) PROMPT+="Missing keyword, command, or permission problem" ;;
+            126) PROMPT+="Permission problem or command is not an executable" ;;
+            127) PROMPT+="Command not found" ;;
+            128) PROMPT+="Invalid argument to exit" ;;
+            129) PROMPT+="Fatal error signal 1" ;;
+            130) PROMPT+="Script terminated by Control-C" ;;
+            131) PROMPT+="Fatal error signal 3" ;;
+            132) PROMPT+="Fatal error signal 4" ;;
+            133) PROMPT+="Fatal error signal 5" ;;
+            134) PROMPT+="Fatal error signal 6" ;;
+            135) PROMPT+="Fatal error signal 7" ;;
+            136) PROMPT+="Fatal error signal 8" ;;
+            137) PROMPT+="Fatal error signal 9" ;;
+            *) PROMPT+="Unknown error code" ;;
+        esac
+        PROMPT+="${DARKGRAY})${NOCOLOR}"$'\n'
+    fi
+    
+    # Date and time
+    PROMPT+="${DARKGRAY}(${CYAN}%W %D{%b-%m} "
+    PROMPT+="${BLUE}%D{%I:%M:%S%p}${DARKGRAY})-"
+    
+    # CPU and jobs
+    PROMPT+="(${MAGENTA}CPU $(cpu)%"
+    PROMPT+="${DARKGRAY}:${MAGENTA}%j"
+    
+    # Network connections
+    PROMPT+="${DARKGRAY}:${MAGENTA}Net $(awk 'END {print NR}' /proc/net/tcp)"
+    PROMPT+="${DARKGRAY})-"
+    
+    # User info
+    if [[ -n "$SSH_CLIENT" || -n "$SSH2_CLIENT" ]]; then
+        PROMPT+="(${RED}%n@%m"
     else
-        echo "Process not found: $1"
+        PROMPT+="(${RED}%n"
     fi
-}
-
-# CPU usage
-cpu_usage() {
-    if [[ -f /proc/stat ]]; then
-        grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {printf "%.1f%%\n", usage}'
-    elif command_exists top; then
-        top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1
+    
+    # Current directory
+    PROMPT+="${DARKGRAY}:${BROWN}%~${DARKGRAY})-"
+    
+    # Total size of files and number of files
+    PROMPT+="(${GREEN}$(/bin/ls -lah | /bin/grep -m 1 total | /bin/sed 's/total //')${DARKGRAY}:"
+    PROMPT+="${GREEN}$(/bin/ls -A -1 | /usr/bin/wc -l)${DARKGRAY})"
+    
+    # Skip to the next line
+    PROMPT+=$'\n'
+    
+    # User privilege indicator
+    if [[ $EUID -ne 0 ]]; then
+        PROMPT+="${GREEN}>${NOCOLOR} "   # Normal user
     else
-        echo "Unable to determine CPU usage"
+        PROMPT+="${RED}>${NOCOLOR} "    # Root user
     fi
 }
 
-# Memory usage
-mem_usage() {
-    free | awk '/^Mem:/ {printf "%.1f%%\n", $3/$2 * 100}'
-}
-
-# Disk usage for current directory
-disk_usage() {
-    df -h . | awk 'NR==2 {print $5}'
-}
-
-# Install DXSBash dependencies
-install_dxsbash_deps() {
-    echo "Installing DXSBash dependencies for ${(C)DISTRO_ID}..."
+# Load ZSH plugins
+if [ -d "$HOME/.oh-my-zsh" ]; then
+    # Use Oh My Zsh framework if installed
+    ZSH="$HOME/.oh-my-zsh"
+    ZSH_THEME="robbyrussell"  # Default theme
     
-    local deps="curl wget git tar unzip fontconfig zsh"
-    
-    case "${DISTRO_FAMILY}" in
-        debian)
-            deps="$deps bat fd-find ripgrep fzf neovim trash-cli zsh-autosuggestions zsh-syntax-highlighting"
-            ;;
-        redhat)
-            deps="$deps bat fd-find ripgrep fzf neovim"
-            ;;
-        arch)
-            deps="$deps bat fd ripgrep fzf neovim trash-cli starship zoxide zsh-completions zsh-autosuggestions zsh-syntax-highlighting"
-            ;;
-    esac
-    
-    echo "Installing: $deps"
-    install $deps
-}
-
-# Update DXSBash
-update_dxsbash() {
-    if [[ -f "${DXSBASH_DIR}/updater.sh" ]]; then
-        bash "${DXSBASH_DIR}/updater.sh"
-    else
-        echo "DXSBash updater not found. Please check your installation."
-    fi
-}
-
-# Zsh specific: Command not found handler
-command_not_found_handler() {
-    print -P "%F{red}Command not found: %B$1%b%f"
-    
-    # Suggest installation if package manager has command-not-found
-    if command_exists command-not-found; then
-        command-not-found "$1"
-    elif [[ -x /usr/lib/command-not-found ]]; then
-        /usr/lib/command-not-found "$1"
-    else
-        print -P "%F{yellow}Try: %Bsearch $1%b to find the package%f"
-    fi
-    
-    return 127
-}
-
-#=================================================================
-# PLUGIN MANAGEMENT
-#=================================================================
-
-# Function to safely load plugins
-load_plugin() {
-    local plugin_path="$1"
-    [[ -f "$plugin_path" ]] && source "$plugin_path"
-}
-
-# Oh My Zsh Configuration (if installed)
-if [[ -d "$HOME/.oh-my-zsh" ]]; then
-    export ZSH="$HOME/.oh-my-zsh"
-    
-    # Theme (use robbyrussell as fallback)
-    ZSH_THEME="robbyrussell"
-    
-    # Plugins to load
     plugins=(
         git
-        docker
-        kubectl
         history
         sudo
         command-not-found
-        colored-man-pages
-        extract
     )
     
-    # Add distribution-specific plugins
-    case "${DISTRO_FAMILY}" in
-        debian|ubuntu)
-            plugins+=(ubuntu debian)
-            ;;
-        arch)
-            plugins+=(archlinux)
-            ;;
-        redhat)
-            plugins+=(dnf yum)
-            ;;
-    esac
+    # Check and add syntax highlighting plugin if available
+    if [ -d "$ZSH/custom/plugins/zsh-syntax-highlighting" ]; then
+        plugins+=(zsh-syntax-highlighting)
+    fi
+    
+    # Check and add autosuggestions plugin if available
+    if [ -d "$ZSH/custom/plugins/zsh-autosuggestions" ]; then
+        plugins+=(zsh-autosuggestions)
+    fi
     
     # Load Oh My Zsh
-    source "$ZSH/oh-my-zsh.sh"
-else
-    # Manual plugin loading for systems without Oh My Zsh
-    
-    # Zsh autosuggestions
-    for dir in \
-        /usr/share/zsh-autosuggestions \
-        /usr/share/zsh/plugins/zsh-autosuggestions \
-        /usr/local/share/zsh-autosuggestions \
-        /opt/homebrew/share/zsh-autosuggestions \
-        ${ZDOTDIR:-$HOME}/.zsh/zsh-autosuggestions
-    do
-        if [[ -f "$dir/zsh-autosuggestions.zsh" ]]; then
-            source "$dir/zsh-autosuggestions.zsh"
-            break
-        fi
-    done
-    
-    # Zsh syntax highlighting
-    for dir in \
-        /usr/share/zsh-syntax-highlighting \
-        /usr/share/zsh/plugins/zsh-syntax-highlighting \
-        /usr/local/share/zsh-syntax-highlighting \
-        /opt/homebrew/share/zsh-syntax-highlighting \
-        ${ZDOTDIR:-$HOME}/.zsh/zsh-syntax-highlighting
-    do
-        if [[ -f "$dir/zsh-syntax-highlighting.zsh" ]]; then
-            source "$dir/zsh-syntax-highlighting.zsh"
-            break
-        fi
-    done
-    
-    # Zsh history substring search
-    for dir in \
-        /usr/share/zsh-history-substring-search \
-        /usr/share/zsh/plugins/zsh-history-substring-search \
-        /usr/local/share/zsh-history-substring-search \
-        ${ZDOTDIR:-$HOME}/.zsh/zsh-history-substring-search
-    do
-        if [[ -f "$dir/zsh-history-substring-search.zsh" ]]; then
-            source "$dir/zsh-history-substring-search.zsh"
-            # Bind keys for history substring search
-            bindkey '^[[A' history-substring-search-up
-            bindkey '^[[B' history-substring-search-down
-            bindkey '^P' history-substring-search-up
-            bindkey '^N' history-substring-search-down
-            break
-        fi
-    done
-fi
-
-#=================================================================
-# COMPLETION SYSTEM
-#=================================================================
-
-# Initialize completion system
-autoload -Uz compinit
-compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump-$ZSH_VERSION"
-
-# Completion options
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-zstyle ':completion:*' verbose yes
-zstyle ':completion:*' use-cache on
-zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompcache"
-
-# Completion formatting
-zstyle ':completion:*:descriptions' format '%B%F{yellow}--- %d ---%f%b'
-zstyle ':completion:*:messages' format '%B%F{purple}--- %d ---%f%b'
-zstyle ':completion:*:warnings' format '%B%F{red}No matches for:%f %F{yellow}%d%f%b'
-zstyle ':completion:*:corrections' format '%B%F{green}--- %d (errors: %e) ---%f%b'
-zstyle ':completion:*' group-name ''
-
-# Specific completions
-zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
-zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
-
-# Directory completion
-zstyle ':completion:*' special-dirs true
-zstyle ':completion:*' ignore-parents parent pwd
-
-# Host completion
-zstyle ':completion:*:hosts' hosts $(awk '/^[^#]/ {print $2}' /etc/hosts 2>/dev/null)
-
-# SSH/SCP/RSYNC completion
-if [[ -r ~/.ssh/known_hosts ]]; then
-    _ssh_hosts=(${${${${(f)"$(<$HOME/.ssh/known_hosts)"}:#[\|]*}%%\ *}%%,*})
-    zstyle ':completion:*:(ssh|scp|rsync):*' hosts $_ssh_hosts
-fi
-
-#=================================================================
-# KEY BINDINGS
-#=================================================================
-
-# Emacs key bindings (default)
-bindkey -e
-
-# History search
-bindkey '^R' history-incremental-search-backward
-bindkey '^S' history-incremental-search-forward
-
-# Navigate words with ctrl+arrow
-bindkey '^[[1;5C' forward-word   # Ctrl+Right
-bindkey '^[[1;5D' backward-word  # Ctrl+Left
-
-# Home/End keys
-bindkey '^[[H' beginning-of-line
-bindkey '^[[F' end-of-line
-bindkey '^[[1~' beginning-of-line
-bindkey '^[[4~' end-of-line
-
-# Delete key
-bindkey '^[[3~' delete-char
-
-# Edit command line in editor
-autoload -Uz edit-command-line
-zle -N edit-command-line
-bindkey '^X^E' edit-command-line
-
-# Bind Ctrl+F for zoxide interactive (if available)
-if command_exists zoxide; then
-    bindkey -s '^F' 'zi\n'
-fi
-
-#=================================================================
-# PROMPT CONFIGURATION
-#=================================================================
-
-# Enable prompt substitution
-setopt prompt_subst
-
-# Git info for prompt
-git_info() {
-    local branch=$(git symbolic-ref --short HEAD 2>/dev/null)
-    if [[ -n "$branch" ]]; then
-        local status=""
-        git diff --quiet || status+="*"
-        git diff --cached --quiet || status+="+"
-        [[ -n "$(git ls-files --others --exclude-standard)" ]] && status+="?"
-        echo " %F{magenta}($branch$status)%f"
+    if [ -f "$ZSH/oh-my-zsh.sh" ]; then
+        source "$ZSH/oh-my-zsh.sh"
     fi
+else
+    # Standalone plugin loading
+    if [ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+        source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    elif [ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+        source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    fi
+    
+    if [ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+        source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+    elif [ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+        source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+    fi
+fi
+
+# Keybindings
+bindkey '^[[A' history-beginning-search-backward  # Up arrow
+bindkey '^[[B' history-beginning-search-forward   # Down arrow
+bindkey '^[[Z' reverse-menu-complete              # Shift+Tab
+bindkey '^f' _zoxide_zi_widget
+
+# Create widget for zoxide
+zle -N _zoxide_zi_widget
+function _zoxide_zi_widget() {
+    BUFFER="zi"
+    zle accept-line
 }
 
-# Default prompt (if not using Starship)
-if ! command_exists starship; then
-    # Simple but informative prompt
-    PROMPT='%F{green}%n%f@%F{blue}%m%f:%F{yellow}%~%f$(git_info)
-%(?:%F{green}❯%f:%F{red}❯%f) '
-    
-    # Right prompt with time
-    RPROMPT='%F{240}%*%f'
+# Load FZF if available
+if [ -f ~/.fzf.zsh ]; then
+    source ~/.fzf.zsh
 fi
 
-#=================================================================
-# EXTERNAL TOOLS INTEGRATION
-#=================================================================
+#######################################################
+# INITIALIZE TOOLS
+#######################################################
 
-# FZF integration
-if command_exists fzf; then
-    # Try to source FZF files from various locations
-    for dir in \
-        /usr/share/fzf \
-        /usr/local/opt/fzf/shell \
-        /opt/homebrew/opt/fzf/shell \
-        ${HOME}/.fzf
-    do
-        [[ -f "$dir/key-bindings.zsh" ]] && source "$dir/key-bindings.zsh"
-        [[ -f "$dir/completion.zsh" ]] && source "$dir/completion.zsh"
-    done
-    
-    # FZF configuration
-    export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --info=inline"
-    
-    # Use fd or ripgrep if available
-    if command_exists fd; then
-        export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-        export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
-    elif command_exists rg; then
-        export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
-        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-    fi
-fi
-
-# Zoxide integration
-if command_exists zoxide; then
+# Initialize Zoxide
+if command -v zoxide &> /dev/null; then
     eval "$(zoxide init zsh)"
 fi
 
-# Starship prompt
-if command_exists starship; then
+# Initialize Starship or use custom prompt
+if command -v starship &> /dev/null; then
     eval "$(starship init zsh)"
+else
+    setprompt
+    precmd() { setprompt }
 fi
 
-# Atuin history
-if command_exists atuin; then
-    eval "$(atuin init zsh)"
+# Show system info at startup if not in SSH session
+if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
+    fastfetch
 fi
-
-# Direnv
-if command_exists direnv; then
-    eval "$(direnv hook zsh)"
-fi
-
-# thefuck
-if command_exists thefuck; then
-    eval "$(thefuck --alias)"
-fi
-
-#=================================================================
-# STARTUP TASKS
-#=================================================================
-
-# Welcome message and system info
-if [[ -z "$SSH_CLIENT" ]] && [[ -z "$SSH_TTY" ]]; then
-    # Run fastfetch/neofetch if available
-    if command_exists fastfetch; then
-        fastfetch
-    elif command_exists neofetch; then
-        neofetch
-    fi
-    
-    # Welcome message
-    print -P "%F{green}Welcome to DXSBash on ${(C)DISTRO_ID} ${DISTRO_VERSION}%f"
-    print -P "Type %F{yellow}help%f for DXSBash commands, %F{yellow}sysinfo%f for system information"
-fi
-
-# Source additional configurations
-safe_source ~/.zshrc.local
-safe_source ~/.zsh_aliases
-safe_source "${DXSBASH_DIR}/dxsbash-utils.sh"
-
-#=================================================================
-# CLEANUP AND PERFORMANCE
-#=================================================================
-
-# Remove duplicate entries from PATH
-typeset -U PATH path
-
-# Compile functions for faster loading
-if [[ ! -d "${XDG_CACHE_HOME:-$HOME/.cache}/zsh" ]]; then
-    mkdir -p "${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
-fi
-
-# Uncomment to profile startup time
-# zprof
-
-#=================================================================
-# END OF ZSHRC
-#=================================================================
