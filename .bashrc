@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Bash Configuration
-# Version 3.0.3
+# Version 3.0.4
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -664,3 +664,5 @@ if command -v starship &> /dev/null; then
 fi
 # Make it compatible with claude code
 export PATH="$HOME/.local/bin:$PATH"
+# To make administrative tool more accessible
+export PATH="${PATH}:/usr/local/sbin:/usr/sbin:/sbin"
