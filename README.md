@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.0.2
+v3.0.4
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
