@@ -38,7 +38,7 @@ For a comprehensive list of all available commands and aliases in DXSBash, see t
 - Arch Linux (moderately tested)
 - Ubuntu 20.04+ (limited tested)
 - Administrative privileges (sudo mostly)
-  
+
 ## Installation
 
 ```bash
@@ -55,6 +55,14 @@ The installer provides an interactive experience:
 4. Configures your chosen shell with enhanced features
 5. Sets up visual elements and productivity tools
 6. Configures KDE terminal Konsole and Yakuake profiles and defaults
+
+## Updating
+
+Update to the latest version:
+
+```bash
+update-dxsbash
+```
 
 ## Core Components
 
@@ -208,13 +216,7 @@ You can customize your environment even more by editing:
 - Prompt: `~/.config/starship.toml`
 - System info: `~/.config/fastfetch/config.jsonc`
 
-## Updating
 
-Update to the latest version:
-
-```bash
-update-dxsbash
-```
 ## Cross-Platform Compatibility Issues
 - Linux-specific Commands: Some commands (like netstat-based aliases) might not work correctly on all Linux distributions or might have different output formats.
 - X11-dependent Features: Commands like clickpaste rely on X11 utilities (xdotool) which won't work in Wayland or headless environments.
