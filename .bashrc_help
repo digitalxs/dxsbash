@@ -106,7 +106,7 @@ ${PURPLE}Tools & Integration:${NC}
   ${CYAN}kde${NC}              - KDE terminal integration
 
 ${BOLD}${GREEN}━━━ MAINTENANCE ━━━${NC}
-  ${CYAN}upbashdxs${NC}                      - Update DXSBash
+  ${CYAN}update-dxsbash ${NC}                      - Update DXSBash
   ${CYAN}install_bashrc_support${NC}         - Install dependencies
   ${CYAN}sudo reset-shell-profile <user>${NC} - Reset to defaults
 
