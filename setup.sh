@@ -184,10 +184,10 @@ installDepend() {
   echo -e "${CYAN}▶ Installing dependencies...${RC}"
 
   ## Check for dependencies.
-  COMMON_DEPENDENCIES='bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nano zoxide fzf pwgen ripgrep fastfetch'
+  COMMON_DEPENDENCIES='bash tar bat tree multitail curl wget unzip fontconfig joe git nano zoxide fzf pwgen ripgrep fastfetch'
 
   # Shell-specific dependencies
-  BASH_DEPENDENCIES=""
+  BASH_DEPENDENCIES="bash bash-completion bashacks bashacks-doc bashtop"
   ZSH_DEPENDENCIES="zsh zsh-autosuggestions zsh-syntax-highlighting"
   FISH_DEPENDENCIES="fish"
 
