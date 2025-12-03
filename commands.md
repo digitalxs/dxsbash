@@ -397,7 +397,7 @@
 | `bk <cmd>` | Run command in background |
 | `cheat <cmd>` | Display cheatsheet for a command |
 | `install_bashrc_support` | Install required dependencies for bashrc |
-| `upbashdxs` | Update dxsbash to latest version |
+| `update-dxsbash` | Update dxsbash to latest version |
 | `reset-shell-profile` | Reset to default shell configuration |
 | `kssh` | SSH with Kitty terminal features |
 
