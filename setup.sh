@@ -610,7 +610,7 @@ installUpdaterCommand() {
     chmod +x "$LINUXTOOLBOXDIR/updater.sh"
 
     # Create a symbolic link to make it available system-wide
-    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/upbashdxs
+    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/update-dxsbash
 
     # Create a symlink in home directory for easy access
     ln -sf "$LINUXTOOLBOXDIR/updater.sh" "$HOME/update-dxsbash.sh"
@@ -776,7 +776,7 @@ main() {
   echo -e "${BLUE}║                                                          ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}        ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE} ${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} upbashdxs${BLUE}             ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} update-dxsbash${BLUE}             ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Reset:${YELLOW} sudo reset-shell-profile [username]${BLUE} ${RC}"
   echo -e "${BLUE}║                                                          ${RC}"
   echo -e "${BLUE}║  ${YELLOW}Please log out and log back in to use your new shell${BLUE} ${RC}"
@@ -789,7 +789,7 @@ main() {
   echo -e "${BLUE}║  ${RED}This Software is GNU/GPLv3${BLUE}                 ${RC}"
   echo -e "${BLUE}║                                                          ${RC}"
   echo -e "${BLUE}╚════════════════════════════════════════════════════════╝ ${RC}"
-  echo -e "  ${CYAN}Made by Luis Miguel P. Freitas - DigitalXS.ca${RC}"
+  echo -e "  ${CYAN}Made by Luis Miguel P. Freitas - DigitalXS.ca - 2025${RC}"
   echo ""
 }
 
