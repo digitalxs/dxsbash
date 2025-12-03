@@ -12,7 +12,7 @@ DXSBash is a shell enhancement suite for Linux (Debian 13 focus) that provides a
 
 ## Developer Workflows
 - **Install:** Run `./setup.sh` (auto-detects shell, installs dependencies, configures environment)
-- **Update:** Run `upbashdxs` (updates DXSBash to latest version)
+- **Update:** Run `update-dxsbash` (updates DXSBash to latest version)
 - **Reset:** Use `reset-bash-profile.sh`, `reset-zsh-profile.sh`, or `reset-fish-profile.sh` to revert shell config
 - **Test compatibility:** Run `test_compatibility.sh` for environment checks
 - **Uninstall:** Run `sudo reset-shell-profile [username]`
