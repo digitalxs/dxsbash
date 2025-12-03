@@ -5,9 +5,54 @@ All notable changes to the DXSBash project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.2.9] - 2025-01-15
+
+## [3.0.5] - 2025-12-02
+
+### Fixed
+- **Bash fastfetch**: Added missing fastfetch execution at startup in `.bashrc` to match `.zshrc` behavior
+- Fastfetch now displays system info on terminal startup for Bash users (skipped in SSH sessions)
+
+## [3.0.4] - 2025-01-20
+
+### Corrected permissions
+- Corrected permissions and PATH so it's easier for a administrative user to mantain the system
+
+## [3.0.3] - 2025-01-18
 
 ### Added
+- Cross-distribution compatibility improvements for Debian 13, Fedora 42, and Arch Linux
+- Enhanced updater script with better error handling and logging
+- Backup system with automatic cleanup (keeps last 5 backups)
+
+### Changed
+- Improved version comparison logic in updater
+- Better network connectivity checks with fallback methods
+- Enhanced shell detection with symlink analysis
+
+### Fixed
+- Git branch detection for both 'main' and 'master' branches
+- Race conditions in backup creation with process ID naming
+
+## [3.0.2] - 2025-01-16
+
+### Added
+- Comprehensive test suite for updater validation
+- Multiple network connectivity testing methods
+
+### Fixed
+- Repository consistency issues during updates
+- Shell configuration detection and management
+
+## [3.0.1] - 2025-01-15
+
+### Fixed
+- Minor bug fixes in setup script
+- Improved error messages during installation
+
+## [3.0.0] - 2025-01-15
+
+### Added
+- **Major Version Release**: Complete rewrite of core components
 - **Enhanced Help System**: Complete rewrite of help documentation with interactive search and topic-based navigation
 - **Comprehensive Commands Reference**: New `commands.md` file with detailed command documentation and examples
 - **Advanced Bash Aliases**: Extensive `.bash_aliases` file with 200+ professional-grade aliases and functions
@@ -38,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Privilege Escalation**: Enhanced detection and handling of sudo/doas/su methods
 - **File Operations**: Atomic operations for critical file updates and symlink creation
 
-## [2.2.8] - 2025-01-10
+## [2.2.9] - 2025-01-10
 
 ### Fixed
 - **CRITICAL**: Fixed inverted version comparison logic in updater script
@@ -67,7 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved backup verification before destructive operations
 - Better privilege escalation handling with multiple method support
 
-## [2.2.7] - 2025-01-05
+## [2.2.8] - 2025-01-05
 
 ### Added
 - Enhanced setup script with better distribution detection
@@ -85,7 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Package installation errors on Ubuntu-based systems
 - Font rendering problems in some terminal emulators
 
-## [2.2.6] - 2024-12-20
+## [2.2.7] - 2024-12-20
 
 ### Added
 - Docker cleanup aliases for container management
@@ -106,7 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fish shell compatibility with certain utility functions
 - Path resolution issues in updater script
 
-## [2.2.5] - 2024-12-10
+## [2.2.6] - 2024-12-10
 
 ### Added
 - Support for additional package managers (yay/paru for Arch)
