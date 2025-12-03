@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Bash Configuration
-# Version 3.0.4
+# Version 3.0.5
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -666,3 +666,8 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 # To make administrative tool more accessible
 export PATH="${PATH}:/usr/local/sbin:/usr/sbin:/sbin"
+
+# Show system info at startup if not in SSH session
+if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
+    fastfetch
+fi
