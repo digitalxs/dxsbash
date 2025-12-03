@@ -158,7 +158,7 @@ MAINTENANCE COMMANDS
 ===================
 
 install_fish_support - Install required dependencies
-upbashdxs           - Update dxsbash to latest version
+update-dxsbash           - Update dxsbash to latest version
 reset-shell-profile - Reset to default shell configuration
 
 For more information and updates, visit:
@@ -327,7 +327,7 @@ function show_help_topic
             echo "  You can update dxsbash in several ways:"
             echo ""
             echo "  Using the system-wide command:"
-            echo "  > upbashdxs"
+            echo "  > update-dxsbash"
             echo ""
             echo "  Using the home directory shortcut:"
             echo "  > ~/update-dxsbash.sh"
