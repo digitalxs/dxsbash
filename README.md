@@ -213,7 +213,7 @@ You can customize your environment even more by editing:
 Update to the latest version:
 
 ```bash
-upbashdxs
+update-dxsbash
 ```
 ## Cross-Platform Compatibility Issues
 - Linux-specific Commands: Some commands (like netstat-based aliases) might not work correctly on all Linux distributions or might have different output formats.
