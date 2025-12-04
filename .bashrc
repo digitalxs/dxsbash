@@ -671,3 +671,4 @@ export PATH="${PATH}:/usr/local/sbin:/usr/sbin:/sbin"
 if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
     fastfetch
 fi
+eval "$(zoxide init bash)"
