@@ -175,9 +175,9 @@ else
     alias grep="/usr/bin/grep --color=auto"
 fi
 
-if [[ "$DISTRIBUTION" == "arch" ]]; then
+if command -v bat &> /dev/null; then
     alias cat='bat'
-else
+elif command -v batcat &> /dev/null; then
     alias cat='batcat'
 fi
 

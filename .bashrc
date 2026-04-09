@@ -399,7 +399,7 @@ install_bashrc_support() {
             if command -v nala &> /dev/null; then
                 sudo nala install -y bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline neovim ripgrep
             else
-                sudo apt install -y bash bash-completion tar batcat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline-go neovim ripgrep
+                sudo apt install -y bash bash-completion tar batcat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline neovim ripgrep
             fi
             ;;
         "arch")
