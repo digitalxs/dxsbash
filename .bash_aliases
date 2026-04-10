@@ -19,8 +19,8 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 # Edit this .bashrc file
 alias ebrc='edit ~/.bashrc'
 
-# Show help for this .bashrc file
-alias help='less ~/.bashrc_help'
+# Show help for this .bashrc file (execute the script, pipe through pager)
+help() { bash "$HOME/.bashrc_help" "$@" 2>/dev/null | less -RFX; }
 
 # Alias to show the date
 alias da='date "+%Y-%m-%d %A %T %Z"'

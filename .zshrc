@@ -237,7 +237,8 @@ fi
 # General aliases
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 alias ezrc='edit ~/.zshrc'
-alias help='less ~/.zshrc_help'
+# Show help (execute the script, pipe through pager)
+help() { bash "$HOME/.zshrc_help" "$@" 2>/dev/null | less -RFX; }
 alias da='date "+%Y-%m-%d %A %T %Z"'
 alias cp='cp -i'
 alias mv='mv -i'

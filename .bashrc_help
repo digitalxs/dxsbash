@@ -31,7 +31,7 @@ ${CYAN}
 
 ${BOLD}${WHITE}DXSBash - Professional Shell Environment${NC}
 ${DIM}Enhanced Bash configuration for Linux power users${NC}
-${PURPLE}Version 2.2.8 | digitalxs.ca${NC}
+${PURPLE}Version 3.0.5 | digitalxs.ca${NC}
 
 ${BOLD}${GREEN}━━━ QUICK START ━━━${NC}
 ${YELLOW}help <topic>${NC}     - Show detailed help for specific topic
