@@ -749,8 +749,13 @@ if command -v zoxide &> /dev/null; then
     eval "$(zoxide init zsh)"
 fi
 
+# Load user configuration overrides (editor, history, prompt style, fastfetch, etc.)
+# shellcheck source=/dev/null
+[ -f "$HOME/.dxsbash/user.conf" ] && source "$HOME/.dxsbash/user.conf"
+
 # Initialize Starship or use custom prompt
-if command -v starship &> /dev/null; then
+# Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
+if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then
     eval "$(starship init zsh)"
 else
     setprompt
@@ -758,6 +763,7 @@ else
 fi
 
 # Show system info at startup if not in SSH session
-if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
+# Set DXSBASH_FASTFETCH="false" via dxsbash-config to disable
+if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ] && [ "${DXSBASH_FASTFETCH:-true}" = "true" ]; then
     fastfetch
 fi
