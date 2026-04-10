@@ -628,6 +628,23 @@ installUpdaterCommand() {
   echo ""
 }
 
+installConfigCommand() {
+  echo -e "${CYAN}▶ Installing dxsbash-config command...${RC}"
+
+  if [ -f "$GITPATH/dxsbash-config.sh" ]; then
+    cp -p "$GITPATH/dxsbash-config.sh" "$LINUXTOOLBOXDIR/"
+    chmod +x "$LINUXTOOLBOXDIR/dxsbash-config.sh"
+
+    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/dxsbash-config.sh" /usr/local/bin/dxsbash-config
+
+    echo -e "${GREEN}  ✓ Configuration tool installed${RC}"
+    echo -e "    Run ${WHITE}dxsbash-config${RC} to customise your environment."
+  else
+    echo -e "${RED}  ✗ dxsbash-config.sh not found in $GITPATH${RC}"
+  fi
+  echo ""
+}
+
 #=================================================================
 # Configure terminal
 #=================================================================
@@ -767,6 +784,7 @@ main() {
   setDefaultShell
   installResetScript
   installUpdaterCommand
+  installConfigCommand
   configure_terminal
 
   # Final setup

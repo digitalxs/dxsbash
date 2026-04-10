@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # .bashrc_help - Enhanced Help System for DXSBash Environment
-# Version 3.0.3 - Comprehensive Reference Guide
+# Version 3.1.0 - Comprehensive Reference Guide
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 
@@ -31,7 +31,7 @@ ${CYAN}
 
 ${BOLD}${WHITE}DXSBash - Professional Shell Environment${NC}
 ${DIM}Enhanced Bash configuration for Linux power users${NC}
-${PURPLE}Version 2.2.8 | digitalxs.ca${NC}
+${PURPLE}Version 3.1.0 | digitalxs.ca${NC}
 
 ${BOLD}${GREEN}━━━ QUICK START ━━━${NC}
 ${YELLOW}help <topic>${NC}     - Show detailed help for specific topic

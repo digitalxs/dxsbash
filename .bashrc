@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Bash Configuration
-# Version 3.0.5
+# Version 3.1.0
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -655,8 +655,13 @@ if command -v zoxide &> /dev/null; then
     fi
 fi
 
+# Load user configuration overrides (editor, history, prompt style, fastfetch, etc.)
+# shellcheck source=/dev/null
+[ -f "$HOME/.dxsbash/user.conf" ] && source "$HOME/.dxsbash/user.conf"
+
 # Use starship prompt if available (overrides custom prompt)
-if command -v starship &> /dev/null; then
+# Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
+if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then
     STARSHIP_INIT=$(starship init bash 2>/dev/null)
     if [ $? -eq 0 ] && [ -n "$STARSHIP_INIT" ]; then
         eval "$STARSHIP_INIT"
@@ -668,7 +673,8 @@ export PATH="$HOME/.local/bin:$PATH"
 export PATH="${PATH}:/usr/local/sbin:/usr/sbin:/sbin"
 
 # Show system info at startup if not in SSH session
-if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
+# Set DXSBASH_FASTFETCH="false" via dxsbash-config to disable
+if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ] && [ "${DXSBASH_FASTFETCH:-true}" = "true" ]; then
     fastfetch
 fi
 eval "$(zoxide init bash)"

@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Zsh Configuration
-# Version 3.0.3
+# Version 3.1.0
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -237,7 +237,8 @@ fi
 # General aliases
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 alias ezrc='edit ~/.zshrc'
-alias help='less ~/.zshrc_help'
+# Show help (execute the script, pipe through pager)
+help() { bash "$HOME/.zshrc_help" "$@" 2>/dev/null | less -RFX; }
 alias da='date "+%Y-%m-%d %A %T %Z"'
 alias cp='cp -i'
 alias mv='mv -i'
@@ -749,8 +750,13 @@ if command -v zoxide &> /dev/null; then
     eval "$(zoxide init zsh)"
 fi
 
+# Load user configuration overrides (editor, history, prompt style, fastfetch, etc.)
+# shellcheck source=/dev/null
+[ -f "$HOME/.dxsbash/user.conf" ] && source "$HOME/.dxsbash/user.conf"
+
 # Initialize Starship or use custom prompt
-if command -v starship &> /dev/null; then
+# Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
+if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then
     eval "$(starship init zsh)"
 else
     setprompt
@@ -758,6 +764,7 @@ else
 fi
 
 # Show system info at startup if not in SSH session
-if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
+# Set DXSBASH_FASTFETCH="false" via dxsbash-config to disable
+if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ] && [ "${DXSBASH_FASTFETCH:-true}" = "true" ]; then
     fastfetch
 fi
