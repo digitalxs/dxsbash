@@ -157,12 +157,13 @@ detectDistro() {
   # Detect if we're on Debian or Ubuntu
   if [ -f /etc/debian_version ]; then
     if [ -f /etc/lsb-release ] && grep -q "Ubuntu" /etc/lsb-release; then
-    echo -e "${GREEN}  ✓ Detected ${WHITE}Ubuntu Linux${RC}"
-    IS_DEBIAN_BASED=true
-    elif [ -f /etc/debian_version ]; then
-    echo -e "${GREEN}  ✓ Detected ${WHITE}Debian Linux${RC}"
-    IS_DEBIAN_BASED=true
-fi
+      echo -e "${GREEN}  ✓ Detected ${WHITE}Ubuntu Linux${RC}"
+      IS_DEBIAN_BASED=true
+    else
+      DEBIAN_VERSION=$(cat /etc/debian_version)
+      echo -e "${GREEN}  ✓ Detected ${WHITE}Debian Linux ${CYAN}(${DEBIAN_VERSION})${RC}"
+      IS_DEBIAN_BASED=true
+    fi
   else
     echo -e "${RED}  ⚠ Warning: DXSBash is designed specifically for Debian and Ubuntu.${RC}"
     echo -e "${YELLOW}  Your system appears to be running a different distribution.${RC}"
@@ -187,7 +188,7 @@ installDepend() {
   COMMON_DEPENDENCIES='bash tar bat tree multitail curl wget unzip fontconfig joe git nano zoxide fzf pwgen ripgrep fastfetch'
 
   # Shell-specific dependencies
-  BASH_DEPENDENCIES="bash bash-completion bashacks bashacks-doc bashtop"
+  BASH_DEPENDENCIES="bash bash-completion btop"
   ZSH_DEPENDENCIES="zsh zsh-autosuggestions zsh-syntax-highlighting"
   FISH_DEPENDENCIES="fish"
 
@@ -195,7 +196,9 @@ installDepend() {
   DEPENDENCIES="$COMMON_DEPENDENCIES nala plocate trash-cli powerline"
 
   # Add shell-specific dependencies
-  if [ "$SELECTED_SHELL" = "zsh" ]; then
+  if [ "$SELECTED_SHELL" = "bash" ]; then
+    DEPENDENCIES="$DEPENDENCIES $BASH_DEPENDENCIES"
+  elif [ "$SELECTED_SHELL" = "zsh" ]; then
     DEPENDENCIES="$DEPENDENCIES $ZSH_DEPENDENCIES"
   elif [ "$SELECTED_SHELL" = "fish" ]; then
     DEPENDENCIES="$DEPENDENCIES $FISH_DEPENDENCIES"
