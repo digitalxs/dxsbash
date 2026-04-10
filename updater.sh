@@ -48,7 +48,7 @@ log() {
     case "${level}" in
         ERROR)
             echo -e "${RED}[ERROR]${RC} ${message}" >&2
-            ((ERRORS++))
+            (( ++ERRORS ))
             ;;
         WARN)
             echo -e "${YELLOW}[WARN]${RC} ${message}"
@@ -194,11 +194,18 @@ cleanup_old_backups() {
     
     if [[ ${backup_count} -gt ${max_backups} ]]; then
         log INFO "Cleaning up old backups (keeping last ${max_backups})"
-        
-        find "${BACKUP_DIR}" -maxdepth 1 -name "dxsbash-backup-*" -type d -print0 2>/dev/null | \
-            xargs -0 ls -dt | \
-            tail -n +$((max_backups + 1)) | \
-            xargs rm -rf
+
+        # Collect backup dirs sorted newest-first, then remove the oldest ones
+        local dirs_to_remove
+        mapfile -t dirs_to_remove < <(
+            find "${BACKUP_DIR}" -maxdepth 1 -name "dxsbash-backup-*" -type d -printf '%T@ %p\n' 2>/dev/null \
+                | sort -rn \
+                | tail -n +$((max_backups + 1)) \
+                | cut -d' ' -f2-
+        )
+        if [[ ${#dirs_to_remove[@]} -gt 0 ]]; then
+            rm -rf "${dirs_to_remove[@]}"
+        fi
     fi
 }
 
@@ -321,23 +328,27 @@ update_system_scripts() {
     
     local scripts=(
         "updater.sh"
+        "dxsbash-config.sh"
         "reset-bash-profile.sh"
         "reset-zsh-profile.sh"
         "reset-fish-profile.sh"
         "clean.sh"
     )
-    
+
     for script in "${scripts[@]}"; do
         if [[ -f "${DXSBASH_DIR}/${script}" ]]; then
             chmod +x "${DXSBASH_DIR}/${script}"
             log SUCCESS "Updated ${script}"
         fi
     done
-    
-    # Update system-wide command if possible
+
+    # Update system-wide commands if possible
     if [[ -n "${SUDO_CMD}" ]]; then
         ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/updater.sh" /usr/local/bin/update-dxsbash 2>/dev/null || {
-            log WARN "Could not update system-wide command"
+            log WARN "Could not update system-wide update-dxsbash command"
+        }
+        ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/dxsbash-config.sh" /usr/local/bin/dxsbash-config 2>/dev/null || {
+            log WARN "Could not update system-wide dxsbash-config command"
         }
     fi
 }
@@ -358,12 +369,20 @@ perform_update() {
     
     if [[ "${remote_version}" == "unknown" ]]; then
         log WARN "Could not determine remote version, proceeding with update anyway"
-    elif version_compare "${remote_version}" "${current_version}"; then
-        log INFO "Update available: ${current_version} -> ${remote_version}"
     else
-        log INFO "Already up to date"
-        echo -e "${GREEN}DXSBash is already up to date (version ${current_version})${RC}"
-        return 0
+        local cmp_result
+        version_compare "${remote_version}" "${current_version}" && cmp_result=0 || cmp_result=$?
+        if [[ ${cmp_result} -eq 0 ]]; then
+            log INFO "Update available: ${current_version} -> ${remote_version}"
+        elif [[ ${cmp_result} -eq 2 ]]; then
+            log INFO "Already up to date (version ${current_version})"
+            echo -e "${GREEN}DXSBash is already up to date (version ${current_version})${RC}"
+            return 0
+        else
+            log INFO "Local version (${current_version}) is newer than remote (${remote_version}), skipping"
+            echo -e "${GREEN}DXSBash local version (${current_version}) is ahead of remote — no update needed.${RC}"
+            return 0
+        fi
     fi
     
     # Create backup
@@ -401,7 +420,11 @@ perform_update() {
     echo -e "  ${CYAN}Backup location:${RC} ${backup_path}"
     echo ""
     echo -e "  ${YELLOW}Please restart your terminal or run:${RC}"
-    echo -e "  ${WHITE}source ~/.${DETECTED_SHELL}rc${RC}"
+    if [[ "${DETECTED_SHELL}" == "fish" ]]; then
+        echo -e "  ${WHITE}source ~/.config/fish/config.fish${RC}"
+    else
+        echo -e "  ${WHITE}source ~/.${DETECTED_SHELL}rc${RC}"
+    fi
     echo ""
     
     return 0
@@ -412,7 +435,7 @@ perform_update() {
 #=================================================================
 main() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
-    echo -e "${BLUE}║              DXSBash Updater 2025                      ║${RC}"
+    echo -e "${BLUE}║              DXSBash Updater $(date +%Y)                      ║${RC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${RC}"
     echo ""
     
