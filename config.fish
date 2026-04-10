@@ -32,7 +32,7 @@ end
 # SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
 #######################################################################
 # FISH version converted from dxsbash
-# Version 3.0.3
+# Version 3.1.0
 # Start updating fish config:
 # nano ~/.config/fish/config.fish
 # paste this script and save
