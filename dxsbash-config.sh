@@ -22,12 +22,31 @@ DIM='\033[2m'
 CONF_DIR="$HOME/.dxsbash"
 CONF_FILE="$CONF_DIR/user.conf"
 
+# DXSBash repository location (matches setup.sh's install path). Used
+# to resolve Starship theme preset files.
+DXSBASH_DIR="${DXSBASH_DIR:-$HOME/linuxtoolbox/dxsbash}"
+STARSHIP_CONFIG="$HOME/.config/starship.toml"
+STARSHIP_THEMES_DIR="$DXSBASH_DIR/starship-themes"
+
+# ── Starship theme registry ───────────────────────────────────────
+# Display name | filename in starship-themes/
+STARSHIP_THEMES=(
+    "DXS Starship|dxs-starship.toml"
+    "Nerd Font Symbols|nerd-font-symbols.toml"
+    "Bracketed Segments|bracketed-segments.toml"
+    "Pastel Powerline|pastel-powerline.toml"
+    "Tokyo Night|tokyo-night.toml"
+    "Gruvbox Rainbow|gruvbox-rainbow.toml"
+    "Catppuccin Powerline|catppuccin-powerline.toml"
+)
+
 # ── Defaults ──────────────────────────────────────────────────────
 DEF_EDITOR="nano"
 DEF_HISTSIZE=500
 DEF_HISTFILESIZE=10000
 DEF_FASTFETCH="true"
 DEF_PROMPT_STYLE="starship"
+DEF_STARSHIP_THEME="dxs-starship.toml"
 
 # ── Current (working) values ──────────────────────────────────────
 CUR_EDITOR=""
@@ -35,6 +54,7 @@ CUR_HISTSIZE=""
 CUR_HISTFILESIZE=""
 CUR_FASTFETCH=""
 CUR_PROMPT_STYLE=""
+CUR_STARSHIP_THEME=""
 
 #=================================================================
 # Banner
@@ -69,11 +89,31 @@ _read_conf() {
 # Load config into CUR_* variables
 #=================================================================
 load_config() {
-    CUR_EDITOR=$(       _read_conf "EDITOR"               "$DEF_EDITOR")
-    CUR_HISTSIZE=$(     _read_conf "HISTSIZE"             "$DEF_HISTSIZE")
-    CUR_HISTFILESIZE=$( _read_conf "HISTFILESIZE"         "$DEF_HISTFILESIZE")
-    CUR_FASTFETCH=$(    _read_conf "DXSBASH_FASTFETCH"    "$DEF_FASTFETCH")
-    CUR_PROMPT_STYLE=$( _read_conf "DXSBASH_PROMPT_STYLE" "$DEF_PROMPT_STYLE")
+    CUR_EDITOR=$(         _read_conf "EDITOR"                 "$DEF_EDITOR")
+    CUR_HISTSIZE=$(       _read_conf "HISTSIZE"               "$DEF_HISTSIZE")
+    CUR_HISTFILESIZE=$(   _read_conf "HISTFILESIZE"           "$DEF_HISTFILESIZE")
+    CUR_FASTFETCH=$(      _read_conf "DXSBASH_FASTFETCH"      "$DEF_FASTFETCH")
+    CUR_PROMPT_STYLE=$(   _read_conf "DXSBASH_PROMPT_STYLE"   "$DEF_PROMPT_STYLE")
+    CUR_STARSHIP_THEME=$( _read_conf "DXSBASH_STARSHIP_THEME" "$DEF_STARSHIP_THEME")
+
+    # If the starship symlink points at a known preset, trust the
+    # filesystem over the conf file — users may have run setup.sh or
+    # hand-edited the symlink since the conf was written.
+    if [ -L "$STARSHIP_CONFIG" ]; then
+        local target
+        target="$(readlink "$STARSHIP_CONFIG")"
+        local fname="${target##*/}"
+        case "$fname" in
+            starship.toml|dxs-starship.toml)
+                CUR_STARSHIP_THEME="dxs-starship.toml"
+                ;;
+            nerd-font-symbols.toml|bracketed-segments.toml|\
+            pastel-powerline.toml|tokyo-night.toml|\
+            gruvbox-rainbow.toml|catppuccin-powerline.toml)
+                CUR_STARSHIP_THEME="$fname"
+                ;;
+        esac
+    fi
 }
 
 #=================================================================
@@ -93,6 +133,7 @@ export HISTSIZE=${CUR_HISTSIZE}
 export HISTFILESIZE=${CUR_HISTFILESIZE}
 export DXSBASH_FASTFETCH="${CUR_FASTFETCH}"
 export DXSBASH_PROMPT_STYLE="${CUR_PROMPT_STYLE}"
+export DXSBASH_STARSHIP_THEME="${CUR_STARSHIP_THEME}"
 EOF
     echo ""
     echo -e "${GREEN}  ✓ Saved to ${WHITE}$CONF_FILE${RC}"
@@ -128,16 +169,61 @@ show_current_settings() {
         prompt_label="${CYAN}Starship${RC}${DIM} (falls back to custom if not installed)${RC}"
     fi
 
+    local theme_label
+    theme_label="${CYAN}$(starship_theme_display_name "$CUR_STARSHIP_THEME")${RC}"
+
     echo -e "${BLUE}┌─────────────────────────────────────────────────────────┐${RC}"
     echo -e "${BLUE}│  Current Configuration                                  │${RC}"
     echo -e "${BLUE}├──────────────────────┬──────────────────────────────────┤${RC}"
-    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Editor"        "${WHITE}$CUR_EDITOR${RC}"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Editor"         "${WHITE}$CUR_EDITOR${RC}"
     printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32s${BLUE}│${RC}\n" "History size"   "$CUR_HISTSIZE entries"
     printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32s${BLUE}│${RC}\n" "History file"   "$CUR_HISTFILESIZE entries"
     printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Fastfetch"      "$fastfetch_label"
     printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Prompt style"   "$prompt_label"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Starship theme" "$theme_label"
     echo -e "${BLUE}└──────────────────────┴──────────────────────────────────┘${RC}"
     echo ""
+}
+
+#=================================================================
+# Starship theme helpers
+#=================================================================
+# Given a filename (e.g. dxs-starship.toml), return the display name.
+starship_theme_display_name() {
+    local file="$1"
+    local entry name fname
+    for entry in "${STARSHIP_THEMES[@]}"; do
+        name="${entry%%|*}"
+        fname="${entry##*|}"
+        if [ "$fname" = "$file" ]; then
+            echo "$name"
+            return
+        fi
+    done
+    echo "unknown ($file)"
+}
+
+# Switch ~/.config/starship.toml to point at the selected preset.
+# The file under $STARSHIP_THEMES_DIR must exist; the caller is
+# responsible for validating that.
+apply_starship_theme() {
+    local fname="$1"
+    local src="$STARSHIP_THEMES_DIR/$fname"
+
+    if [ ! -e "$src" ]; then
+        echo -e "${RED}  ✗ Theme file not found: $src${RC}"
+        return 1
+    fi
+
+    mkdir -p "$(dirname "$STARSHIP_CONFIG")"
+
+    # Replace any existing file/symlink and re-point at the preset.
+    if [ -L "$STARSHIP_CONFIG" ] || [ -e "$STARSHIP_CONFIG" ]; then
+        rm -f "$STARSHIP_CONFIG"
+    fi
+    ln -s "$src" "$STARSHIP_CONFIG"
+    echo -e "${GREEN}  ✓ Linked $STARSHIP_CONFIG → $src${RC}"
+    return 0
 }
 
 #=================================================================
@@ -280,6 +366,80 @@ configure_prompt() {
 }
 
 #=================================================================
+# Submenu — Starship theme
+#=================================================================
+configure_starship_theme() {
+    display_banner
+    echo -e "${CYAN}▶ Starship Theme${RC}"
+    echo ""
+
+    if [ ! -d "$STARSHIP_THEMES_DIR" ]; then
+        echo -e "${RED}  Themes directory not found: $STARSHIP_THEMES_DIR${RC}"
+        echo -e "${YELLOW}  Run dxsbash-repair or re-install DXSBash.${RC}"
+        echo ""
+        read -rp "  Press Enter to return..."
+        return
+    fi
+
+    local starship_status
+    if command -v starship &>/dev/null; then
+        starship_status="${GREEN}installed${RC}"
+    else
+        starship_status="${RED}not installed${RC}${DIM} (themes will apply once starship is installed)${RC}"
+    fi
+    echo -e "  Starship: $starship_status"
+    echo -e "  Current:  ${WHITE}$(starship_theme_display_name "$CUR_STARSHIP_THEME")${RC}"
+    echo ""
+    echo -e "  Pick a preset:"
+    echo ""
+
+    local i=1
+    local entry name fname marker
+    for entry in "${STARSHIP_THEMES[@]}"; do
+        name="${entry%%|*}"
+        fname="${entry##*|}"
+        marker=""
+        [ "$fname" = "$CUR_STARSHIP_THEME" ] && marker=" ${GREEN}← current${RC}"
+        printf "  ${WHITE}%d)${RC} %s%b\n" "$i" "$name" "$marker"
+        (( i++ ))
+    done
+    echo ""
+    echo -e "  ${WHITE}0)${RC} Back"
+    echo ""
+
+    read -rp "  Choice: " choice
+    if [ "$choice" = "0" ] || [ -z "$choice" ]; then
+        return
+    fi
+    if ! [[ "$choice" =~ ^[0-9]+$ ]] || \
+       [ "$choice" -lt 1 ] || [ "$choice" -gt "${#STARSHIP_THEMES[@]}" ]; then
+        echo -e "${RED}  Invalid choice.${RC}"
+        sleep 1
+        return
+    fi
+
+    entry="${STARSHIP_THEMES[$((choice-1))]}"
+    name="${entry%%|*}"
+    fname="${entry##*|}"
+
+    echo ""
+    if apply_starship_theme "$fname"; then
+        CUR_STARSHIP_THEME="$fname"
+        # Switching to a Starship preset implies the user wants the
+        # Starship prompt active, not the built-in one.
+        if [ "$CUR_PROMPT_STYLE" != "starship" ]; then
+            CUR_PROMPT_STYLE="starship"
+            echo -e "${YELLOW}  Prompt style switched to 'starship'.${RC}"
+        fi
+        save_config
+        echo -e "${GREEN}  Theme set to: ${WHITE}$name${RC}"
+        sleep 1
+    else
+        sleep 2
+    fi
+}
+
+#=================================================================
 # Submenu — Startup display (fastfetch)
 #=================================================================
 configure_fastfetch() {
@@ -323,11 +483,12 @@ reset_to_defaults() {
     display_banner
     echo -e "${YELLOW}  This will reset all DXSBash settings to their defaults:${RC}"
     echo ""
-    echo -e "    Editor       → ${WHITE}$DEF_EDITOR${RC}"
-    echo -e "    HISTSIZE     → ${WHITE}$DEF_HISTSIZE${RC}"
-    echo -e "    HISTFILESIZE → ${WHITE}$DEF_HISTFILESIZE${RC}"
-    echo -e "    Fastfetch    → ${WHITE}$DEF_FASTFETCH${RC}"
-    echo -e "    Prompt style → ${WHITE}$DEF_PROMPT_STYLE${RC}"
+    echo -e "    Editor         → ${WHITE}$DEF_EDITOR${RC}"
+    echo -e "    HISTSIZE       → ${WHITE}$DEF_HISTSIZE${RC}"
+    echo -e "    HISTFILESIZE   → ${WHITE}$DEF_HISTFILESIZE${RC}"
+    echo -e "    Fastfetch      → ${WHITE}$DEF_FASTFETCH${RC}"
+    echo -e "    Prompt style   → ${WHITE}$DEF_PROMPT_STYLE${RC}"
+    echo -e "    Starship theme → ${WHITE}$(starship_theme_display_name "$DEF_STARSHIP_THEME")${RC}"
     echo ""
     read -rp "  Continue? (y/N): " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
@@ -336,6 +497,8 @@ reset_to_defaults() {
         CUR_HISTFILESIZE="$DEF_HISTFILESIZE"
         CUR_FASTFETCH="$DEF_FASTFETCH"
         CUR_PROMPT_STYLE="$DEF_PROMPT_STYLE"
+        CUR_STARSHIP_THEME="$DEF_STARSHIP_THEME"
+        apply_starship_theme "$DEF_STARSHIP_THEME" >/dev/null 2>&1 || true
         save_config
     else
         echo -e "${YELLOW}  Reset cancelled.${RC}"
@@ -355,8 +518,9 @@ main_menu() {
         echo -e "  ${WHITE}1)${RC} Editor preference       ${DIM}(${CUR_EDITOR})${RC}"
         echo -e "  ${WHITE}2)${RC} Shell history           ${DIM}(HISTSIZE=${CUR_HISTSIZE})${RC}"
         echo -e "  ${WHITE}3)${RC} Prompt style            ${DIM}(${CUR_PROMPT_STYLE})${RC}"
-        echo -e "  ${WHITE}4)${RC} Startup display         ${DIM}(fastfetch=${CUR_FASTFETCH})${RC}"
-        echo -e "  ${WHITE}5)${RC} Reset to defaults"
+        echo -e "  ${WHITE}4)${RC} Starship theme          ${DIM}($(starship_theme_display_name "$CUR_STARSHIP_THEME"))${RC}"
+        echo -e "  ${WHITE}5)${RC} Startup display         ${DIM}(fastfetch=${CUR_FASTFETCH})${RC}"
+        echo -e "  ${WHITE}6)${RC} Reset to defaults"
         echo -e "  ${WHITE}0)${RC} Exit"
         echo ""
 
@@ -365,8 +529,9 @@ main_menu() {
             1) configure_editor ;;
             2) configure_history ;;
             3) configure_prompt ;;
-            4) configure_fastfetch ;;
-            5) reset_to_defaults ;;
+            4) configure_starship_theme ;;
+            5) configure_fastfetch ;;
+            6) reset_to_defaults ;;
             0|"q"|"Q"|"exit") break ;;
             *) echo -e "${RED}  Invalid choice.${RC}"; sleep 1 ;;
         esac
