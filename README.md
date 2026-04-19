@@ -64,6 +64,17 @@ Update to the latest version:
 update-dxsbash
 ```
 
+## Repair
+
+If symlinks or helper commands break after a system update or partial install,
+re-link everything without touching your settings or history:
+
+```bash
+dxsbash-repair            # interactive; auto-detects your shell
+dxsbash-repair --dry-run  # preview changes
+dxsbash-repair --deps     # also reinstall missing dependencies
+```
+
 ## Core Components
 
 ### Shell Configurations
@@ -225,10 +236,30 @@ You can customize your environment even more by editing:
 
 ## Uninstalling
 
-Revert to default shell configuration:
+Full uninstall — backs up your current configs, removes all DXSBash files,
+restores Debian 13 defaults from `/etc/skel/`, and optionally reverts your
+login shell to bash:
+
+```bash
+dxsbash-uninstall                 # interactive
+dxsbash-uninstall --dry-run       # preview only
+dxsbash-uninstall --yes           # non-interactive
+dxsbash-uninstall --keep-repo     # keep ~/linuxtoolbox/dxsbash
+dxsbash-uninstall --no-restore    # skip /etc/skel restore
+```
+
+Or, to only revert shell rc files to defaults without removing the repo:
 
 ```bash
 sudo reset-shell-profile [username]
+```
+
+You can also reach these from the installer menu:
+
+```bash
+./setup.sh            # interactive menu: Install / Repair / Uninstall
+./setup.sh --repair
+./setup.sh --uninstall
 ```
 
 ## Tested compatibility

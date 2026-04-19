@@ -22,6 +22,52 @@ CYAN='\033[1;36m'     # Bold Cyan
 WHITE='\033[1;37m'    # Bold White
 
 #=================================================================
+# Operation mode (install | repair | uninstall)
+#
+# Can be selected via CLI flag, env var DXSBASH_MODE, or an
+# interactive menu when no choice is provided.
+#=================================================================
+MODE=""
+ASSUME_YES=0
+NONINTERACTIVE=0
+
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --install)    MODE="install" ;;
+      --repair)     MODE="repair" ;;
+      --uninstall)  MODE="uninstall" ;;
+      -y|--yes)     ASSUME_YES=1; NONINTERACTIVE=1 ;;
+      -h|--help)
+        cat <<'USAGE'
+DXSBash setup
+
+Usage: setup.sh [MODE] [--yes]
+
+Modes:
+  --install     Install DXSBash (default when interactive)
+  --repair      Re-link configs, re-install helper commands
+  --uninstall   Remove DXSBash and restore /etc/skel defaults
+
+Options:
+  -y, --yes     Do not prompt; assume yes (non-interactive)
+  -h, --help    Show this help
+USAGE
+        exit 0
+        ;;
+      *)
+        echo "Unknown option: $1" >&2
+        exit 2
+        ;;
+    esac
+    shift
+  done
+  if [ -z "$MODE" ] && [ -n "${DXSBASH_MODE:-}" ]; then
+    MODE="$DXSBASH_MODE"
+  fi
+}
+
+#=================================================================
 # Display welcome banner
 #=================================================================
 display_banner() {
@@ -92,9 +138,77 @@ GITPATH=""
 SELECTED_SHELL=""
 IS_DEBIAN_BASED=false
 
+# Parse CLI arguments up front
+parse_args "$@"
+
 # Display welcome banner
 display_banner
 
+#=================================================================
+# Interactive mode selection
+#=================================================================
+select_mode() {
+  if [ -n "$MODE" ]; then
+    return
+  fi
+  if [ "$NONINTERACTIVE" -eq 1 ] || [ ! -t 0 ]; then
+    MODE="install"
+    return
+  fi
+
+  echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${RC}"
+  echo -e "${CYAN}║             What would you like to do?                 ║${RC}"
+  echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${RC}"
+  echo -e "  ${WHITE}1)${RC} ${GREEN}Install${RC}     ${YELLOW}(default — fresh install of DXSBash)${RC}"
+  echo -e "  ${WHITE}2)${RC} ${GREEN}Repair${RC}      ${YELLOW}(fix broken symlinks/commands)${RC}"
+  echo -e "  ${WHITE}3)${RC} ${GREEN}Uninstall${RC}   ${YELLOW}(remove and restore Debian defaults)${RC}"
+  echo -e "  ${WHITE}4)${RC} Cancel"
+  echo ""
+  read -p "  Enter your choice [1-4] (default: 1): " mode_choice
+  case "$mode_choice" in
+    2) MODE="repair" ;;
+    3) MODE="uninstall" ;;
+    4) echo -e "${YELLOW}Cancelled.${RC}"; exit 0 ;;
+    *) MODE="install" ;;
+  esac
+  echo ""
+}
+
+select_mode
+
+#=================================================================
+# Dispatch: repair / uninstall delegate to their dedicated scripts
+# living next to this file so setup.sh stays a single entry point.
+#=================================================================
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+
+if [ "$MODE" = "repair" ]; then
+  REPAIR_ARGS=()
+  [ "$ASSUME_YES" -eq 1 ] && REPAIR_ARGS+=(--deps)
+  if [ -x "$SCRIPT_DIR/repair.sh" ]; then
+    exec "$SCRIPT_DIR/repair.sh" "${REPAIR_ARGS[@]}"
+  elif [ -x "$HOME/linuxtoolbox/dxsbash/repair.sh" ]; then
+    exec "$HOME/linuxtoolbox/dxsbash/repair.sh" "${REPAIR_ARGS[@]}"
+  else
+    echo -e "${RED}repair.sh not found. Is DXSBash installed?${RC}"
+    exit 1
+  fi
+fi
+
+if [ "$MODE" = "uninstall" ]; then
+  UNINSTALL_ARGS=()
+  [ "$ASSUME_YES" -eq 1 ] && UNINSTALL_ARGS+=(--yes)
+  if [ -x "$SCRIPT_DIR/uninstall.sh" ]; then
+    exec "$SCRIPT_DIR/uninstall.sh" "${UNINSTALL_ARGS[@]}"
+  elif [ -x "$HOME/linuxtoolbox/dxsbash/uninstall.sh" ]; then
+    exec "$HOME/linuxtoolbox/dxsbash/uninstall.sh" "${UNINSTALL_ARGS[@]}"
+  else
+    echo -e "${RED}uninstall.sh not found. Is DXSBash installed?${RC}"
+    exit 1
+  fi
+fi
+
+# Default: install
 # Initialize the environment
 initialize
 
@@ -645,6 +759,24 @@ installConfigCommand() {
   echo ""
 }
 
+installLifecycleCommands() {
+  echo -e "${CYAN}▶ Installing repair/uninstall commands...${RC}"
+  for src in repair.sh uninstall.sh; do
+    if [ -f "$GITPATH/$src" ]; then
+      chmod +x "$GITPATH/$src"
+      case "$src" in
+        repair.sh)    link_name="dxsbash-repair" ;;
+        uninstall.sh) link_name="dxsbash-uninstall" ;;
+      esac
+      ${SUDO_CMD} ln -sf "$GITPATH/$src" "/usr/local/bin/$link_name"
+      echo -e "${GREEN}  ✓ /usr/local/bin/$link_name${RC}"
+    else
+      echo -e "${YELLOW}  ⚠ $src missing in repo${RC}"
+    fi
+  done
+  echo ""
+}
+
 #=================================================================
 # Configure terminal
 #=================================================================
@@ -785,6 +917,7 @@ main() {
   installResetScript
   installUpdaterCommand
   installConfigCommand
+  installLifecycleCommands
   configure_terminal
 
   # Final setup
@@ -798,6 +931,8 @@ main() {
   echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}        ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE} ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} update-dxsbash${BLUE}             ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Repair:${YELLOW} dxsbash-repair${BLUE}             ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Uninstall:${YELLOW} dxsbash-uninstall${BLUE}          ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Reset:${YELLOW} sudo reset-shell-profile [username]${BLUE} ${RC}"
   echo -e "${BLUE}║                                                          ${RC}"
   echo -e "${BLUE}║  ${YELLOW}Please log out and log back in to use your new shell${BLUE} ${RC}"
