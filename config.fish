@@ -219,6 +219,23 @@ function checkcommand
     type $argv
 end
 
+# List DXSBash aliases and functions, optionally filtered by a pattern.
+# Usage: aliases            # show everything
+#        aliases git        # substring match on name
+function aliases
+    set -l pattern $argv[1]
+    begin
+        alias | string replace -r '^alias ' ''
+        functions --names 2>/dev/null | string match -rv '^_' | string replace -r '^' 'fn: '
+    end | sort -f | begin
+        if test -n "$pattern"
+            grep -i --color=auto -- "$pattern"
+        else
+            cat
+        end
+    end
+end
+
 # Network commands
 alias openports='netstat -nape --inet'
 alias ports='netstat -tulanp'

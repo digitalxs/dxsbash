@@ -26,6 +26,13 @@ Tested extensively on Debian 13. Please test on any system and send e-mail with 
 
 For a comprehensive list of all available commands and aliases in DXSBash, see the [Commands Reference](commands.md).
 
+Or discover commands live in your shell:
+
+```bash
+aliases            # list every alias and function
+aliases git        # filter by substring (name or definition)
+```
+
 ### Keyboard Shortcuts
 - `Ctrl+R` - Search command history with fuzzy matching
 - `Ctrl+F` - Launch interactive directory navigator
