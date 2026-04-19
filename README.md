@@ -49,12 +49,25 @@ chmod +x setup.sh
 ```
 
 The installer provides an interactive experience:
-1. Detects your Linux distribution automatically
-2. Lets you choose your preferred shell (Bash, Zsh, or Fish)
-3. Installs all required dependencies
-4. Configures your chosen shell with enhanced features
-5. Sets up visual elements and productivity tools
-6. Configures KDE terminal Konsole and Yakuake profiles and defaults
+1. Shows an Install / Repair / Uninstall menu
+2. Detects your Linux distribution automatically
+3. Lets you choose your preferred shell (Bash, Zsh, or Fish)
+4. Installs all required dependencies
+5. Configures your chosen shell with enhanced features
+6. Sets up visual elements and productivity tools
+7. Configures KDE terminal Konsole and Yakuake profiles and defaults
+
+### Non-interactive install
+
+```bash
+./setup.sh --install --shell bash --yes        # end-to-end, no prompts
+DXSBASH_SHELL=zsh ./setup.sh --install --yes   # same via env var
+./setup.sh --install --dry-run                 # show plan without changes
+```
+
+All output is mirrored to `~/.dxsbash/logs/install-YYYYMMDD-HHMMSS.log`.
+If DXSBash is already installed, the installer suggests `dxsbash-repair`
+instead of reinstalling — use `--yes` to force a reinstall anyway.
 
 ## Updating
 
