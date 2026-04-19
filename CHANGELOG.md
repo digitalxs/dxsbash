@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and user-defined functions, optionally filtered by a substring pattern
   (matched against name or definition). Shipped for Bash, Zsh, and Fish.
   Complements `commands.md` with live, shell-aware discovery.
+- **Interactive `aliases` picker**: When called with no args in a TTY and `fzf`
+  is available, `aliases` opens a fuzzy-filter list with a preview pane that
+  shows the full definition of the selected alias or function. Falls back to
+  the plain sorted listing when `fzf` is missing or output is piped.
 
 ## [3.1.2] - 2026-04-19
 

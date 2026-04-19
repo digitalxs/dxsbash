@@ -220,20 +220,44 @@ function checkcommand
 end
 
 # List DXSBash aliases and functions, optionally filtered by a pattern.
-# Usage: aliases            # show everything
-#        aliases git        # substring match on name
+# With no args and fzf + tty available, launches an interactive picker
+# with a preview pane that shows the definition of the selected entry.
+# Usage: aliases            # interactive picker (falls back to plain list)
+#        aliases git        # plain grep by substring; pipe-friendly
 function aliases
     set -l pattern $argv[1]
-    begin
+    set -l listing (begin
         alias | string replace -r '^alias ' ''
         functions --names 2>/dev/null | string match -rv '^_' | string replace -r '^' 'fn: '
-    end | sort -f | begin
-        if test -n "$pattern"
-            grep -i --color=auto -- "$pattern"
-        else
-            cat
-        end
+    end | sort -f)
+
+    if test -n "$pattern"
+        printf '%s\n' $listing | grep -i --color=auto -- "$pattern"
+        return
     end
+
+    if not command -v fzf >/dev/null 2>&1; or not isatty stdout
+        printf '%s\n' $listing
+        return
+    end
+
+    set -l dir (mktemp -d 2>/dev/null)
+    if test -z "$dir"
+        printf '%s\n' $listing
+        return 1
+    end
+
+    for fn in (functions --names 2>/dev/null | string match -rv '^_')
+        functions -- "$fn" >"$dir/$fn" 2>/dev/null
+    end
+
+    set -x __DXSBASH_ALIASES_DIR "$dir"
+    printf '%s\n' $listing | fzf \
+        --height=80% --reverse --prompt='aliases> ' \
+        --preview='L={}; case "$L" in "fn: "*) cat "$__DXSBASH_ALIASES_DIR/${L#fn: }" 2>/dev/null ;; *) echo "$L" ;; esac' \
+        --preview-window=down:15:wrap
+    set -e __DXSBASH_ALIASES_DIR
+    rm -rf "$dir"
 end
 
 # Network commands
