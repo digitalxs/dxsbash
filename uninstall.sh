@@ -242,6 +242,9 @@ for bin in \
     /usr/local/bin/update-dxsbash \
     /usr/local/bin/upbashdxs \
     /usr/local/bin/dxsbash-config \
+    /usr/local/bin/dxsbash-repair \
+    /usr/local/bin/dxsbash-uninstall \
+    /usr/local/bin/dxsbash-doctor \
     /usr/local/bin/reset-shell-profile \
     /usr/local/bin/reset-bash-profile \
     /usr/local/bin/reset-zsh-profile \
