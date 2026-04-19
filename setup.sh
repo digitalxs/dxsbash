@@ -69,6 +69,7 @@ parse_args() {
       --install)    MODE="install" ;;
       --repair)     MODE="repair" ;;
       --uninstall)  MODE="uninstall" ;;
+      --doctor)     MODE="doctor" ;;
       -y|--yes)     ASSUME_YES=1; NONINTERACTIVE=1 ;;
       --dry-run)    DRY_RUN=1 ;;
       --shell)
@@ -88,6 +89,7 @@ Modes:
   --install     Install DXSBash (default when interactive)
   --repair      Re-link configs, re-install helper commands
   --uninstall   Remove DXSBash and restore /etc/skel defaults
+  --doctor      Run a health check and report problems (no changes)
 
 Options:
   --shell X     Choose shell (bash|zsh|fish); overrides menu
@@ -251,13 +253,15 @@ select_mode() {
   echo -e "  ${WHITE}1)${RC} ${GREEN}Install${RC}     ${YELLOW}(default — fresh install of DXSBash)${RC}"
   echo -e "  ${WHITE}2)${RC} ${GREEN}Repair${RC}      ${YELLOW}(fix broken symlinks/commands)${RC}"
   echo -e "  ${WHITE}3)${RC} ${GREEN}Uninstall${RC}   ${YELLOW}(remove and restore Debian defaults)${RC}"
-  echo -e "  ${WHITE}4)${RC} Cancel"
+  echo -e "  ${WHITE}4)${RC} ${GREEN}Doctor${RC}      ${YELLOW}(check installation health, read-only)${RC}"
+  echo -e "  ${WHITE}5)${RC} Cancel"
   echo ""
-  read -p "  Enter your choice [1-4] (default: 1): " mode_choice
+  read -p "  Enter your choice [1-5] (default: 1): " mode_choice
   case "$mode_choice" in
     2) MODE="repair" ;;
     3) MODE="uninstall" ;;
-    4) echo -e "${YELLOW}Cancelled.${RC}"; exit 0 ;;
+    4) MODE="doctor" ;;
+    5) echo -e "${YELLOW}Cancelled.${RC}"; exit 0 ;;
     *) MODE="install" ;;
   esac
   echo ""
@@ -293,6 +297,17 @@ if [ "$MODE" = "uninstall" ]; then
     exec "$USER_HOME/linuxtoolbox/dxsbash/uninstall.sh" "${UNINSTALL_ARGS[@]}"
   else
     echo -e "${RED}uninstall.sh not found. Is DXSBash installed?${RC}"
+    exit 1
+  fi
+fi
+
+if [ "$MODE" = "doctor" ]; then
+  if [ -x "$SCRIPT_DIR/doctor.sh" ]; then
+    exec "$SCRIPT_DIR/doctor.sh"
+  elif [ -x "$USER_HOME/linuxtoolbox/dxsbash/doctor.sh" ]; then
+    exec "$USER_HOME/linuxtoolbox/dxsbash/doctor.sh"
+  else
+    echo -e "${RED}doctor.sh not found. Is DXSBash installed?${RC}"
     exit 1
   fi
 fi
@@ -966,13 +981,14 @@ installConfigCommand() {
 }
 
 installLifecycleCommands() {
-  echo -e "${CYAN}▶ Installing repair/uninstall commands...${RC}"
-  for src in repair.sh uninstall.sh; do
+  echo -e "${CYAN}▶ Installing repair/uninstall/doctor commands...${RC}"
+  for src in repair.sh uninstall.sh doctor.sh; do
     if [ -f "$GITPATH/$src" ]; then
       chmod +x "$GITPATH/$src"
       case "$src" in
         repair.sh)    link_name="dxsbash-repair" ;;
         uninstall.sh) link_name="dxsbash-uninstall" ;;
+        doctor.sh)    link_name="dxsbash-doctor" ;;
       esac
       ${SUDO_CMD} ln -sf "$GITPATH/$src" "/usr/local/bin/$link_name"
       echo -e "${GREEN}  ✓ /usr/local/bin/$link_name${RC}"
@@ -1165,6 +1181,7 @@ main() {
   echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE} ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} update-dxsbash${BLUE}             ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Repair:${YELLOW} dxsbash-repair${BLUE}             ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Doctor:${YELLOW} dxsbash-doctor${BLUE}             ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Uninstall:${YELLOW} dxsbash-uninstall${BLUE}          ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Reset:${YELLOW} sudo reset-shell-profile [username]${BLUE} ${RC}"
   echo -e "${BLUE}║                                                          ${RC}"
