@@ -989,6 +989,40 @@ installLifecycleCommands() {
 configure_terminal() {
   echo -e "${CYAN}▶ Configuring terminal emulators...${RC}"
 
+  # Resolve the command to run inside Konsole/Yakuake profiles so that
+  # the selected shell (bash|zsh|fish) is actually launched instead of
+  # the system default /usr/bin/bash.
+  case "${SELECTED_SHELL:-bash}" in
+    zsh)  PROFILE_SHELL_CMD="$(command -v zsh  2>/dev/null || echo /usr/bin/zsh)"  ;;
+    fish) PROFILE_SHELL_CMD="$(command -v fish 2>/dev/null || echo /usr/bin/fish)" ;;
+    *)    PROFILE_SHELL_CMD="$(command -v bash 2>/dev/null || echo /bin/bash)"     ;;
+  esac
+
+  # Helper: ensure DefaultProfile=DXSBash.profile lives under [Desktop Entry]
+  # in the given rc file (konsolerc / yakuakerc), creating the file or
+  # section as needed.
+  set_default_profile() {
+    local rcfile="$1"
+    mkdir -p "$(dirname "$rcfile")"
+    if [ ! -f "$rcfile" ]; then
+      cat > "$rcfile" <<EOL
+[Desktop Entry]
+DefaultProfile=DXSBash.profile
+EOL
+    elif grep -q "^\[Desktop Entry\]" "$rcfile"; then
+      if grep -q "^DefaultProfile=" "$rcfile"; then
+        sed -i "s|^DefaultProfile=.*|DefaultProfile=DXSBash.profile|" "$rcfile"
+      else
+        sed -i "/^\[Desktop Entry\]/a DefaultProfile=DXSBash.profile" "$rcfile"
+      fi
+    else
+      printf '\n[Desktop Entry]\nDefaultProfile=DXSBash.profile\n' >> "$rcfile"
+    fi
+    if [ "$(id -u)" -eq 0 ]; then
+      chown "$REAL_USER:$REAL_GROUP" "$rcfile"
+    fi
+  }
+
   # Configure Konsole if present
   if command_exists konsole; then
     echo -e "${YELLOW}  Configuring Konsole terminal...${RC}"
@@ -1001,13 +1035,15 @@ configure_terminal() {
     PROFILE_NAME="DXSBash.profile"
     PROFILE_PATH="$KONSOLE_DIR/$PROFILE_NAME"
 
-    # Create profile file
+    # Create profile file. Command= pins the shell to the one selected
+    # during setup so new Konsole tabs launch zsh/fish when chosen.
     cat > "$PROFILE_PATH" << EOL
 [Appearance]
 ColorScheme=Breeze
 Font=FiraCode Nerd Font,12,-1,5,50,0,0,0,0,0
 
 [General]
+Command=$PROFILE_SHELL_CMD
 Name=DXSBash
 Parent=FALLBACK/
 TerminalCenter=false
@@ -1026,31 +1062,17 @@ EOL
       chown "$REAL_USER:$REAL_GROUP" "$PROFILE_PATH"
     fi
 
-    # Update konsolerc to use this profile
-    KONSOLERC="$USER_HOME/.config/konsolerc"
-    if [ -f "$KONSOLERC" ]; then
-      if grep -q "DefaultProfile=" "$KONSOLERC"; then
-        sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$KONSOLERC"
-      else
-        echo "DefaultProfile=DXSBash.profile" >> "$KONSOLERC"
-      fi
-    fi
+    # Update konsolerc to use this profile as the default
+    set_default_profile "$USER_HOME/.config/konsolerc"
 
     echo -e "${GREEN}  ✓ Konsole configured${RC}"
   fi
 
-  # Configure Yakuake if present
+  # Configure Yakuake if present (shares Konsole profiles)
   if command_exists yakuake; then
     echo -e "${YELLOW}  Configuring Yakuake terminal...${RC}"
 
-    YAKUAKERC="$USER_HOME/.config/yakuakerc"
-    if [ -f "$YAKUAKERC" ]; then
-      if grep -q "DefaultProfile=" "$YAKUAKERC"; then
-        sed -i "s/DefaultProfile=.*/DefaultProfile=DXSBash.profile/" "$YAKUAKERC"
-      else
-        echo "DefaultProfile=DXSBash.profile" >> "$YAKUAKERC"
-      fi
-    fi
+    set_default_profile "$USER_HOME/.config/yakuakerc"
 
     echo -e "${GREEN}  ✓ Yakuake configured${RC}"
   fi
