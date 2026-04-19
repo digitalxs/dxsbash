@@ -351,6 +351,23 @@ fi
 # SPECIAL FUNCTIONS
 #######################################################
 
+# List DXSBash aliases and functions, optionally filtered by a pattern.
+# Usage: aliases            # show everything
+#        aliases git        # substring match on name or definition
+function aliases() {
+    local pattern="${1:-}"
+    {
+        alias | sed -E 's/^alias //'
+        print -l -- ${(k)functions} 2>/dev/null | grep -v '^_' | sed 's/^/fn: /'
+    } | sort -f | {
+        if [ -n "$pattern" ]; then
+            grep -i --color=auto -- "$pattern"
+        else
+            cat
+        fi
+    }
+}
+
 # Editor function
 function edit() {
     if [ "$(type -p jpico)" != "" ]; then

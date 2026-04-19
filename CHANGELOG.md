@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+- **`aliases [pattern]` helper**: Shell function that lists all active aliases
+  and user-defined functions, optionally filtered by a substring pattern
+  (matched against name or definition). Shipped for Bash, Zsh, and Fish.
+  Complements `commands.md` with live, shell-aware discovery.
+
 ## [3.1.2] - 2026-04-19
 
 ### Added
