@@ -7,8 +7,8 @@
 # License: GPL-3.0
 #=================================================================
 
-# Set strict error handling mode
-set -e
+# Strict mode + pipefail so piped failures surface
+set -Eeuo pipefail
 
 #=================================================================
 # Color definitions for rich terminal output
@@ -22,6 +22,37 @@ CYAN='\033[1;36m'     # Bold Cyan
 WHITE='\033[1;37m'    # Bold White
 
 #=================================================================
+# Error trap — log the failing line and command
+#=================================================================
+on_error() {
+  local ec=$?
+  echo -e "${RED}✗ setup.sh failed (exit $ec) at line ${BASH_LINENO[0]}: ${BASH_COMMAND}${RC}" >&2
+  [ -n "${LOG_FILE:-}" ] && echo -e "${YELLOW}  See log: $LOG_FILE${RC}" >&2
+  exit "$ec"
+}
+trap on_error ERR
+
+#=================================================================
+# Who are we running as, and whose HOME should we touch?
+#
+# If invoked via sudo, SUDO_USER is set to the invoking user and
+# $HOME points to /root. We always want the *real* user's home.
+#=================================================================
+REAL_USER="${SUDO_USER:-${USER:-$(id -un)}}"
+USER_HOME="$(getent passwd "$REAL_USER" 2>/dev/null | cut -d: -f6)"
+[ -n "$USER_HOME" ] || USER_HOME="${HOME:-/tmp}"
+REAL_GROUP="$(id -gn "$REAL_USER" 2>/dev/null || echo "$REAL_USER")"
+
+# Helper: run a command as the real user (strips root if we were sudo'd)
+as_user() {
+  if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+    sudo -u "$REAL_USER" -H "$@"
+  else
+    "$@"
+  fi
+}
+
+#=================================================================
 # Operation mode (install | repair | uninstall)
 #
 # Can be selected via CLI flag, env var DXSBASH_MODE, or an
@@ -30,6 +61,7 @@ WHITE='\033[1;37m'    # Bold White
 MODE=""
 ASSUME_YES=0
 NONINTERACTIVE=0
+DRY_RUN=0
 
 parse_args() {
   while [ $# -gt 0 ]; do
@@ -38,11 +70,19 @@ parse_args() {
       --repair)     MODE="repair" ;;
       --uninstall)  MODE="uninstall" ;;
       -y|--yes)     ASSUME_YES=1; NONINTERACTIVE=1 ;;
+      --dry-run)    DRY_RUN=1 ;;
+      --shell)
+        shift
+        case "${1:-}" in
+          bash|zsh|fish) SELECTED_SHELL="$1" ;;
+          *) echo "Invalid --shell value: ${1:-}" >&2; exit 2 ;;
+        esac
+        ;;
       -h|--help)
         cat <<'USAGE'
 DXSBash setup
 
-Usage: setup.sh [MODE] [--yes]
+Usage: setup.sh [MODE] [options]
 
 Modes:
   --install     Install DXSBash (default when interactive)
@@ -50,8 +90,14 @@ Modes:
   --uninstall   Remove DXSBash and restore /etc/skel defaults
 
 Options:
+  --shell X     Choose shell (bash|zsh|fish); overrides menu
   -y, --yes     Do not prompt; assume yes (non-interactive)
+  --dry-run     Print actions without making changes (install only)
   -h, --help    Show this help
+
+Environment:
+  DXSBASH_MODE   Same as a mode flag
+  DXSBASH_SHELL  Same as --shell
 USAGE
         exit 0
         ;;
@@ -64,6 +110,12 @@ USAGE
   done
   if [ -z "$MODE" ] && [ -n "${DXSBASH_MODE:-}" ]; then
     MODE="$DXSBASH_MODE"
+  fi
+  if [ -z "${SELECTED_SHELL:-}" ] && [ -n "${DXSBASH_SHELL:-}" ]; then
+    case "$DXSBASH_SHELL" in
+      bash|zsh|fish) SELECTED_SHELL="$DXSBASH_SHELL" ;;
+      *) echo "Invalid DXSBASH_SHELL: $DXSBASH_SHELL" >&2; exit 2 ;;
+    esac
   fi
 }
 
@@ -89,45 +141,64 @@ display_banner() {
 
 #=================================================================
 # Initialize environment and check prerequisites
+#
+# Safe when re-run in place: if setup.sh is running *from* the
+# target directory, we `git pull` instead of `rm -rf` + clone, which
+# would otherwise delete the running script.
 #=================================================================
 initialize() {
   echo -e "${CYAN}▶ Initializing setup...${RC}"
 
-  # Ensure the .config directory exists
-  CONFIGDIR="$HOME/.config"
+  # Ensure .config exists in the *real* user's home
+  CONFIGDIR="$USER_HOME/.config"
   if [ ! -d "$CONFIGDIR" ]; then
     echo -e "${YELLOW}  Creating .config directory: ${WHITE}$CONFIGDIR${RC}"
-    mkdir -p "$CONFIGDIR"
+    as_user mkdir -p "$CONFIGDIR"
     echo -e "${GREEN}  ✓ .config directory created${RC}"
   fi
 
-  # Check if the linuxtoolbox folder exists, create it if it doesn't
-  LINUXTOOLBOXDIR="$HOME/linuxtoolbox"
+  LINUXTOOLBOXDIR="$USER_HOME/linuxtoolbox"
   if [ ! -d "$LINUXTOOLBOXDIR" ]; then
     echo -e "${YELLOW}  Creating linuxtoolbox directory: ${WHITE}$LINUXTOOLBOXDIR${RC}"
-    mkdir -p "$LINUXTOOLBOXDIR"
-    echo -e "${GREEN}  ✓ linuxtoolbox directory created${RC}"
+    as_user mkdir -p "$LINUXTOOLBOXDIR"
   fi
 
-  # Remove existing dxsbash directory if it exists to ensure clean installation
-  if [ -d "$LINUXTOOLBOXDIR/dxsbash" ]; then
-    echo -e "${YELLOW}  Cleaning existing installation...${RC}"
-    rm -rf "$LINUXTOOLBOXDIR/dxsbash"
-    echo -e "${GREEN}  ✓ Environment prepared for fresh installation${RC}"
-  fi
+  local target="$LINUXTOOLBOXDIR/dxsbash"
+  local script_dir
+  script_dir="$(dirname "$(realpath "$0")")"
 
-  # Clone the repository
-  echo -e "${YELLOW}  Cloning DXSBash repository...${RC}"
-  git clone https://github.com/digitalxs/dxsbash "$LINUXTOOLBOXDIR/dxsbash"
-  if [ $? -eq 0 ]; then
-    echo -e "${GREEN}  ✓ Repository cloned successfully${RC}"
+  # Self-wipe guard: don't delete the directory we're running from.
+  if [ -d "$target" ] && [ "$script_dir" = "$(realpath "$target" 2>/dev/null || echo /nonexistent)" ]; then
+    echo -e "${YELLOW}  Running from $target — pulling updates in place${RC}"
+    if [ "$DRY_RUN" -eq 0 ]; then
+      if ( cd "$target" && as_user git pull --ff-only origin main ); then
+        echo -e "${GREEN}  ✓ Repository updated${RC}"
+      else
+        echo -e "${YELLOW}  ⚠ git pull failed; continuing with current checkout${RC}"
+      fi
+    fi
+  elif [ -d "$target" ]; then
+    echo -e "${YELLOW}  Cleaning existing installation at $target${RC}"
+    [ "$DRY_RUN" -eq 0 ] && rm -rf "$target"
+    if [ "$DRY_RUN" -eq 0 ]; then
+      if ! as_user git clone https://github.com/digitalxs/dxsbash "$target"; then
+        echo -e "${RED}  ✗ Failed to clone repository${RC}"
+        exit 1
+      fi
+    fi
+    echo -e "${GREEN}  ✓ Repository ready${RC}"
   else
-    echo -e "${RED}  ✗ Failed to clone repository! Check your internet connection.${RC}"
-    exit 1
+    echo -e "${YELLOW}  Cloning DXSBash repository...${RC}"
+    if [ "$DRY_RUN" -eq 0 ]; then
+      if ! as_user git clone https://github.com/digitalxs/dxsbash "$target"; then
+        echo -e "${RED}  ✗ Failed to clone repository. Check your internet connection.${RC}"
+        exit 1
+      fi
+    fi
+    echo -e "${GREEN}  ✓ Repository cloned successfully${RC}"
   fi
 
-  # Change to the repository directory
-  cd "$LINUXTOOLBOXDIR/dxsbash" || exit 1
+  cd "$target" 2>/dev/null || true
   echo -e "${GREEN}▶ Initialization complete${RC}"
   echo ""
 }
@@ -135,11 +206,29 @@ initialize() {
 # Main variables that will be used across functions
 SUDO_CMD=""
 GITPATH=""
-SELECTED_SHELL=""
+SELECTED_SHELL="${SELECTED_SHELL:-}"
 IS_DEBIAN_BASED=false
+LOG_FILE=""
 
 # Parse CLI arguments up front
 parse_args "$@"
+
+#=================================================================
+# Install logging — mirror stdout/stderr to a dated log file under
+# ~/.dxsbash/logs/ so post-mortems are possible.
+#=================================================================
+setup_logging() {
+  local log_dir="$USER_HOME/.dxsbash/logs"
+  as_user mkdir -p "$log_dir"
+  LOG_FILE="$log_dir/install-$(date +%Y%m%d-%H%M%S).log"
+  as_user touch "$LOG_FILE"
+  # Tee both streams; keep stderr distinguishable in the log
+  exec > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
+  echo "=== DXSBash setup started $(date) ===" >> "$LOG_FILE"
+  echo "    args: $*"                          >> "$LOG_FILE"
+  echo "    user: $REAL_USER ($USER_HOME)"     >> "$LOG_FILE"
+}
+setup_logging "$@"
 
 # Display welcome banner
 display_banner
@@ -187,8 +276,8 @@ if [ "$MODE" = "repair" ]; then
   [ "$ASSUME_YES" -eq 1 ] && REPAIR_ARGS+=(--deps)
   if [ -x "$SCRIPT_DIR/repair.sh" ]; then
     exec "$SCRIPT_DIR/repair.sh" "${REPAIR_ARGS[@]}"
-  elif [ -x "$HOME/linuxtoolbox/dxsbash/repair.sh" ]; then
-    exec "$HOME/linuxtoolbox/dxsbash/repair.sh" "${REPAIR_ARGS[@]}"
+  elif [ -x "$USER_HOME/linuxtoolbox/dxsbash/repair.sh" ]; then
+    exec "$USER_HOME/linuxtoolbox/dxsbash/repair.sh" "${REPAIR_ARGS[@]}"
   else
     echo -e "${RED}repair.sh not found. Is DXSBash installed?${RC}"
     exit 1
@@ -200,17 +289,110 @@ if [ "$MODE" = "uninstall" ]; then
   [ "$ASSUME_YES" -eq 1 ] && UNINSTALL_ARGS+=(--yes)
   if [ -x "$SCRIPT_DIR/uninstall.sh" ]; then
     exec "$SCRIPT_DIR/uninstall.sh" "${UNINSTALL_ARGS[@]}"
-  elif [ -x "$HOME/linuxtoolbox/dxsbash/uninstall.sh" ]; then
-    exec "$HOME/linuxtoolbox/dxsbash/uninstall.sh" "${UNINSTALL_ARGS[@]}"
+  elif [ -x "$USER_HOME/linuxtoolbox/dxsbash/uninstall.sh" ]; then
+    exec "$USER_HOME/linuxtoolbox/dxsbash/uninstall.sh" "${UNINSTALL_ARGS[@]}"
   else
     echo -e "${RED}uninstall.sh not found. Is DXSBash installed?${RC}"
     exit 1
   fi
 fi
 
-# Default: install
-# Initialize the environment
-initialize
+# Default: install — pre-checks, pre-flight and initialize happen
+# inside main() at the bottom so all helper functions are defined.
+
+#=================================================================
+# Already-installed detection
+#
+# If all expected symlinks/commands look healthy, suggest repair
+# instead of a fresh install — avoids accidental reclone + rechsh.
+#=================================================================
+is_installed() {
+  local shell_rc=""
+  case "$SELECTED_SHELL" in
+    bash) shell_rc="$USER_HOME/.bashrc" ;;
+    zsh)  shell_rc="$USER_HOME/.zshrc" ;;
+    fish) shell_rc="$USER_HOME/.config/fish/config.fish" ;;
+    *)    shell_rc="$USER_HOME/.bashrc" ;;
+  esac
+
+  [ -d "$USER_HOME/linuxtoolbox/dxsbash" ] || return 1
+  [ -L "$shell_rc" ] && readlink "$shell_rc" | grep -q dxsbash || return 1
+  [ -x /usr/local/bin/update-dxsbash ] || return 1
+  return 0
+}
+
+if [ -z "${SELECTED_SHELL:-}" ] && [ -L "$USER_HOME/.bashrc" ] && \
+   readlink "$USER_HOME/.bashrc" | grep -q dxsbash; then
+  DETECTED_INSTALLED_SHELL="bash"
+elif [ -L "$USER_HOME/.zshrc" ] && \
+     readlink "$USER_HOME/.zshrc" | grep -q dxsbash; then
+  DETECTED_INSTALLED_SHELL="zsh"
+elif [ -L "$USER_HOME/.config/fish/config.fish" ] && \
+     readlink "$USER_HOME/.config/fish/config.fish" | grep -q dxsbash; then
+  DETECTED_INSTALLED_SHELL="fish"
+else
+  DETECTED_INSTALLED_SHELL=""
+fi
+
+if [ -n "$DETECTED_INSTALLED_SHELL" ]; then
+  echo -e "${YELLOW}  DXSBash is already installed (${DETECTED_INSTALLED_SHELL}).${RC}"
+  if [ "$NONINTERACTIVE" -eq 1 ]; then
+    echo -e "${YELLOW}  --yes set: proceeding with reinstall anyway.${RC}"
+    echo ""
+  else
+    echo -e "  ${WHITE}1)${RC} Reinstall (reclones, overwrites)"
+    echo -e "  ${WHITE}2)${RC} Repair    ${YELLOW}(recommended)${RC}"
+    echo -e "  ${WHITE}3)${RC} Cancel"
+    read -p "  Choice [1-3] (default: 2): " _existing_choice
+    case "$_existing_choice" in
+      1) ;;                                    # fall through to install
+      3) echo -e "${YELLOW}Cancelled.${RC}"; exit 0 ;;
+      *)
+        REPAIR_ARGS=()
+        if [ -x "$SCRIPT_DIR/repair.sh" ]; then
+          exec "$SCRIPT_DIR/repair.sh" "${REPAIR_ARGS[@]}"
+        else
+          exec "$USER_HOME/linuxtoolbox/dxsbash/repair.sh" "${REPAIR_ARGS[@]}"
+        fi
+        ;;
+    esac
+    echo ""
+  fi
+fi
+
+#=================================================================
+# Pre-flight summary (called from main() after shell is chosen)
+#=================================================================
+show_preflight() {
+  local shell_label="${SELECTED_SHELL:-bash}"
+  echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
+  echo -e "${BLUE}║  ${WHITE}Install plan${BLUE}                                          ║${RC}"
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${RC}"
+  echo -e "  ${CYAN}User:${RC}          $REAL_USER"
+  echo -e "  ${CYAN}Home:${RC}          $USER_HOME"
+  echo -e "  ${CYAN}Shell target:${RC}  $shell_label"
+  echo -e "  ${CYAN}Repo dir:${RC}      $USER_HOME/linuxtoolbox/dxsbash"
+  echo -e "  ${CYAN}Log file:${RC}      $LOG_FILE"
+  [ "$DRY_RUN" -eq 1 ] && echo -e "  ${YELLOW}DRY-RUN: no changes will be made${RC}"
+  echo ""
+  echo -e "${CYAN}Will install/link:${RC}"
+  echo -e "  • ~/.${shell_label}rc (or equivalent) → dxsbash repo"
+  echo -e "  • ~/.config/starship.toml, ~/.config/fastfetch/config.jsonc"
+  echo -e "  • /usr/local/bin/{update-dxsbash,dxsbash-config,"
+  echo -e "                    dxsbash-repair,dxsbash-uninstall,reset-shell-profile}"
+  echo -e "  • System packages via apt/nala (requires sudo)"
+  echo -e "  • FiraCode Nerd Font, starship, zoxide, fzf"
+  echo ""
+
+  if [ "$NONINTERACTIVE" -eq 0 ] && [ -t 0 ]; then
+    read -p "  Proceed? (Y/n): " _ok
+    if [[ "$_ok" =~ ^[Nn]$ ]]; then
+      echo -e "${YELLOW}Aborted.${RC}"
+      exit 0
+    fi
+    echo ""
+  fi
+}
 
 #=================================================================
 # Utility functions
@@ -348,37 +530,39 @@ installDepend() {
 
   echo -e "${GREEN}  ✓ Dependencies installed successfully${RC}"
 
-  # Check to see if the FiraCode Nerd Font is installed
+  # Install FiraCode Nerd Font if missing
   FONT_NAME="FiraCode Nerd Font"
   if fc-list | grep -q "FiraCode"; then
     echo -e "${GREEN}  ✓ Font '$FONT_NAME' is already installed${RC}"
   else
     echo -e "${YELLOW}  Installing font '$FONT_NAME'...${RC}"
-      FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/FiraCode.zip"
-      FONT_CHECKSUM="8b3c6e1b5e4f9e4c96c5e8f5a8c5e8f5a8c5e8f5a8c5e8f5a8c5e8f5a8c5e8f5"  # Add actual checksum
-      FONT_DIR="$HOME/.local/share/fonts"
-    # check if the file is accessible
-  if wget -q --spider "$FONT_URL"; then
+    local FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/FiraCode.zip"
+    local FONT_DIR="$USER_HOME/.local/share/fonts"
+
+    if wget -q --spider "$FONT_URL"; then
+      local TEMP_DIR
       TEMP_DIR=$(mktemp -d)
-      if wget -q --show-progress $FONT_URL -O "$TEMP_DIR/FiraCode.zip"; then
-        # Add checksum verification
-        # ACTUAL_CHECKSUM=$(sha256sum "$TEMP_DIR/FiraCode.zip" | cut -d' ' -f1)
-        # if [ "$ACTUAL_CHECKSUM" != "$FONT_CHECKSUM" ]; then
-        #     echo -e "${RED}  ✗ Font checksum mismatch. Skipping installation.${RC}"
-        #     rm -rf "$TEMP_DIR"
-        # else
-            unzip -q "$TEMP_DIR/FiraCode.zip" -d "$TEMP_DIR"
-            mkdir -p "$FONT_DIR/FiraCode"
-            mv "$TEMP_DIR"/*.ttf "$FONT_DIR/FiraCode" 2>/dev/null || true
-            fc-cache -fv >/dev/null 2>&1
-            echo -e "${GREEN}  ✓ Font '$FONT_NAME' installed successfully${RC}"
-        # fi
+      if wget -q --show-progress "$FONT_URL" -O "$TEMP_DIR/FiraCode.zip"; then
+        if unzip -q "$TEMP_DIR/FiraCode.zip" -d "$TEMP_DIR"; then
+          as_user mkdir -p "$FONT_DIR/FiraCode"
+          # Support both flat-zip (v3.x) and nested layouts
+          find "$TEMP_DIR" -type f -name '*.ttf' -exec mv {} "$FONT_DIR/FiraCode/" \; 2>/dev/null || true
+          if [ "$(id -u)" -eq 0 ]; then
+            chown -R "$REAL_USER:$REAL_GROUP" "$FONT_DIR/FiraCode" 2>/dev/null || true
+          fi
+          as_user fc-cache -f "$FONT_DIR" >/dev/null 2>&1 || true
+          echo -e "${GREEN}  ✓ Font '$FONT_NAME' installed successfully${RC}"
+        else
+          echo -e "${YELLOW}  ⚠ Failed to unzip font; continuing without it${RC}"
+        fi
+      else
+        echo -e "${YELLOW}  ⚠ Font download failed; continuing without it${RC}"
       fi
       rm -rf "$TEMP_DIR"
-  else
-    echo -e "${YELLOW}  ⚠ Font URL not accessible. Continuing without font.${RC}"
+    else
+      echo -e "${YELLOW}  ⚠ Font URL not accessible; continuing without font${RC}"
+    fi
   fi
-fi
 
   echo -e "${GREEN}▶ All dependencies installed${RC}"
   echo ""
@@ -406,8 +590,13 @@ installStarshipAndFzf() {
     echo -e "${GREEN}  ✓ FZF already installed${RC}"
   else
     echo -e "${YELLOW}  Installing FZF...${RC}"
-    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-    ~/.fzf/install --all >/dev/null
+    if [ -d "$USER_HOME/.fzf" ]; then
+      echo -e "${YELLOW}  ~/.fzf already exists; skipping clone${RC}"
+    else
+      as_user git clone --depth 1 https://github.com/junegunn/fzf.git "$USER_HOME/.fzf"
+    fi
+    as_user "$USER_HOME/.fzf/install" --all --no-update-rc >/dev/null || \
+      echo -e "${YELLOW}  ⚠ fzf installer returned non-zero; continuing${RC}"
     echo -e "${GREEN}  ✓ FZF installed successfully${RC}"
   fi
   echo ""
@@ -431,9 +620,26 @@ installZoxide() {
 }
 
 #=================================================================
-# Shell selection dialog
+# Shell selection
+#
+# Honours (in order): --shell flag, DXSBASH_SHELL env var, interactive
+# prompt. Non-interactive runs without a shell choice default to bash.
 #=================================================================
 selectShell() {
+  # Already chosen via --shell or DXSBASH_SHELL
+  if [ -n "$SELECTED_SHELL" ]; then
+    echo -e "${GREEN}  ✓ Using shell: ${WHITE}$SELECTED_SHELL${RC}"
+    echo ""
+    return
+  fi
+
+  if [ "$NONINTERACTIVE" -eq 1 ] || [ ! -t 0 ]; then
+    SELECTED_SHELL="bash"
+    echo -e "${GREEN}  ✓ Non-interactive: defaulting to ${WHITE}bash${RC}"
+    echo ""
+    return
+  fi
+
   echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${RC}"
   echo -e "${CYAN}║             Select your preferred shell:               ║${RC}"
   echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${RC}"
@@ -442,21 +648,12 @@ selectShell() {
   echo -e "  ${WHITE}3)${RC} ${GREEN}Fish${RC}      ${YELLOW}(modern, user-friendly, less POSIX-compatible)${RC}"
   echo ""
 
-  # Default to bash if no selection is made
-  SELECTED_SHELL="bash"
-
   read -p "  Enter your choice [1-3] (default: 1): " shell_choice
 
   case "$shell_choice" in
-    2)
-      SELECTED_SHELL="zsh"
-      ;;
-    3)
-      SELECTED_SHELL="fish"
-      ;;
-    *)
-      SELECTED_SHELL="bash"
-      ;;
+    2) SELECTED_SHELL="zsh"  ;;
+    3) SELECTED_SHELL="fish" ;;
+    *) SELECTED_SHELL="bash" ;;
   esac
 
   echo -e "${GREEN}  ✓ Selected shell: ${WHITE}$SELECTED_SHELL${RC}"
@@ -468,11 +665,9 @@ selectShell() {
 #=================================================================
 create_fastfetch_config() {
   echo -e "${CYAN}▶ Setting up fastfetch configuration...${RC}"
-  ## Get the correct user home directory.
-  USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
 
   if [ ! -d "$USER_HOME/.config/fastfetch" ]; then
-    mkdir -p "$USER_HOME/.config/fastfetch"
+    as_user mkdir -p "$USER_HOME/.config/fastfetch"
   fi
   # Check if the fastfetch config file exists
   if [ -e "$USER_HOME/.config/fastfetch/config.jsonc" ]; then
@@ -490,12 +685,9 @@ create_fastfetch_config() {
 setupShellConfig() {
   echo -e "${CYAN}▶ Setting up shell configuration for ${WHITE}$SELECTED_SHELL${CYAN}...${RC}"
 
-  ## Get the correct user home directory.
-  USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
-
-  # Make sure all required directories exist
-  mkdir -p "$USER_HOME/.config/fish"
-  mkdir -p "$USER_HOME/.zsh"
+  # Make sure all required directories exist (owned by the real user)
+  as_user mkdir -p "$USER_HOME/.config/fish"
+  as_user mkdir -p "$USER_HOME/.zsh"
 
   # Backup existing config files and set up new ones based on selected shell
   if [ "$SELECTED_SHELL" = "bash" ]; then
@@ -587,18 +779,26 @@ setupShellConfig() {
       cp -f "$GITPATH/fish_help" "$USER_HOME/.config/fish/fish_help"
     }
 
-    # Setup Fisher plugin manager if not already installed
+    # Setup Fisher plugin manager if not already installed.
+    # NOTE: the old https://git.io/fisher redirect was shut down by
+    # GitHub in 2022; install directly from the canonical location.
     if ! fish -c "type -q fisher" 2>/dev/null; then
       echo -e "${YELLOW}  Installing Fisher plugin manager for Fish...${RC}"
-      fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher" 2>/dev/null
-      echo -e "${GREEN}  ✓ Fisher installed${RC}"
+      local FISHER_URL="https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish"
+      if fish -c "curl -sSfL $FISHER_URL | source && fisher install jorgebucaran/fisher"; then
+        echo -e "${GREEN}  ✓ Fisher installed${RC}"
 
-      # Install useful plugins
-      echo -e "${YELLOW}  Installing Fish plugins...${RC}"
-      fish -c "fisher install PatrickF1/fzf.fish" 2>/dev/null
-      fish -c "fisher install jethrokuan/z" 2>/dev/null
-      fish -c "fisher install IlanCosman/tide@v5" 2>/dev/null
-      echo -e "${GREEN}  ✓ Fish plugins installed${RC}"
+        echo -e "${YELLOW}  Installing Fish plugins...${RC}"
+        fish -c "fisher install PatrickF1/fzf.fish" || \
+          echo -e "${YELLOW}  ⚠ Could not install fzf.fish${RC}"
+        fish -c "fisher install jethrokuan/z"      || \
+          echo -e "${YELLOW}  ⚠ Could not install jethrokuan/z${RC}"
+        fish -c "fisher install IlanCosman/tide@v5" || \
+          echo -e "${YELLOW}  ⚠ Could not install tide${RC}"
+        echo -e "${GREEN}  ✓ Fish plugins installed${RC}"
+      else
+        echo -e "${YELLOW}  ⚠ Fisher install failed; continuing without plugins${RC}"
+      fi
     else
       echo -e "${GREEN}  ✓ Fisher already installed${RC}"
     fi
@@ -647,16 +847,26 @@ setDefaultShell() {
     echo -e "$SHELL_PATH" | ${SUDO_CMD} tee -a /etc/shells > /dev/null
   fi
 
-  # Change the default shell
+  # Change the default shell. Disable errexit locally so a chsh
+  # failure (PAM, shell not yet in /etc/shells on some distros, etc.)
+  # does not abort the rest of the install.
   echo -e "${YELLOW}  Changing default shell to ${WHITE}$SHELL_PATH${RC}"
-  ${SUDO_CMD} chsh -s "$SHELL_PATH" "$USER"
+  local chsh_rc=0
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo -e "  ${YELLOW}[dry-run]${RC} ${SUDO_CMD} chsh -s $SHELL_PATH $REAL_USER"
+  else
+    set +e
+    ${SUDO_CMD} chsh -s "$SHELL_PATH" "$REAL_USER"
+    chsh_rc=$?
+    set -e
+  fi
 
-  if [ $? -eq 0 ]; then
+  if [ "$chsh_rc" -eq 0 ]; then
     echo -e "${GREEN}  ✓ Successfully set $SELECTED_SHELL as your default shell${RC}"
   else
-    echo -e "${RED}  ✗ Failed to set $SELECTED_SHELL as your default shell.${RC}"
-    echo -e "${YELLOW}  Please do it manually with:${RC}"
-    echo -e "${WHITE}  chsh -s $SHELL_PATH${RC}"
+    echo -e "${RED}  ✗ Failed to set $SELECTED_SHELL as your default shell (chsh rc=$chsh_rc).${RC}"
+    echo -e "${YELLOW}  You can set it manually with:${RC}"
+    echo -e "${WHITE}    chsh -s $SHELL_PATH${RC}"
   fi
   echo ""
 }
@@ -719,22 +929,18 @@ installResetScript() {
 installUpdaterCommand() {
   echo -e "${CYAN}▶ Installing dxsbash updater script...${RC}"
 
-  # Copy the updater script to the linuxtoolbox directory
   if [ -f "$GITPATH/updater.sh" ]; then
-    # Use cp -p to preserve permissions from source
-    cp -p "$GITPATH/updater.sh" "$LINUXTOOLBOXDIR/"
-    # Ensure it's executable regardless of source permissions
-    chmod +x "$LINUXTOOLBOXDIR/updater.sh"
+    chmod +x "$GITPATH/updater.sh"
 
-    # Create a symbolic link to make it available system-wide
-    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/updater.sh" /usr/local/bin/update-dxsbash
+    # System-wide: /usr/local/bin/update-dxsbash points at the repo copy
+    # so updates self-propagate.
+    ${SUDO_CMD} ln -sf "$GITPATH/updater.sh" /usr/local/bin/update-dxsbash
 
-    # Create a symlink in home directory for easy access
-    ln -sf "$LINUXTOOLBOXDIR/updater.sh" "$HOME/update-dxsbash.sh"
-    chmod +x "$HOME/update-dxsbash.sh"
+    # Convenience symlink in the real user's home
+    as_user ln -sf "$GITPATH/updater.sh" "$USER_HOME/update-dxsbash.sh"
 
     echo -e "${GREEN}  ✓ Updater script installed successfully${RC}"
-    echo -e "    You can update dxsbash anytime by running: ${WHITE}upbashdxs${RC}"
+    echo -e "    Run ${WHITE}update-dxsbash${RC} to pull the latest version."
   else
     echo -e "${RED}  ✗ Updater script not found in $GITPATH${RC}"
     echo -e "${YELLOW}  You will need to update manually${RC}"
@@ -783,9 +989,6 @@ installLifecycleCommands() {
 configure_terminal() {
   echo -e "${CYAN}▶ Configuring terminal emulators...${RC}"
 
-  # Get user home directory
-  USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
-
   # Configure Konsole if present
   if command_exists konsole; then
     echo -e "${YELLOW}  Configuring Konsole terminal...${RC}"
@@ -818,8 +1021,10 @@ ScrollBarPosition=2
 BlinkingCursorEnabled=true
 EOL
 
-    # Set correct permissions
-    chown "${SUDO_USER:-$USER}:$(id -gn ${SUDO_USER:-$USER})" "$PROFILE_PATH"
+    # Set correct permissions (only relevant when running under sudo)
+    if [ "$(id -u)" -eq 0 ]; then
+      chown "$REAL_USER:$REAL_GROUP" "$PROFILE_PATH"
+    fi
 
     # Update konsolerc to use this profile
     KONSOLERC="$USER_HOME/.config/konsolerc"
@@ -863,11 +1068,11 @@ EOL
 finalSetup() {
   echo -e "${CYAN}▶ Performing final setup tasks...${RC}"
 
-  # Create logs directory
+  # Create runtime logs dir in the real user's home
   echo -e "${YELLOW}  Creating log directory...${RC}"
-  mkdir -p "$HOME/.dxsbash/logs"
-  touch "$HOME/.dxsbash/logs/dxsbash.log"
-  chmod 644 "$HOME/.dxsbash/logs/dxsbash.log"
+  as_user mkdir -p "$USER_HOME/.dxsbash/logs"
+  as_user touch   "$USER_HOME/.dxsbash/logs/dxsbash.log"
+  as_user chmod 644 "$USER_HOME/.dxsbash/logs/dxsbash.log"
 
   # Copy the utilities file only if source and destination are different
   if [ -f "$GITPATH/dxsbash-utils.sh" ]; then
@@ -900,8 +1105,14 @@ main() {
   # Detect distribution
   detectDistro
 
-  # Select shell
+  # Select shell (honours --shell / DXSBASH_SHELL / prompt)
   selectShell
+
+  # Show plan and ask for confirmation
+  show_preflight
+
+  # Clone or pull repo (safe when re-run from inside)
+  initialize
 
   # Install dependencies
   installDepend
