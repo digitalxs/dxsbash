@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [3.1.2] - 2026-04-19
+
+### Added
+- **`dxsbash-config` command**: Documented the interactive configuration tool
+  installed at `/usr/local/bin/dxsbash-config`. Users can now tune editor,
+  shell history, prompt style, Starship theme, and fastfetch-on-startup from
+  a single menu. Settings persist in `~/.dxsbash/user.conf`.
+
+### Changed
+- **README**: Added a dedicated *Configuration* section explaining
+  `dxsbash-config` and what it manages.
+- **Commands reference**: Added entries for `dxsbash-config`, `dxsbash-repair`,
+  `dxsbash-doctor`, and `dxsbash-uninstall` under System Management.
+
 ## [3.0.5] - 2025-12-02
 
 ### Fixed

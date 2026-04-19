@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.1.1
+v3.1.2
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -87,6 +87,26 @@ dxsbash-repair            # interactive; auto-detects your shell
 dxsbash-repair --dry-run  # preview changes
 dxsbash-repair --deps     # also reinstall missing dependencies
 ```
+
+## Configuration
+
+Tune DXSBash interactively without hand-editing rc files:
+
+```bash
+dxsbash-config
+```
+
+The menu lets you change:
+
+- Default text editor (`$EDITOR` / `$VISUAL`)
+- Shell history sizes (`HISTSIZE`, `HISTFILESIZE`)
+- Prompt style (Starship vs. built-in custom)
+- Starship theme (DXS, Tokyo Night, Gruvbox Rainbow, Catppuccin, …)
+- Fastfetch on startup (on/off)
+- Reset everything to defaults
+
+Changes are written to `~/.dxsbash/user.conf` and take effect in new shell
+sessions (or after `source ~/.bashrc` / `source ~/.zshrc`).
 
 ## Core Components
 

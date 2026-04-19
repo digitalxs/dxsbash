@@ -398,6 +398,10 @@
 | `cheat <cmd>` | Display cheatsheet for a command |
 | `install_bashrc_support` | Install required dependencies for bashrc |
 | `update-dxsbash` | Update dxsbash to latest version |
+| `dxsbash-config` | Interactive settings menu (editor, history, prompt, theme, fastfetch) |
+| `dxsbash-repair` | Re-link symlinks and helper commands without changing settings |
+| `dxsbash-doctor` | Run diagnostics on the DXSBash install |
+| `dxsbash-uninstall` | Remove DXSBash and restore system defaults |
 | `reset-shell-profile` | Reset to default shell configuration |
 | `kssh` | SSH with Kitty terminal features |
 
