@@ -352,20 +352,41 @@ fi
 #######################################################
 
 # List DXSBash aliases and functions, optionally filtered by a pattern.
-# Usage: aliases            # show everything
-#        aliases git        # substring match on name or definition
+# With no args and fzf + tty available, launches an interactive picker
+# with a preview pane that shows the definition of the selected entry.
+# Usage: aliases            # interactive picker (falls back to plain list)
+#        aliases git        # plain grep by substring; pipe-friendly
 function aliases() {
     local pattern="${1:-}"
-    {
+    local listing
+    listing=$({
         alias | sed -E 's/^alias //'
         print -l -- ${(k)functions} 2>/dev/null | grep -v '^_' | sed 's/^/fn: /'
-    } | sort -f | {
-        if [ -n "$pattern" ]; then
-            grep -i --color=auto -- "$pattern"
-        else
-            cat
-        fi
-    }
+    } | sort -f)
+
+    if [ -n "$pattern" ]; then
+        printf '%s\n' "$listing" | grep -i --color=auto -- "$pattern"
+        return
+    fi
+    if ! command -v fzf >/dev/null 2>&1 || [ ! -t 1 ]; then
+        printf '%s\n' "$listing"
+        return
+    fi
+
+    local dir fn
+    dir=$(mktemp -d 2>/dev/null) || { printf '%s\n' "$listing"; return 1; }
+    for fn in ${(k)functions}; do
+        [[ "$fn" == _* ]] && continue
+        functions -- "$fn" > "$dir/$fn" 2>/dev/null
+    done
+
+    export __DXSBASH_ALIASES_DIR="$dir"
+    printf '%s\n' "$listing" | fzf \
+        --height=80% --reverse --prompt='aliases> ' \
+        --preview='L={}; case "$L" in "fn: "*) cat "$__DXSBASH_ALIASES_DIR/${L#fn: }" 2>/dev/null ;; *) echo "$L" ;; esac' \
+        --preview-window=down:15:wrap
+    unset __DXSBASH_ALIASES_DIR
+    rm -rf "$dir"
 }
 
 # Editor function

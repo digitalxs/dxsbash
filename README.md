@@ -29,9 +29,14 @@ For a comprehensive list of all available commands and aliases in DXSBash, see t
 Or discover commands live in your shell:
 
 ```bash
-aliases            # list every alias and function
-aliases git        # filter by substring (name or definition)
+aliases            # interactive fzf picker with a preview pane (if fzf is installed)
+aliases git        # plain grep by substring; pipe-friendly
 ```
+
+With `fzf` available, `aliases` (no args) opens a fuzzy-filter list; the
+preview pane shows the full definition of the selected alias or function.
+Without `fzf` — or when stdout is piped/redirected — it prints a plain sorted
+listing.
 
 ### Keyboard Shortcuts
 - `Ctrl+R` - Search command history with fuzzy matching

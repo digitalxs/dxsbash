@@ -339,7 +339,7 @@
 | Command | Description |
 |:--------|:------------|
 | `help [topic]` | Enhanced interactive help system |
-| `aliases [pattern]` | List all aliases and functions; filter by substring match |
+| `aliases [pattern]` | List aliases and functions. No args = interactive fzf picker with preview pane (if fzf installed); pattern = plain substring filter |
 | `alert` | Alert when command completes |
 | `tree` | Directory tree with colors |
 | `treed` | Show only directories in tree |
