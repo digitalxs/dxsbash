@@ -17,7 +17,7 @@ v3.1.2
 <a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 
 </div>
-
+Official Website: <a href="https://dxsbash.digitalxs.ca">https://dxsbash.digitalxs.ca</a> | Official repository: <a href="[https://dxsbash.digitalxs.ca](https://github.com/digitalxs/dxsbash/)">https://github.com/digitalxs/dxsbash/</a>
 DXSBash is a shell enhancement suite designed for developers, system administrators, and Linux power users. It provides a consistent, feature-rich experience across multiple shells, combining productivity tools, visual improvements, and optimized workflows.
 
 Tested extensively on Debian 13. Please test on any system and send e-mail with detailed info with results, bugs, etc...
