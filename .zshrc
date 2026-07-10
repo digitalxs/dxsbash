@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Zsh Configuration
-# Version 3.1.2
+# Version 3.2.0
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
