@@ -66,7 +66,7 @@ run() {
     if [ "$DRY_RUN" -eq 1 ]; then
         echo -e "  ${YELLOW}[dry-run]${RC} $*"
     else
-        eval "$@"
+        eval "$*"
     fi
 }
 
@@ -239,6 +239,7 @@ echo ""
 #=================================================================
 echo -e "${CYAN}▶ Removing system-wide commands...${RC}"
 for bin in \
+    /usr/local/bin/dxsbash \
     /usr/local/bin/update-dxsbash \
     /usr/local/bin/upbashdxs \
     /usr/local/bin/dxsbash-config \

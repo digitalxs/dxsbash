@@ -35,7 +35,7 @@ end
 # SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
 #######################################################################
 # FISH version converted from dxsbash
-# Version 3.2.0
+# Version 3.3.0
 # Start updating fish config:
 # nano ~/.config/fish/config.fish
 # paste this script and save
@@ -681,6 +681,12 @@ end
 
 # Initialize
 if status is-interactive
+    # Load user configuration overrides written by dxsbash-config
+    # (editor, fastfetch toggle, starship theme, etc.)
+    if test -f "$HOME/.dxsbash/user.fish"
+        source "$HOME/.dxsbash/user.fish"
+    end
+
     # Setup key bindings for Ctrl+F to trigger zoxide interactive
     if type -q zoxide
         function _zoxide_zi_widget
@@ -702,8 +708,9 @@ if status is-interactive
         starship init fish | source
     end
     
-    # Run fastfetch if installed and not in SSH session
-    if type -q fastfetch; and not set -q SSH_CLIENT; and not set -q SSH_TTY
+    # Run fastfetch if installed and not in SSH session.
+    # Set DXSBASH_FASTFETCH=false via dxsbash-config to disable.
+    if type -q fastfetch; and not set -q SSH_CLIENT; and not set -q SSH_TTY; and test "$DXSBASH_FASTFETCH" != "false"
         fastfetch
     end
 end

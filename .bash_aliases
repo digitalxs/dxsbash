@@ -122,6 +122,7 @@ alias openports='netstat -nape --inet'
 alias ports='netstat -tulanp'
 
 # Show current network connections to the server
+# shellcheck disable=SC2142  # the escaped \$5 reaches awk correctly at runtime
 alias ipview="netstat -anpl | grep :80 | awk {'print \$5'} | cut -d\":\" -f1 | sort | uniq -c | sort -n | sed -e 's/^ *//' -e 's/ *\$//'"
 
 # Alias's for safe and forced reboots
@@ -169,6 +170,7 @@ fi
 # IP and network aliases
 alias myip='curl -s https://api.ipify.org && echo'  # Show public IP address
 alias localip='ip -br a'                          # Simplified local IP display
+# shellcheck disable=SC2142  # the escaped \$2 reaches awk correctly at runtime
 alias ips="ip -c a | grep 'inet ' | awk '{print \$2}'"  # List all IPs
 
 # Path information

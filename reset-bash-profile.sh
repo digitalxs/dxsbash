@@ -47,13 +47,15 @@ main() {
     validate_user "$username"
     
     # Get user's home directory
-    local home_dir=$(get_home_dir "$username")
+    local home_dir
+    home_dir=$(get_home_dir "$username")
     
     echo "Resetting bash profile for user: $username"
     echo "Home directory: $home_dir"
     
     # Create backup directory
-    local backup_dir="$home_dir/bash_backup_$(date +%Y%m%d_%H%M%S)"
+    local backup_dir
+    backup_dir="$home_dir/bash_backup_$(date +%Y%m%d_%H%M%S)"
     echo "Creating backup directory: $backup_dir"
     mkdir -p "$backup_dir"
     

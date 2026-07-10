@@ -98,8 +98,9 @@ Options:
   -h, --help    Show this help
 
 Environment:
-  DXSBASH_MODE   Same as a mode flag
-  DXSBASH_SHELL  Same as --shell
+  DXSBASH_MODE       Same as a mode flag
+  DXSBASH_SHELL      Same as --shell
+  DXSBASH_SKIP_FONT  Set to 1 to skip the Nerd Font download (CI)
 USAGE
         exit 0
         ;;
@@ -523,16 +524,35 @@ installDepend() {
 
   echo -e "${YELLOW}  Installing required packages: ${WHITE}$DEPENDENCIES${RC}"
   if [ "$IS_DEBIAN_BASED" = true ]; then
-    # First check if nala is installed, if not install it
+    # First check if nala is installed; fall back to apt if it can't be
     if ! command_exists nala; then
       echo -e "${YELLOW}  Installing nala package manager...${RC}"
       ${SUDO_CMD} apt update
-      ${SUDO_CMD} apt install -y nala
+      ${SUDO_CMD} apt install -y nala || \
+        echo -e "${YELLOW}  ⚠ Could not install nala; falling back to apt${RC}"
     fi
 
-    # Use nala for better package management experience
-    ${SUDO_CMD} nala update
-    ${SUDO_CMD} nala install -y $DEPENDENCIES
+    local pkg_mgr="apt"
+    command_exists nala && pkg_mgr="nala"
+    ${SUDO_CMD} "$pkg_mgr" update
+
+    # Filter out packages that don't exist on this release (for example
+    # fastfetch on Debian 12 / Ubuntu 24.04) so one missing package
+    # doesn't abort the whole install under 'set -e'.
+    local available_pkgs="" unavailable_pkgs=""
+    local pkg
+    for pkg in $DEPENDENCIES; do
+      if apt-cache show "$pkg" >/dev/null 2>&1; then
+        available_pkgs="$available_pkgs $pkg"
+      else
+        unavailable_pkgs="$unavailable_pkgs $pkg"
+      fi
+    done
+    if [ -n "$unavailable_pkgs" ]; then
+      echo -e "${YELLOW}  ⚠ Not available on this release (skipped):${WHITE}$unavailable_pkgs${RC}"
+    fi
+    # shellcheck disable=SC2086  # word splitting of the package list is intended
+    ${SUDO_CMD} "$pkg_mgr" install -y $available_pkgs
   else
     # Fallback to apt if available for non-Debian distros
     if command_exists apt; then
@@ -547,9 +567,12 @@ installDepend() {
 
   echo -e "${GREEN}  ✓ Dependencies installed successfully${RC}"
 
-  # Install FiraCode Nerd Font if missing
+  # Install FiraCode Nerd Font if missing.
+  # Set DXSBASH_SKIP_FONT=1 to skip the ~30 MB download (useful in CI).
   FONT_NAME="FiraCode Nerd Font"
-  if fc-list | grep -q "FiraCode"; then
+  if [ "${DXSBASH_SKIP_FONT:-0}" = "1" ]; then
+    echo -e "${YELLOW}  Skipping font installation (DXSBASH_SKIP_FONT=1)${RC}"
+  elif fc-list | grep -q "FiraCode"; then
     echo -e "${GREEN}  ✓ Font '$FONT_NAME' is already installed${RC}"
   else
     echo -e "${YELLOW}  Installing font '$FONT_NAME'...${RC}"
@@ -594,7 +617,13 @@ installStarshipAndFzf() {
     echo -e "${GREEN}  ✓ Starship already installed${RC}"
   else
     echo -e "${YELLOW}  Installing Starship prompt...${RC}"
-    if curl -sS https://starship.rs/install.sh | sh; then
+    # Pass -y when running unattended: the installer's confirmation
+    # prompt cannot be answered without a terminal.
+    local starship_yes=""
+    if [ "$NONINTERACTIVE" -eq 1 ] || [ ! -t 0 ]; then
+      starship_yes="-y"
+    fi
+    if curl -sS https://starship.rs/install.sh | sh -s -- ${starship_yes}; then
       echo -e "${GREEN}  ✓ Starship installed successfully${RC}"
     else
       echo -e "${RED}  ✗ Something went wrong during Starship installation!${RC}"
@@ -987,13 +1016,14 @@ installConfigCommand() {
 
 installLifecycleCommands() {
   echo -e "${CYAN}▶ Installing repair/uninstall/doctor commands...${RC}"
-  for src in repair.sh uninstall.sh doctor.sh; do
+  for src in repair.sh uninstall.sh doctor.sh dxsbash.sh; do
     if [ -f "$GITPATH/$src" ]; then
       chmod +x "$GITPATH/$src"
       case "$src" in
         repair.sh)    link_name="dxsbash-repair" ;;
         uninstall.sh) link_name="dxsbash-uninstall" ;;
         doctor.sh)    link_name="dxsbash-doctor" ;;
+        dxsbash.sh)   link_name="dxsbash" ;;
       esac
       ${SUDO_CMD} ln -sf "$GITPATH/$src" "/usr/local/bin/$link_name"
       echo -e "${GREEN}  ✓ /usr/local/bin/$link_name${RC}"
@@ -1182,7 +1212,9 @@ main() {
   echo -e "${BLUE}║                                                          ${RC}"
   echo -e "${BLUE}║  ${GREEN}Installation Complete!${BLUE}                   ${RC}"
   echo -e "${BLUE}║                                                          ${RC}"
+  # shellcheck disable=SC2088  # literal tilde is intentional (display only)
   local config_label="~/.${SELECTED_SHELL}rc"
+  # shellcheck disable=SC2088
   [ "$SELECTED_SHELL" = "fish" ] && config_label="~/.config/fish/config.fish"
   echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}        ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ${config_label}${BLUE} ${RC}"

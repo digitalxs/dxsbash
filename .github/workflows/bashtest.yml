@@ -1,48 +1,91 @@
-name: Shell Testing
+name: CI
 
 on: [push, pull_request]
 
 jobs:
   lint:
-    # Note: the old 'os' matrix entry was unused (runs-on was hardcoded)
-    # and 'debian-latest' is not a valid GitHub-hosted runner label, so
-    # the matrix only varies the shell under test now.
+    name: Lint and syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install shells and shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck zsh fish
+
+      - name: shellcheck (scripts, warning severity)
+        run: shellcheck -S warning -f gcc ./*.sh
+
+      - name: shellcheck (shell configs, error severity)
+        run: shellcheck -S error -f gcc .bashrc .bash_aliases .bashrc_help
+
+      - name: bash syntax
+        run: |
+          for f in *.sh .bashrc .bash_aliases .bashrc_help; do
+            bash -n "$f"
+          done
+
+      - name: zsh syntax
+        run: |
+          zsh -n .zshrc
+          zsh -n .zshrc_help
+
+      - name: fish syntax
+        run: |
+          fish --no-execute config.fish
+          fish --no-execute fish_help
+
+  install-test:
+    name: Install on ${{ matrix.image }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        shell: [bash, zsh, fish]
-
+        image: ["debian:13", "debian:12", "ubuntu:24.04"]
+    container:
+      image: ${{ matrix.image }}
+    env:
+      # The runner defaults container HOME to /github/home, but the
+      # installer resolves the real user's home via getent (/root for
+      # root) — keep them consistent so setup, doctor and the shell
+      # configs all agree on where things live.
+      HOME: /root
+      DXSBASH_SKIP_FONT: "1"
+      DEBIAN_FRONTEND: noninteractive
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v6
+      - name: Install prerequisites
+        run: |
+          apt-get update
+          apt-get install -y sudo git curl wget ca-certificates unzip
 
-    - name: Install test dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y shellcheck zsh fish
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-    - name: Test Bash scripts
-      if: matrix.shell == 'bash'
-      run: |
-        shellcheck -S error -f gcc *.sh .bashrc
-        bash -n .bashrc
-        bash -n .bash_aliases
-        bash -n .bashrc_help
-        for f in *.sh; do bash -n "$f"; done
+      - name: Stage repository at the install location
+        run: |
+          mkdir -p /root/linuxtoolbox
+          cp -a "$GITHUB_WORKSPACE" /root/linuxtoolbox/dxsbash
+          git config --global --add safe.directory /root/linuxtoolbox/dxsbash
 
-    - name: Test Zsh scripts
-      if: matrix.shell == 'zsh'
-      run: |
-        zsh -n .zshrc
-        zsh -n .zshrc_help
+      - name: Run installer (bash, non-interactive)
+        run: |
+          cd /root/linuxtoolbox/dxsbash
+          ./setup.sh --install --yes --shell bash
 
-    - name: Test Fish scripts
-      if: matrix.shell == 'fish'
-      run: |
-        fish --no-execute config.fish
-        fish --no-execute fish_help
+      - name: Doctor health check
+        run: |
+          cd /root/linuxtoolbox/dxsbash
+          ./doctor.sh --no-color --verbose
 
-    - name: Test installation (dry run)
-      run: |
-        # Add installation test here
-        echo "Installation test placeholder"
+      - name: Config loads and helper commands work
+        run: |
+          bash -c 'source /root/.bashrc; type extract >/dev/null; type aliases >/dev/null; echo ".bashrc loads OK"'
+          test -x /usr/local/bin/update-dxsbash
+          test -x /usr/local/bin/dxsbash-config
+          test -x /usr/local/bin/dxsbash-repair
+          test -x /usr/local/bin/dxsbash-doctor
+          test -x /usr/local/bin/dxsbash
+          /usr/local/bin/dxsbash version
+          /usr/local/bin/dxsbash help

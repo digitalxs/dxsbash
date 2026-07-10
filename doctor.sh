@@ -251,6 +251,15 @@ for cmd in update-dxsbash dxsbash-config dxsbash-repair dxsbash-uninstall \
     fi
 done
 
+# Umbrella command — warn-only so installs made before it existed
+# still report healthy; dxsbash-repair installs it.
+if [ -x /usr/local/bin/dxsbash ] && [ -e /usr/local/bin/dxsbash ]; then
+    pass "dxsbash umbrella command installed" "/usr/local/bin/dxsbash"
+else
+    warn "dxsbash umbrella command missing" \
+         "run dxsbash-repair to install /usr/local/bin/dxsbash"
+fi
+
 #=================================================================
 # 5. Konsole profile (only if konsole is present)
 #=================================================================

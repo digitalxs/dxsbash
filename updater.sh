@@ -2,9 +2,16 @@
 #=================================================================
 # DXSBash Updater - Cross-Distribution Compatible
 # Compatible with: Debian 13, Fedora 42, Arch Linux (latest)
-# Version: 3.2.0
+# Version: 3.3.0
 # Author: Luis Miguel P. Freitas
 # License: GPL-3.0
+#
+# Usage:
+#   update-dxsbash             perform the update
+#   update-dxsbash --check     only check whether an update exists
+#                              (exit 0: up to date, 10: update available,
+#                               1: could not check)
+#   update-dxsbash --help      show help
 #=================================================================
 
 set -euo pipefail
@@ -126,17 +133,23 @@ version_compare() {
         return 2
     fi
     
-    local IFS=.
-    local i ver1=($1) ver2=($2)
-    
+    local i seg1 seg2
+    local -a ver1 ver2
+    IFS=. read -r -a ver1 <<< "$1"
+    IFS=. read -r -a ver2 <<< "$2"
+
     for ((i=0; i<${#ver1[@]} || i<${#ver2[@]}; i++)); do
-        if ((10#${ver1[i]:-0} > 10#${ver2[i]:-0})); then
+        # Strip non-digits so values like "unknown" compare as 0
+        # instead of raising an arithmetic error.
+        seg1="${ver1[i]:-0}"; seg1="${seg1//[^0-9]/}"; seg1="${seg1:-0}"
+        seg2="${ver2[i]:-0}"; seg2="${seg2//[^0-9]/}"; seg2="${seg2:-0}"
+        if ((10#$seg1 > 10#$seg2)); then
             return 0
-        elif ((10#${ver1[i]:-0} < 10#${ver2[i]:-0})); then
+        elif ((10#$seg1 < 10#$seg2)); then
             return 1
         fi
     done
-    
+
     return 2
 }
 
@@ -146,7 +159,8 @@ version_compare() {
 # Prints the backup path on stdout — callers capture it with $(...),
 # so console log output inside this function must go to stderr.
 create_backup() {
-    local backup_name="dxsbash-backup-$(date +%Y%m%d-%H%M%S)"
+    local backup_name
+    backup_name="dxsbash-backup-$(date +%Y%m%d-%H%M%S)"
     local backup_path="${BACKUP_DIR}/${backup_name}"
 
     mkdir -p "${BACKUP_DIR}"
@@ -328,10 +342,14 @@ update_shell_configs() {
 
 update_system_scripts() {
     log INFO "Updating system scripts..."
-    
+
     local scripts=(
         "updater.sh"
+        "dxsbash.sh"
         "dxsbash-config.sh"
+        "doctor.sh"
+        "repair.sh"
+        "uninstall.sh"
         "reset-bash-profile.sh"
         "reset-zsh-profile.sh"
         "reset-fish-profile.sh"
@@ -353,6 +371,11 @@ update_system_scripts() {
         ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/dxsbash-config.sh" /usr/local/bin/dxsbash-config 2>/dev/null || {
             log WARN "Could not update system-wide dxsbash-config command"
         }
+        if [[ -f "${DXSBASH_DIR}/dxsbash.sh" ]]; then
+            ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/dxsbash.sh" /usr/local/bin/dxsbash 2>/dev/null || {
+                log WARN "Could not update system-wide dxsbash command"
+            }
+        fi
     fi
 }
 
@@ -434,9 +457,55 @@ perform_update() {
 }
 
 #=================================================================
+# Check-only mode (for scripts, cron jobs and prompt integrations)
+#=================================================================
+usage() {
+    sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+check_for_update() {
+    local current remote
+    current=$(get_current_version)
+    remote=$(get_remote_version)
+
+    if [[ "${remote}" == "unknown" ]]; then
+        echo "Could not determine the remote version (network problem?)." >&2
+        exit 1
+    fi
+    if [[ "${current}" == "${remote}" ]]; then
+        echo "DXSBash is up to date (version ${current})."
+        exit 0
+    fi
+    if [[ "${current}" == "unknown" ]]; then
+        echo "Update available: ${current} -> ${remote}"
+        exit 10
+    fi
+
+    local cmp=0
+    version_compare "${remote}" "${current}" || cmp=$?
+    if [[ ${cmp} -eq 0 ]]; then
+        echo "Update available: ${current} -> ${remote}"
+        exit 10
+    fi
+    echo "Local version (${current}) is ahead of remote (${remote})."
+    exit 0
+}
+
+#=================================================================
 # Main Entry Point
 #=================================================================
 main() {
+    case "${1:-}" in
+        --check)   check_for_update ;;
+        -h|--help) usage; exit 0 ;;
+        "")        ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+
     echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
     echo -e "${BLUE}║              DXSBash Updater $(date +%Y)                      ║${RC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${RC}"

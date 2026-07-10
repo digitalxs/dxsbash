@@ -8,6 +8,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-07-10
+
+### Added
+- **`dxsbash` umbrella command** (`/usr/local/bin/dxsbash`): one entry
+  point for `update`, `config`, `doctor`, `repair`, `uninstall`,
+  `version` and `help`. Installed by setup, re-linked by the updater and
+  `dxsbash-repair`, and checked (warn-only) by `dxsbash-doctor`. The
+  individual commands keep working unchanged.
+- **`update-dxsbash --check`**: reports whether an update exists without
+  installing anything (exit 0 = up to date, 10 = update available,
+  1 = could not check) — suitable for cron jobs and prompt integrations.
+  `--help` is now supported too.
+- **Fish support for `dxsbash-config`**: the config tool now also writes
+  `~/.dxsbash/user.fish`, which `config.fish` sources — editor choice and
+  the fastfetch startup toggle finally apply to fish sessions.
+- **Container-based install CI**: every push/PR now runs a full
+  non-interactive install (`setup.sh --install --yes --shell bash`)
+  inside Debian 13, Debian 12 and Ubuntu 24.04 containers, validated
+  with `doctor.sh` plus a config-load smoke test. The lint job enforces
+  `shellcheck -S warning` on all scripts.
+- **`DXSBASH_SKIP_FONT=1`** environment variable for `setup.sh` to skip
+  the ~30 MB Nerd Font download (documented in `--help`; used in CI).
+- **`CONTRIBUTING.md`** with development guidelines, the exact checks CI
+  runs, and a one-liner to reproduce the container install test locally;
+  **`.editorconfig`** for consistent formatting.
+
+### Changed
+- **Resilient dependency installation**: `setup.sh` now falls back to
+  apt when nala cannot be installed, and skips packages that don't exist
+  on the running release (e.g. fastfetch on Debian 12) with a warning
+  instead of aborting the whole install under `set -e`.
+- **Starship installer** receives `-y` during non-interactive installs,
+  so it no longer fails silently when there is no terminal to answer its
+  confirmation prompt.
+- All lifecycle scripts are now clean under `shellcheck -S warning`
+  (declare/assign splits, eval string form, removed unused variables).
+
 ## [3.2.0] - 2026-07-10
 
 ### Added

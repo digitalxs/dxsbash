@@ -47,7 +47,8 @@ main() {
     validate_user "$username"
     
     # Get user's home directory
-    local home_dir=$(get_home_dir "$username")
+    local home_dir
+    home_dir=$(get_home_dir "$username")
     
     echo "Resetting fish shell configuration for user: $username"
     echo "Home directory: $home_dir"
@@ -56,7 +57,8 @@ main() {
     local fish_config_dir="$home_dir/.config/fish"
     
     # Create backup directory
-    local backup_dir="$home_dir/fish_backup_$(date +%Y%m%d_%H%M%S)"
+    local backup_dir
+    backup_dir="$home_dir/fish_backup_$(date +%Y%m%d_%H%M%S)"
     echo "Creating backup directory: $backup_dir"
     mkdir -p "$backup_dir/.config"
     

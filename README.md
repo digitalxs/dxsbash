@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.2.0
+v3.3.0
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -81,12 +81,34 @@ All output is mirrored to `~/.dxsbash/logs/install-YYYYMMDD-HHMMSS.log`.
 If DXSBash is already installed, the installer suggests `dxsbash-repair`
 instead of reinstalling — use `--yes` to force a reinstall anyway.
 
+## The `dxsbash` command
+
+Everything can be managed from a single entry point:
+
+```bash
+dxsbash update      # update to the latest release
+dxsbash config      # interactive configuration menu
+dxsbash doctor      # health-check the installation
+dxsbash repair      # fix broken symlinks/commands
+dxsbash uninstall   # remove and restore defaults
+dxsbash version     # show installed version
+```
+
+The individual commands below keep working — `dxsbash` is a wrapper.
+
 ## Updating
 
 Update to the latest version:
 
 ```bash
 update-dxsbash
+```
+
+Only check whether an update is available (useful for scripts and cron —
+exit code 10 means an update exists):
+
+```bash
+update-dxsbash --check
 ```
 
 ## Repair

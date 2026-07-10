@@ -67,7 +67,7 @@ run() {
     if [ "$DRY_RUN" -eq 1 ]; then
         echo -e "  ${YELLOW}[dry-run]${RC} $*"
     else
-        eval "$@"
+        eval "$*"
     fi
 }
 
@@ -174,7 +174,8 @@ echo ""
 # 2. Repo file permissions
 #=================================================================
 echo -e "${CYAN}▶ Fixing script permissions...${RC}"
-for s in setup.sh updater.sh dxsbash-config.sh uninstall.sh repair.sh clean.sh \
+for s in setup.sh updater.sh dxsbash.sh dxsbash-config.sh uninstall.sh repair.sh \
+         doctor.sh clean.sh \
          reset-bash-profile.sh reset-zsh-profile.sh reset-fish-profile.sh \
          check_dependencies.sh dxsbash-utils.sh; do
     if [ -f "$DXSBASH_DIR/$s" ]; then
@@ -190,6 +191,7 @@ echo ""
 echo -e "${CYAN}▶ Checking system-wide commands...${RC}"
 relink_system "$DXSBASH_DIR/updater.sh"          /usr/local/bin/update-dxsbash     "update-dxsbash"
 relink_system "$DXSBASH_DIR/dxsbash-config.sh"   /usr/local/bin/dxsbash-config     "dxsbash-config"
+relink_system "$DXSBASH_DIR/dxsbash.sh"          /usr/local/bin/dxsbash            "dxsbash"
 
 case "$SHELL_TARGET" in
     bash) RESET_SRC="$DXSBASH_DIR/reset-bash-profile.sh" ;;

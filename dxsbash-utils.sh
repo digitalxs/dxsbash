@@ -2,17 +2,12 @@
 # dxsbash-utils.sh - Shared utilities for dxsbash scripts
 # UNDER DEVELOPMENT
 
-# Color codes
-RC='\033[0m'
-RED='\033[31m'
-YELLOW='\033[33m'
-GREEN='\033[32m'
-
 # Logging function (silent, doesn't echo to console)
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    local timestamp
+    timestamp=$(date "+%Y-%m-%d %H:%M:%S")
     local log_file="$HOME/.dxsbash/logs/dxsbash.log"
     
     # Create log directory if it doesn't exist
