@@ -2,22 +2,31 @@
 
 ## Supported Versions
 
-Versions of your project that are currently being supported with security updates.
+DXSBash updates in place via `update-dxsbash` (or `dxsbash update`), so
+security fixes are delivered through the latest release. Only the
+current release line receives security updates — if you are on an older
+version, please update.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 3.0.x   | :white_check_mark: |
-| 2.2.x   | :x:                |
-| 1.9.x   | :x:                |
-| 1.8.x   | :x:                |
-| 1.7.x   | :x:                |
-| 1.6.x   | :x:                |
-| 1.5.x   | :x:                |
-| 1.4.x   | :x:                |
-| 1.3.x   | :x:                |
-| 1.2.x   | :x:                |
-| 1.1.x   | :x:                |
+| 3.3.x   | :white_check_mark: |
+| 3.2.x   | :x: (update to 3.3.x) |
+| 3.1.x   | :x: (update to 3.3.x) |
+| 3.0.x   | :x: (update to 3.3.x) |
+| 2.x     | :x:                |
+| 1.x     | :x:                |
+
+Check your installed version with:
+
+```bash
+dxsbash version        # or: cat ~/linuxtoolbox/dxsbash/version.txt
+```
 
 ## Reporting a Vulnerability
 
 Send an e-mail to luis@digitalxs.ca
+
+Please include the affected file/script, your dxsbash version, your
+distribution and release, and steps to reproduce. You should receive a
+response within a few days; please allow time for a fix to be released
+before public disclosure.
