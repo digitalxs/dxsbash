@@ -35,7 +35,7 @@ end
 # SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
 #######################################################################
 # FISH version converted from dxsbash
-# Version 3.3.0
+# Version 3.3.1
 # Start updating fish config:
 # nano ~/.config/fish/config.fish
 # paste this script and save

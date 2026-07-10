@@ -376,13 +376,27 @@ fi
 #=================================================================
 section "Core dependencies"
 
-for dep in git curl wget tree bat fzf zoxide ripgrep fastfetch; do
+for dep in git curl wget tree fzf zoxide fastfetch; do
     if command -v "$dep" >/dev/null 2>&1; then
         pass "$dep" "$(command -v "$dep")"
     else
         warn "$dep not found" "run setup.sh --repair --deps to reinstall"
     fi
 done
+
+# bat ships as 'batcat' on Debian/Ubuntu; ripgrep's binary is 'rg'
+if command -v bat >/dev/null 2>&1; then
+    pass "bat" "$(command -v bat)"
+elif command -v batcat >/dev/null 2>&1; then
+    pass "bat (as batcat)" "$(command -v batcat)"
+else
+    warn "bat not found" "run setup.sh --repair --deps to reinstall"
+fi
+if command -v rg >/dev/null 2>&1; then
+    pass "ripgrep (rg)" "$(command -v rg)"
+else
+    warn "ripgrep (rg) not found" "run setup.sh --repair --deps to reinstall"
+fi
 
 #=================================================================
 # Summary

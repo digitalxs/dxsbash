@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-07-10
+
+### Fixed
+- **Installer no longer dies on unrelated repository errors**: a broken
+  third-party repo (dead PPA, changed label, expired key) made
+  `apt update` exit non-zero, which aborted the whole install under
+  `set -e`. Update failures are now tolerated with a warning — package
+  installation proceeds from the existing lists. (Found by running the
+  installer end-to-end on a machine with a stale PPA.)
+- **Broken nala no longer breaks the install**: nala is only preferred
+  when it actually runs (`nala --version`) — a non-default python3 can
+  leave the binary present but unusable (`ModuleNotFoundError:
+  apt_pkg`); if nala still fails mid-install, the installer retries
+  with apt.
+- **doctor.sh dependency checks**: looked for a `ripgrep` command (the
+  binary is `rg`) and warned about `bat` on Debian/Ubuntu where it is
+  named `batcat` — both produced permanent false warnings on healthy
+  installs.
+
 ## [3.3.0] - 2026-07-10
 
 ### Added

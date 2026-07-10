@@ -524,17 +524,28 @@ installDepend() {
 
   echo -e "${YELLOW}  Installing required packages: ${WHITE}$DEPENDENCIES${RC}"
   if [ "$IS_DEBIAN_BASED" = true ]; then
-    # First check if nala is installed; fall back to apt if it can't be
+    # First check if nala is installed; fall back to apt if it can't be.
+    # 'update' failures are tolerated: unrelated third-party repos with
+    # broken metadata (dead PPAs, changed labels, expired keys) are
+    # common on real systems and must not abort the install — package
+    # installation still works from the existing lists.
     if ! command_exists nala; then
       echo -e "${YELLOW}  Installing nala package manager...${RC}"
-      ${SUDO_CMD} apt update
+      ${SUDO_CMD} apt update || \
+        echo -e "${YELLOW}  ⚠ apt update reported errors; continuing with existing package lists${RC}"
       ${SUDO_CMD} apt install -y nala || \
         echo -e "${YELLOW}  ⚠ Could not install nala; falling back to apt${RC}"
     fi
 
+    # Prefer nala only when it actually works: a broken python-apt
+    # (e.g. after installing a non-default python3) leaves the nala
+    # binary present but unusable.
     local pkg_mgr="apt"
-    command_exists nala && pkg_mgr="nala"
-    ${SUDO_CMD} "$pkg_mgr" update
+    if command_exists nala && nala --version >/dev/null 2>&1; then
+      pkg_mgr="nala"
+    fi
+    ${SUDO_CMD} "$pkg_mgr" update || \
+      echo -e "${YELLOW}  ⚠ ${pkg_mgr} update reported errors; continuing with existing package lists${RC}"
 
     # Filter out packages that don't exist on this release (for example
     # fastfetch on Debian 12 / Ubuntu 24.04) so one missing package
@@ -552,7 +563,16 @@ installDepend() {
       echo -e "${YELLOW}  ⚠ Not available on this release (skipped):${WHITE}$unavailable_pkgs${RC}"
     fi
     # shellcheck disable=SC2086  # word splitting of the package list is intended
-    ${SUDO_CMD} "$pkg_mgr" install -y $available_pkgs
+    if ! ${SUDO_CMD} "$pkg_mgr" install -y $available_pkgs; then
+      if [ "$pkg_mgr" = "nala" ]; then
+        echo -e "${YELLOW}  ⚠ nala install failed; retrying with apt${RC}"
+        # shellcheck disable=SC2086
+        ${SUDO_CMD} apt install -y $available_pkgs
+      else
+        echo -e "${RED}  ✗ Package installation failed${RC}"
+        exit 1
+      fi
+    fi
   else
     # Fallback to apt if available for non-Debian distros
     if command_exists apt; then
