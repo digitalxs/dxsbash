@@ -367,7 +367,10 @@
 
 | Command | Description |
 |:--------|:------------|
-| `sha1` | Generate SHA1 hash |
+| `checksum <file>` | Checksum a file — sha256 by default (`checksum sha512 <file>` etc.) |
+| `sha256` | SHA-256 hash (promoted default for integrity checks) |
+| `sha512` | SHA-512 hash |
+| `sha1` | SHA-1 hash (deprecated for integrity — legacy verification only) |
 | `random-string` | Generate random string |
 | `calc` | Command-line calculator |
 | `genpass` | Generate secure password |

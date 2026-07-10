@@ -149,8 +149,27 @@ alias ungz='tar -xvzf'
 # Show all logs in /var/log
 alias logs="sudo find /var/log -type f -exec file {} \; | grep 'text' | cut -d' ' -f1 | sed -e's/:$//g' | grep -v '[0-9]$' | xargs tail -f"
 
-# SHA1
-alias sha1='openssl sha1'
+# Checksums — sha256 is the promoted default. SHA-1 and MD5 are
+# deprecated for integrity verification (collision attacks); they are
+# kept only for checking legacy vendor-published hashes.
+alias sha256='sha256sum'
+alias sha512='sha512sum'
+alias sha1='openssl sha1'   # deprecated — prefer sha256
+
+# checksum [sha256|sha512|sha1|md5] <file>... — defaults to sha256
+checksum() {
+    local algo="sha256"
+    case "${1:-}" in
+        sha1|sha256|sha512|md5) algo="$1"; shift ;;
+    esac
+    if [ $# -eq 0 ]; then
+        echo "Usage: checksum [sha256|sha512|sha1|md5] <file>..."
+        echo "Defaults to sha256. Output matches ${algo}sum for easy verification."
+        return 1
+    fi
+    "${algo}sum" "$@"
+}
+
 # (clickpaste is defined below, guarded by the xclip availability check)
 
 # KITTY - alias to be able to use kitty features when connecting to remote servers(e.g use tmux on remote server)

@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-07-10
+
+### Added
+- **`checksum` helper and sha256 promotion** (bash, zsh, fish):
+  `checksum <file>` computes a SHA-256 sum by default, with
+  `checksum sha512|sha1|md5 <file>` for other algorithms; new `sha256`
+  and `sha512` aliases (coreutils `*sum` output, directly comparable to
+  vendor-published hashes). The old `sha1` alias is kept unchanged for
+  compatibility but documented as deprecated for integrity verification
+  — SHA-1 has practical collision attacks.
+
+### Changed
+- `SECURITY.md` supported-versions table now tracks the current release
+  line again (it had drifted at 3.3.x).
+
 ## [3.4.0] - 2026-07-10
 
 ### Added

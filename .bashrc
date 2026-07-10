@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Bash Configuration
-# Version 3.4.0
+# Version 3.5.0
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################

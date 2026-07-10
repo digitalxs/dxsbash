@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Zsh Configuration
-# Version 3.4.0
+# Version 3.5.0
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -347,7 +347,27 @@ alias untar='tar -xvf'
 alias unbz2='tar -xvjf'
 alias ungz='tar -xvzf'
 alias logs="sudo find /var/log -type f -exec file {} \; | grep 'text' | cut -d' ' -f1 | sed -e's/:$//g' | grep -v '[0-9]$' | xargs tail -f"
-alias sha1='openssl sha1'
+# Checksums — sha256 is the promoted default. SHA-1 and MD5 are
+# deprecated for integrity verification (collision attacks); they are
+# kept only for checking legacy vendor-published hashes.
+alias sha256='sha256sum'
+alias sha512='sha512sum'
+alias sha1='openssl sha1'   # deprecated — prefer sha256
+
+# checksum [sha256|sha512|sha1|md5] <file>... — defaults to sha256
+function checksum() {
+    local algo="sha256"
+    case "${1:-}" in
+        sha1|sha256|sha512|md5) algo="$1"; shift ;;
+    esac
+    if [ $# -eq 0 ]; then
+        echo "Usage: checksum [sha256|sha512|sha1|md5] <file>..."
+        echo "Defaults to sha256. Output matches ${algo}sum for easy verification."
+        return 1
+    fi
+    "${algo}sum" "$@"
+}
+
 alias clickpaste='sleep 3; xdotool type "$(xclip -o -selection clipboard)"'
 alias kssh="kitty +kitten ssh"
 

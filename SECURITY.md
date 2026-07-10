@@ -7,14 +7,10 @@ security fixes are delivered through the latest release. Only the
 current release line receives security updates — if you are on an older
 version, please update.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 3.3.x   | :white_check_mark: |
-| 3.2.x   | :x: (update to 3.3.x) |
-| 3.1.x   | :x: (update to 3.3.x) |
-| 3.0.x   | :x: (update to 3.3.x) |
-| 2.x     | :x:                |
-| 1.x     | :x:                |
+| Version          | Supported          |
+| ---------------- | ------------------ |
+| 3.5.x (latest)   | :white_check_mark: |
+| older releases   | :x: — run `update-dxsbash` |
 
 Check your installed version with:
 

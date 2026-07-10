@@ -2,7 +2,7 @@
 #=================================================================
 # DXSBash Updater - Cross-Distribution Compatible
 # Compatible with: Debian 13, Fedora 42, Arch Linux (latest)
-# Version: 3.4.0
+# Version: 3.5.0
 # Author: Luis Miguel P. Freitas
 # License: GPL-3.0
 #
