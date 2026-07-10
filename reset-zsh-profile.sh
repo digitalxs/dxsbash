@@ -57,27 +57,9 @@ main() {
     echo "Creating backup directory: $backup_dir"
     mkdir -p "$backup_dir"
     
-    # Verify that default files exist in /etc/skel/
-    # Note: Zsh typically doesn't have defaults in /etc/skel, so we'll check
-    # for the package defaults instead
-    local default_zshrc="/etc/zsh/zshrc"
-    local default_zprofile="/etc/zsh/zprofile"
-    
-    if [ ! -f "$default_zshrc" ]; then
-        echo "Warning: Default file $default_zshrc not found"
-        if [ -f "/usr/share/zsh/zshrc" ]; then
-            default_zshrc="/usr/share/zsh/zshrc"
-            echo "Using $default_zshrc instead"
-        elif [ -f "/etc/zshrc" ]; then
-            default_zshrc="/etc/zshrc"
-            echo "Using $default_zshrc instead"
-        else
-            echo "No default zshrc found. Creating minimal default."
-            default_zshrc="/tmp/default_zshrc"
-            echo "# Default zshrc created by reset-zsh-profile.sh" > "$default_zshrc"
-        fi
-    fi
-    
+    # Note: Zsh typically doesn't ship defaults in /etc/skel — this
+    # script creates a minimal ~/.zshrc below instead of copying one.
+
     # Backup existing files
     echo "Backing up existing files..."
     for file in .zshrc .zshenv .zprofile .zlogin .zlogout .zsh_history .zsh_plugins .zsh_aliases .oh-my-zsh; do

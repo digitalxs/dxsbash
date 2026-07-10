@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Zsh Configuration
-# Version 3.1.0
+# Version 3.1.2
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -102,8 +102,8 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_STATE_HOME="$HOME/.local/state"
 export XDG_CACHE_HOME="$HOME/.cache"
 
-# Allow ctrl-S for history navigation
-stty -ixon
+# Allow ctrl-S for history navigation (only when attached to a terminal)
+[[ -t 0 ]] && stty -ixon
 
 # Set the default editor
 export EDITOR=nano
@@ -135,22 +135,34 @@ path+="$HOME/.composer/vendor/bin"
 function detect_distribution() {
     if [ -f /etc/os-release ]; then
         source /etc/os-release
-        if [[ "$ID" == "ubuntu" ]] || [[ "$ID" == "debian" ]]; then
-            export DISTRIBUTION="debian"
-        elif [[ "$ID" == "arch" || "$ID" == "manjaro" ]]; then
-            export DISTRIBUTION="arch"
-        else
-            echo "⚠️ Warning: Unsupported distribution detected: $ID" >&2
-            echo "This configuration is designed for Debian, Ubuntu, or Arch Linux." >&2
-            echo "Some features may not work correctly." >&2
-            export DISTRIBUTION="unknown"
-        fi
+        case "$ID" in
+            ubuntu|debian)
+                export DISTRIBUTION="debian" ;;
+            arch|manjaro|endeavouros)
+                export DISTRIBUTION="arch" ;;
+            fedora|rhel|centos|rocky|almalinux)
+                export DISTRIBUTION="redhat" ;;
+            opensuse*|sles)
+                export DISTRIBUTION="suse" ;;
+            *)
+                # Check ID_LIKE for derivatives before giving up
+                if [[ "${ID_LIKE:-}" == *ubuntu* ]] || [[ "${ID_LIKE:-}" == *debian* ]]; then
+                    export DISTRIBUTION="debian"
+                elif [[ "${ID_LIKE:-}" == *arch* ]]; then
+                    export DISTRIBUTION="arch"
+                elif [[ "${ID_LIKE:-}" == *fedora* ]] || [[ "${ID_LIKE:-}" == *rhel* ]]; then
+                    export DISTRIBUTION="redhat"
+                else
+                    echo "⚠️ Warning: Unsupported distribution detected: $ID" >&2
+                    echo "Some features may not work correctly." >&2
+                    export DISTRIBUTION="unknown"
+                fi
+                ;;
+        esac
     else
         echo "⚠️ Warning: Unable to detect distribution." >&2
-        echo "This configuration is designed for Debian, Ubuntu, or Arch Linux." >&2
         export DISTRIBUTION="unknown"
     fi
-    # Remove all return statements - let function complete
 }
 
 # Run distribution check - but don't exit if it fails
@@ -163,17 +175,17 @@ detect_distribution
 # Editor aliases
 alias spico='sedit'
 alias snano='sudo nano'
-alias vim='nvim'
+if command -v nvim &> /dev/null; then
+    alias vim='nvim'
+    alias vis='nvim "+set si"'
+fi
 alias vi='vim'
 alias svi='sudo vi'
-alias vis='nvim "+set si"'
 
-# Set preferred tools based on distribution
-if command -v rg &> /dev/null; then
-    alias grep='rg'
-else
-    alias grep="/usr/bin/grep --color=auto"
-fi
+# Grep with color. Note: do NOT alias grep to rg — ripgrep's flags are
+# incompatible with GNU grep (e.g. rg -r means --replace, not recursive).
+# ripgrep remains available as `rg`.
+alias grep='grep --color=auto'
 
 if command -v bat &> /dev/null; then
     alias cat='bat'
@@ -300,11 +312,8 @@ alias lls='ls -l'
 
 # Permission aliases
 alias mx='chmod a+x'
-alias 000='chmod -R 000'
-alias 644='chmod -R 644'
-alias 666='chmod -R 666'
-alias 755='chmod -R 755'
-alias 777='chmod -R 777'
+# Recursive 000/644/666/755/777 chmod aliases were removed as dangerous
+# (matching .bash_aliases) — one mistyped word could re-permission a tree.
 
 # Search aliases
 alias h="history | grep "
@@ -319,7 +328,7 @@ alias openports='netstat -nape --inet'
 alias ports='netstat -tulanp'
 alias ipview="netstat -anpl | grep :80 | awk {'print \$5'} | cut -d\":\" -f1 | sort | uniq -c | sort -n | sed -e 's/^ *//' -e 's/ *\$//'"
 alias restart='sudo shutdown -r now'
-alias forcerestart='sudo shutdown -r -n now'
+alias forcerestart='sudo systemctl reboot --force'
 alias turnoff='sudo poweroff'
 
 # Disk usage aliases
@@ -390,12 +399,15 @@ function aliases() {
 }
 
 # Editor function
+# Note: use command -v, not $(type -p …): in zsh 'type -p missing-cmd'
+# prints "missing-cmd not found" to stdout, so the old string test was
+# always true and edit() tried to run jpico even when absent.
 function edit() {
-    if [ "$(type -p jpico)" != "" ]; then
+    if command -v jpico &> /dev/null; then
         jpico -nonotice -linums -nobackups "$@"
-    elif [ "$(type -p nano)" != "" ]; then
+    elif command -v nano &> /dev/null; then
         nano -c "$@"
-    elif [ "$(type -p pico)" != "" ]; then
+    elif command -v pico &> /dev/null; then
         pico "$@"
     else
         vim "$@"
@@ -403,11 +415,11 @@ function edit() {
 }
 
 function sedit() {
-    if [ "$(type -p jpico)" != "" ]; then
+    if command -v jpico &> /dev/null; then
         sudo jpico -nonotice -linums -nobackups "$@"
-    elif [ "$(type -p nano)" != "" ]; then
+    elif command -v nano &> /dev/null; then
         sudo nano -c "$@"
-    elif [ "$(type -p pico)" != "" ]; then
+    elif command -v pico &> /dev/null; then
         sudo pico "$@"
     else
         sudo vim "$@"
@@ -444,8 +456,9 @@ function ftext() {
 }
 
 # Copy with progress bar
+# (no 'set -e' here: in an interactive zsh it would leak errexit into
+# the parent shell and kill the session on the next failing command)
 function cpp() {
-    set -e
     strace -q -ewrite cp -- "${1}" "${2}" 2>&1 |
     awk '{
         count += $NF
@@ -621,10 +634,12 @@ function install_zshrc_support() {
         return 1
     fi
     
-    # Install Oh My Zsh if not already installed
+    # Install Oh My Zsh if not already installed.
+    # KEEP_ZSHRC=yes stops the installer from replacing ~/.zshrc
+    # (the dxsbash symlink) with its own template.
     if [ ! -d "$HOME/.oh-my-zsh" ]; then
         echo "Installing Oh My Zsh..."
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
     fi
     
     return 0
@@ -683,7 +698,7 @@ function setprompt() {
     fi
     
     # Date and time
-    PROMPT+="${DARKGRAY}(${CYAN}%W %D{%b-%m} "
+    PROMPT+="${DARKGRAY}(${CYAN}%W %D{%b-%d} "
     PROMPT+="${BLUE}%D{%I:%M:%S%p}${DARKGRAY})-"
     
     # CPU and jobs
@@ -765,14 +780,16 @@ fi
 bindkey '^[[A' history-beginning-search-backward  # Up arrow
 bindkey '^[[B' history-beginning-search-forward   # Down arrow
 bindkey '^[[Z' reverse-menu-complete              # Shift+Tab
-bindkey '^f' _zoxide_zi_widget
 
-# Create widget for zoxide
-zle -N _zoxide_zi_widget
-function _zoxide_zi_widget() {
-    BUFFER="zi"
-    zle accept-line
-}
+# Bind Ctrl+F to zoxide interactive (only when zoxide is installed)
+if command -v zoxide &> /dev/null; then
+    function _zoxide_zi_widget() {
+        BUFFER="zi"
+        zle accept-line
+    }
+    zle -N _zoxide_zi_widget
+    bindkey '^f' _zoxide_zi_widget
+fi
 
 # Load FZF if available
 if [ -f ~/.fzf.zsh ]; then

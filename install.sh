@@ -23,7 +23,7 @@ echo -e "${YELLOW}digitalxs.ca${NC}\n"
 mkdir -p "$HOME/linuxtoolbox"
 
 # Change to the home directory to ensure we're in a valid location
-cd "$HOME"
+cd "$HOME" || exit 1
 
 # Clone the repository
 echo -e "${GREEN}Cloning DXSBash repository...${NC}"

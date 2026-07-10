@@ -1,38 +1,41 @@
 #!/usr/bin/env fish
 
-# Detect if this is a TTY console
-if string match -q "/dev/tty[1-9]*" (tty)
+# Detect if this is a TTY console.
+# Note: fish glob patterns do not support [1-9] bracket classes, so this
+# must be a regex match (-r). And it must 'return', never 'exit' — exit
+# in config.fish terminates the login shell itself.
+if string match -qr '^/dev/tty[0-9]+$' (tty)
     # This is a TTY console - minimal configuration
-    
+
     # Set a simple prompt
     function fish_prompt
         echo -n (whoami)"@"(hostname)":"(prompt_pwd)" > "
     end
-    
+
     # Clear fish greeting
     set fish_greeting ""
-    
+
     # Basic history
     set -g HISTSIZE 1000
-    
+
     # Basic color for ls
     alias ls='ls --color=auto'
-    
+
     # Basic XDG paths
     set -x XDG_DATA_HOME "$HOME/.local/share"
     set -x XDG_CONFIG_HOME "$HOME/.config"
-    set -x XDG_STATE_HOME "$HOME/.local/state" 
+    set -x XDG_STATE_HOME "$HOME/.local/state"
     set -x XDG_CACHE_HOME "$HOME/.cache"
-    
-    # Skip rest of configuration
-    exit
+
+    # Skip rest of configuration (requires fish >= 3.4)
+    return
 end
 
 #######################################################################
 # SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
 #######################################################################
 # FISH version converted from dxsbash
-# Version 3.1.0
+# Version 3.1.2
 # Start updating fish config:
 # nano ~/.config/fish/config.fish
 # paste this script and save
@@ -86,22 +89,35 @@ alias web='cd /var/www/html'
 alias password='pwgen -A'
 
 #######################################################
-# Update Computer - Debian - NALA
+# Update Computer - Debian (nala when available, apt otherwise)
 #######################################################
-alias install='sudo nala update && sudo nala install -y'
-alias update='sudo nala update && sudo nala upgrade -y'
-alias upgrade='sudo nala update && sudo apt-get dist-upgrade'
-alias remove='sudo nala update && sudo nala remove'
-alias removeall='sudo nala purge'
-alias historypkg='nala history'
-alias searchpkg='sudo nala search'
+if type -q nala
+    alias install='sudo nala update && sudo nala install -y'
+    alias update='sudo nala update && sudo nala upgrade -y'
+    alias upgrade='sudo nala update && sudo apt-get dist-upgrade'
+    alias remove='sudo nala update && sudo nala remove'
+    alias removeall='sudo nala purge'
+    alias historypkg='nala history'
+    alias searchpkg='sudo nala search'
+else if type -q apt
+    alias install='sudo apt update && sudo apt install -y'
+    alias update='sudo apt update && sudo apt upgrade -y'
+    alias upgrade='sudo apt update && sudo apt dist-upgrade'
+    alias remove='sudo apt remove'
+    alias removeall='sudo apt purge'
+    alias historypkg='grep " install " /var/log/apt/history.log'
+    alias searchpkg='apt search'
+end
 
 #######################################################
 # GENERAL ALIASES
 #######################################################
 # Edit config files
 alias efrc='edit ~/.config/fish/config.fish'
-alias help='less ~/.config/fish/fish_help'
+# Show help (execute the fish help script, pipe through pager)
+function help
+    fish ~/.config/fish/fish_help $argv 2>/dev/null | less -RFX
+end
 
 # Date and time
 alias da='date "+%Y-%m-%d %A %T %Z"'
@@ -123,11 +139,13 @@ alias multitail='multitail --no-repeat -c'
 alias freshclam='sudo freshclam'
 
 # Editor aliases
+if type -q nvim
+    alias vim='nvim'
+    alias vis='nvim "+set si"'
+end
 alias vi='vim'
 alias svi='sudo vi'
-alias vis='nvim "+set si"'
 alias snano='sudo nano'
-alias vim='nvim'
 alias spico='sedit'
 
 # Git shortcuts
@@ -181,11 +199,8 @@ alias lls='ls -l'                 # List
 
 # Chmod aliases
 alias mx='chmod a+x'
-alias 000='chmod -R 000'
-alias 644='chmod -R 644'
-alias 666='chmod -R 666'
-alias 755='chmod -R 755'
-alias 777='chmod -R 777'
+# Recursive 000/644/666/755/777 chmod aliases were removed as dangerous
+# (matching .bash_aliases) — one mistyped word could re-permission a tree.
 
 # Search history
 function h
@@ -267,7 +282,7 @@ alias ipview="netstat -anpl | grep :80 | awk '{print \$5}' | cut -d: -f1 | sort 
 
 # Reboot/shutdown
 alias restart='sudo shutdown -r now'
-alias forcerestart='sudo shutdown -r -n now'
+alias forcerestart='sudo systemctl reboot --force'
 alias turnoff='sudo poweroff'
 
 # Disk usage
@@ -300,12 +315,10 @@ alias kssh="kitty +kitten ssh"
 # Docker cleanup
 alias docker-clean='docker container prune -f; docker image prune -f; docker network prune -f; docker volume prune -f'
 
-# Use ripgrep if available, otherwise regular grep with color
-if type -q rg
-    alias grep='rg'
-else
-    alias grep='/usr/bin/grep --color=auto'
-end
+# Grep with color. Note: do NOT alias grep to rg — ripgrep's flags are
+# incompatible with GNU grep (e.g. rg -r means --replace, not recursive).
+# ripgrep remains available as `rg`.
+alias grep='grep --color=auto'
 
 # Use bat or batcat based on distribution
 function get_distribution
@@ -352,9 +365,11 @@ function get_distribution
 end
 
 set DISTRIBUTION (get_distribution)
-if test "$DISTRIBUTION" = "redhat"; or test "$DISTRIBUTION" = "arch"
+# Use bat/batcat for cat only when actually installed — an unguarded
+# alias would break `cat` entirely on systems without the bat package.
+if type -q bat
     alias cat='bat'
-else
+else if type -q batcat
     alias cat='batcat'
 end
 
@@ -529,17 +544,19 @@ function install_fish_support
         case "debian"
             sudo apt-get install fish bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
         case "arch"
-            sudo paru -S multitail tree zoxide trash-cli fzf fish
+            # AUR helpers must NOT run under sudo; they call sudo themselves
+            paru -S multitail tree zoxide trash-cli fzf fish
         case "slackware"
             echo "No install support for Slackware yet. Sorry my good old friend Patrick V."
         case "*"
             echo "Unknown distribution"
     end
     
-    # Install Fisher plugin manager
+    # Install Fisher plugin manager (git.io redirects were shut down by
+    # GitHub in 2022 — install from the canonical location instead)
     if not type -q fisher
         echo "Installing Fisher plugin manager..."
-        curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher
+        curl -sSfL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher
     end
     
     # Install useful plugins

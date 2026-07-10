@@ -449,9 +449,11 @@ checkEnv() {
     exit 1
   fi
 
-  ## Ensure user has sudo privileges
-  if ! groups | grep -q "sudo"; then
-    echo -e "${RED}  ✗ You need to be a member of the ${WHITE}sudo${RED} group to run this script!${RC}"
+  ## Ensure user can escalate privileges: root passes outright (root is
+  ## not in the sudo group, so the old group check wrongly rejected
+  ## 'sudo ./setup.sh'); otherwise accept sudo/wheel/admin membership.
+  if [ "$(id -u)" -ne 0 ] && ! groups | grep -qwE "sudo|wheel|admin"; then
+    echo -e "${RED}  ✗ You need to be a member of the ${WHITE}sudo${RED} (or wheel) group to run this script!${RC}"
     exit 1
   fi
 
@@ -761,10 +763,13 @@ setupShellConfig() {
       cp -f "$GITPATH/.zshrc_help" "$USER_HOME/.zshrc_help"
     }
 
-    # Install Oh My Zsh if not already installed
+    # Install Oh My Zsh if not already installed.
+    # KEEP_ZSHRC=yes is essential: without it the installer moves the
+    # dxsbash ~/.zshrc symlink aside and replaces it with its own
+    # template, so fresh zsh installs would boot with stock OMZ.
     if [ ! -d "$USER_HOME/.oh-my-zsh" ]; then
       echo -e "${YELLOW}  Installing Oh My Zsh...${RC}"
-      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
       echo -e "${GREEN}  ✓ Oh My Zsh installed${RC}"
     else
       echo -e "${GREEN}  ✓ Oh My Zsh already installed${RC}"
@@ -1177,8 +1182,10 @@ main() {
   echo -e "${BLUE}║                                                          ${RC}"
   echo -e "${BLUE}║  ${GREEN}Installation Complete!${BLUE}                   ${RC}"
   echo -e "${BLUE}║                                                          ${RC}"
+  local config_label="~/.${SELECTED_SHELL}rc"
+  [ "$SELECTED_SHELL" = "fish" ] && config_label="~/.config/fish/config.fish"
   echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}        ${RC}"
-  echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ~/.${SELECTED_SHELL}rc${BLUE} ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ${config_label}${BLUE} ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} update-dxsbash${BLUE}             ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Repair:${YELLOW} dxsbash-repair${BLUE}             ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Doctor:${YELLOW} dxsbash-doctor${BLUE}             ${RC}"

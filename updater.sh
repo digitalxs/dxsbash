@@ -2,7 +2,7 @@
 #=================================================================
 # DXSBash Updater - Cross-Distribution Compatible
 # Compatible with: Debian 13, Fedora 42, Arch Linux (latest)
-# Version: 3.1.0
+# Version: 3.1.2
 # Author: Luis Miguel P. Freitas
 # License: GPL-3.0
 #=================================================================
@@ -19,6 +19,7 @@ readonly YELLOW='\033[1;33m'
 readonly GREEN='\033[1;32m'
 readonly BLUE='\033[1;34m'
 readonly CYAN='\033[1;36m'
+readonly WHITE='\033[1;37m'
 
 #=================================================================
 # Global Variables
@@ -142,18 +143,20 @@ version_compare() {
 #=================================================================
 # Backup Functions
 #=================================================================
+# Prints the backup path on stdout — callers capture it with $(...),
+# so console log output inside this function must go to stderr.
 create_backup() {
     local backup_name="dxsbash-backup-$(date +%Y%m%d-%H%M%S)"
     local backup_path="${BACKUP_DIR}/${backup_name}"
-    
+
     mkdir -p "${BACKUP_DIR}"
-    
-    log INFO "Creating backup at ${backup_path}"
-    
+
+    log INFO "Creating backup at ${backup_path}" >&2
+
     if cp -r "${DXSBASH_DIR}" "${backup_path}" 2>/dev/null; then
         # Verify backup
         if [ -d "${backup_path}" ] && [ -f "${backup_path}/version.txt" ]; then
-            log SUCCESS "Backup created and verified successfully"
+            log SUCCESS "Backup created and verified successfully" >&2
             echo "${backup_path}"
         else
             log ERROR "Backup verification failed"

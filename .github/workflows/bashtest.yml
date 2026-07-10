@@ -4,10 +4,12 @@ on: [push, pull_request]
 
 jobs:
   lint:
+    # Note: the old 'os' matrix entry was unused (runs-on was hardcoded)
+    # and 'debian-latest' is not a valid GitHub-hosted runner label, so
+    # the matrix only varies the shell under test now.
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04, debian-latest]
         shell: [bash, zsh, fish]
 
     steps:
@@ -22,18 +24,23 @@ jobs:
     - name: Test Bash scripts
       if: matrix.shell == 'bash'
       run: |
-        shellcheck -f gcc *.sh .bashrc || true
+        shellcheck -S error -f gcc *.sh .bashrc
         bash -n .bashrc
+        bash -n .bash_aliases
+        bash -n .bashrc_help
+        for f in *.sh; do bash -n "$f"; done
 
     - name: Test Zsh scripts
       if: matrix.shell == 'zsh'
       run: |
-        zsh -n .zshrc || true
+        zsh -n .zshrc
+        zsh -n .zshrc_help
 
     - name: Test Fish scripts
       if: matrix.shell == 'fish'
       run: |
-        fish -n config.fish || true
+        fish --no-execute config.fish
+        fish --no-execute fish_help
 
     - name: Test installation (dry run)
       run: |

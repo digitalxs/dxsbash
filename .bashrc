@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Bash Configuration
-# Version 3.1.0
+# Version 3.1.2
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -108,12 +108,11 @@ export VISUAL=nano
 export CLICOLOR=1
 export LS_COLORS='no=00:fi=00:di=00;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.ogg=01;35:*.mp3=01;35:*.wav=01;35:*.xml=00;31:'
 
-# Grep setup - prefer ripgrep if available
-if command -v rg &> /dev/null; then
-    alias grep='rg'
-else
-    alias grep="/usr/bin/grep --color=auto"
-fi
+# Grep with color. Note: do NOT alias grep to rg — ripgrep's flags are
+# incompatible with GNU grep (e.g. rg -r means --replace, not recursive),
+# which silently corrupts functions and habits built on grep semantics.
+# ripgrep remains available as `rg`.
+alias grep='grep --color=auto'
 
 # Color for manpages
 export LESS_TERMCAP_mb=$'\E[01;31m'
@@ -215,8 +214,11 @@ setup_package_aliases() {
             alias historypkg='grep -E "installed|upgraded|removed" /var/log/pacman.log'
             ;;
         *)
-            # Generic fallbacks - avoid error messages
-            echo "Warning: Unknown distribution, package management aliases not set" >&2
+            # redhat/suse are recognised but have no alias set yet; only
+            # warn when the distribution is truly unknown.
+            if [ "$DISTRIBUTION" = "unknown" ]; then
+                echo "Warning: Unknown distribution, package management aliases not set" >&2
+            fi
             ;;
     esac
 }
@@ -241,9 +243,6 @@ setup_cat_alias
 alias root='cd /'
 alias web='cd /var/www/html'
 alias password='pwgen -A'
-
-# Docker cleanup alias
-alias docker-clean='docker container prune -f ; docker image prune -f ; docker network prune -f ; docker volume prune -f'
 
 # Source .bash_aliases if it exists
 if [ -f ~/.bash_aliases ]; then
@@ -623,7 +622,7 @@ __setprompt() {
     fi
 
     # Date and time
-    PS1+="\[${DARKGRAY}\](\[${CYAN}\]\$(date +%a) $(date +%b-'%-m')"
+    PS1+="\[${DARKGRAY}\](\[${CYAN}\]\$(date +%a) $(date +%b-'%-d')"
     PS1+="${BLUE} $(date +'%-I':%M:%S%P)\[${DARKGRAY}\])-"
 
     # CPU usage
@@ -678,12 +677,14 @@ export PATH="/usr/sbin:/snap/bin:$HOME/.composer/vendor/bin:$PATH"
 #######################################################
 
 # Bind Ctrl+f to zi (zoxide interactive) for interactive shells
-if [[ $- == *i* ]]; then
+if [[ $- == *i* ]] && command -v zoxide &> /dev/null; then
     bind '"\C-f":"zi\n"'
 fi
 
-# Set up prompt (will be overridden by starship if available)
-PROMPT_COMMAND='__setprompt'
+# Set up prompt (will be overridden by starship if available).
+# Keep 'history -a' here: assigning PROMPT_COMMAND replaces the earlier
+# value, so the per-prompt history flush must be part of this one.
+PROMPT_COMMAND='__setprompt; history -a'
 
 # Initialize external tools
 if command -v zoxide &> /dev/null; then
@@ -715,4 +716,3 @@ export PATH="${PATH}:/usr/local/sbin:/usr/sbin:/sbin"
 if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ] && [ "${DXSBASH_FASTFETCH:-true}" = "true" ]; then
     fastfetch
 fi
-eval "$(zoxide init bash)"

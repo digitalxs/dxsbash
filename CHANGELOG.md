@@ -18,6 +18,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shows the full definition of the selected alias or function. Falls back to
   the plain sorted listing when `fzf` is missing or output is piped.
 
+### Fixed
+- **updater.sh crash on success**: `${WHITE}` was used in the completion
+  message but never defined; under `set -u` the updater died with
+  "WHITE: unbound variable" at the end of every successful update.
+- **updater.sh backup/rollback**: `create_backup` printed INFO/SUCCESS log
+  lines to stdout, polluting the captured backup path — the failure check
+  could never trigger and `restore_backup` could never find the directory.
+  Log output inside the function now goes to stderr.
+- **Fish TTY detection and console lockout**: `string match` glob patterns
+  don't support `[1-9]` bracket classes, so the console branch never
+  matched; and the branch ended with `exit`, which would have terminated
+  login shells on a real console. Now uses a regex match and `return`.
+- **Zsh `edit`/`sedit` broken**: `type -p` in zsh prints "not found" to
+  stdout, so the editor detection always tried the rarely-installed
+  `jpico` and failed. Replaced with `command -v` checks.
+- **`grep` aliased to `rg`**: removed in bash/zsh/fish — ripgrep's flags
+  are incompatible with GNU grep (`rg -r` means `--replace`), which made
+  `ftext` silently replace matched text with the letter "n" and broke
+  standard `grep -r` habits. ripgrep remains available as `rg`.
+- **Oh My Zsh overwrote the dxsbash zsh config**: the OMZ installer
+  replaces `~/.zshrc` with its own template even with `--unattended`;
+  setup.sh and install_zshrc_support now pass `KEEP_ZSHRC=yes`.
+- **setup.sh rejected root/sudo invocations**: the sudo-group check failed
+  for root (and wheel-group users); root now passes outright and
+  wheel/admin membership is accepted.
+- **Bash history flush disabled**: `PROMPT_COMMAND='__setprompt'`
+  overwrote the earlier `history -a` hook; both now run per prompt.
+- **Unguarded duplicate `zoxide init`** at the end of `.bashrc` printed
+  "command not found" on every shell start when zoxide was missing.
+- **Prompt date showed month number instead of day** (`Jul-7` all of
+  July) in the bash and zsh custom prompts; now uses the day of month.
+- **Fish `cat`/package aliases unguarded**: `cat` was aliased to `batcat`
+  without checking it exists (breaking `cat` entirely without bat), and
+  `install`/`update` hardcoded nala; both now fall back gracefully.
+- **Fish `install_fish_support`**: dropped `sudo` from `paru` (AUR
+  helpers refuse to run as root) and replaced the dead `git.io/fisher`
+  URL with Fisher's canonical install location.
+- **fish_help unparseable**: the file used a bash heredoc, which fish
+  cannot parse; converted to a fish-native multi-line echo and the fish
+  `help` command now executes it (with topic support) instead of paging
+  the raw source.
+- **Zsh `cpp()` leaked `set -e`** into the interactive shell, killing the
+  session on the next failing command.
+- **Zsh distro detection**: now recognises Fedora/RHEL and openSUSE
+  families instead of warning "unsupported distribution" on every
+  startup; bash only warns for genuinely unknown distributions.
+- **Removed recursive `000/644/666/755/777` chmod aliases** from zsh and
+  fish, matching the removal already done for bash.
+- **Self-shadowing aliases**: `black`, `mypy` and `mkdocs` were aliased
+  to themselves plus an argument (`black .`, `mkdocs serve`), corrupting
+  normal invocations; renamed to `blackall`, `mypyall`, `mkserve`.
+- **check_dependencies.sh**: checked for a `ripgrep` command — the binary
+  is `rg`, so the check always reported missing.
+- **clean.sh**: looked for backups named `dxsbash_backup_*` while the
+  updater creates `dxsbash-backup-*`; listed the obsolete `upbashdxs`
+  command instead of the helpers actually installed today.
+- **`forcerestart`** used `shutdown -n`, which systemd's shutdown does
+  not support; now uses `systemctl reboot --force`.
+- **CI workflow**: removed the unused `os` matrix (including the invalid
+  `debian-latest` runner label) that tripled every job, and removed the
+  `|| true` suffixes that made the zsh/fish syntax checks unfailable.
+- Guarded the Ctrl+F zoxide keybinding (bash/zsh) and the `vim`→`nvim`
+  alias (zsh/fish) behind availability checks.
+
 ## [3.1.2] - 2026-04-19
 
 ### Added

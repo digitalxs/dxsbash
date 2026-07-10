@@ -4,8 +4,9 @@
 #
 # This file contains helpful information about commands and shortcuts
 # available in the dxsbash Fish environment.
+# (fish has no heredocs — the banner text is a multi-line echo string)
 
-cat << 'EOF'
+echo '
 ░█▀▄░█░█░█▀▀░░░█▀▄░█▀█░█▀▀░█░█░░░█░█░█▀▀░█░░░█▀█
 ░█░█░▄▀▄░▀▀█░░░█▀▄░█▀█░▀▀█░█▀█░░░█▀█░█▀▀░█░░░█▀▀
 ░▀▀░░▀░▀░▀▀▀░░░▀▀░░▀░▀░▀▀▀░▀░▀░░░▀░▀░▀▀▀░▀▀▀░▀░░
@@ -163,7 +164,7 @@ reset-shell-profile - Reset to default shell configuration
 
 For more information and updates, visit:
 https://github.com/digitalxs/dxsbash
-EOF
+'
 
 # Function to show specific help topics
 function show_help_topic

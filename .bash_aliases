@@ -126,7 +126,7 @@ alias ipview="netstat -anpl | grep :80 | awk {'print \$5'} | cut -d\":\" -f1 | s
 
 # Alias's for safe and forced reboots
 alias restart='sudo shutdown -r now'
-alias forcerestart='sudo shutdown -r -n now'
+alias forcerestart='sudo systemctl reboot --force'
 alias turnoff='sudo poweroff'
 
 # Alias's to show disk space and space used in a folder
@@ -150,7 +150,7 @@ alias logs="sudo find /var/log -type f -exec file {} \; | grep 'text' | cut -d' 
 
 # SHA1
 alias sha1='openssl sha1'
-alias clickpaste='sleep 3; xdotool type "$(xclip -o -selection clipboard)"'
+# (clickpaste is defined below, guarded by the xclip availability check)
 
 # KITTY - alias to be able to use kitty features when connecting to remote servers(e.g use tmux on remote server)
 alias kssh="kitty +kitten ssh"
@@ -284,11 +284,14 @@ fi
 if command -v flake8 &> /dev/null; then
     alias lint='flake8'                            # Run flake8 linter
 fi
+# Note: black/mypy are intentionally NOT aliased to 'black .'/'mypy .'
+# — that would prepend '.' to every invocation, so 'black file.py'
+# would silently reformat the whole directory. Use distinct names:
 if command -v black &> /dev/null; then
-    alias black='black .'                          # Format code with Black
+    alias blackall='black .'                       # Format current dir with Black
 fi
 if command -v mypy &> /dev/null; then
-    alias mypy='mypy .'                            # Run type checking
+    alias mypyall='mypy .'                         # Type-check current dir
 fi
 
 # Python dependency management
@@ -300,7 +303,7 @@ fi
 # Python documentation
 alias pydoc='python -m pydoc'                     # Access Python documentation
 if command -v mkdocs &> /dev/null; then
-    alias mkdocs='mkdocs serve'                    # Serve documentation with MkDocs
+    alias mkserve='mkdocs serve'                   # Serve documentation with MkDocs
 fi
 
 #######################################################

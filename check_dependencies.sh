@@ -14,7 +14,8 @@ echo "Checking DXSBash dependencies..."
 echo "================================"
 
 REQUIRED="git curl bash"
-OPTIONAL="zsh fish starship zoxide fzf fastfetch ripgrep tree multitail nano nvim docker kubectl xclip xdotool notify-send bc lsof openssl btop"
+# Note: ripgrep's binary is 'rg' — checking for 'ripgrep' always fails
+OPTIONAL="zsh fish starship zoxide fzf fastfetch rg tree multitail nano nvim docker kubectl xclip xdotool notify-send bc lsof openssl btop"
 
 echo "Required:"
 for cmd in $REQUIRED; do

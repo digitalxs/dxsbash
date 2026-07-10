@@ -308,14 +308,14 @@ fi
 #=================================================================
 # 6. Offer to revert default shell to bash
 #=================================================================
-CURRENT_SHELL=$(getent passwd "$USER" | cut -d: -f7)
+CURRENT_SHELL=$(getent passwd "${USER:-$(id -un)}" | cut -d: -f7)
 BASH_PATH=$(command -v bash || echo /bin/bash)
 if [ "$CURRENT_SHELL" != "$BASH_PATH" ]; then
     echo -e "${CYAN}▶ Default shell check...${RC}"
     echo -e "  Current login shell: ${WHITE}$CURRENT_SHELL${RC}"
     if confirm "Revert login shell to $BASH_PATH?"; then
         if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
-            run "$SUDO_CMD chsh -s \"$BASH_PATH\" \"$USER\""
+            run "$SUDO_CMD chsh -s \"$BASH_PATH\" \"${USER:-$(id -un)}\""
             echo -e "${GREEN}  ✓ Login shell reverted to bash${RC}"
         else
             echo -e "${YELLOW}  Run manually: chsh -s $BASH_PATH${RC}"

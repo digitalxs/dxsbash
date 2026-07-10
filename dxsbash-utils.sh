@@ -32,8 +32,9 @@ rotate_logs() {
     local max_size=1048576  # 1MB
     
     # Check if log exists and is larger than max size
-    if [ -f "$main_log" ] && [ $(stat -c %s "$main_log") -gt $max_size ]; then
-        local timestamp=$(date "+%Y%m%d_%H%M%S")
+    if [ -f "$main_log" ] && [ "$(stat -c %s "$main_log")" -gt "$max_size" ]; then
+        local timestamp
+        timestamp=$(date "+%Y%m%d_%H%M%S")
         mv "$main_log" "$log_dir/dxsbash_$timestamp.log"
         # Keep only the 5 most recent log files
         ls -t "$log_dir"/dxsbash_*.log | tail -n +6 | xargs rm -f 2>/dev/null

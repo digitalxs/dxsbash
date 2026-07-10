@@ -114,7 +114,8 @@ remove_dir "$HOME/.dxsbash"
 
 echo -e "${CYAN}Checking for dxsbash backups...${NC}"
 # List any backup directories but don't remove them automatically
-find "$LINUXTOOLBOXDIR" -name "dxsbash_backup_*" -type d | while read backup_dir; do
+# (updater.sh names them dxsbash-backup-*; older versions used dxsbash_backup_*)
+find "$LINUXTOOLBOXDIR" \( -name "dxsbash-backup-*" -o -name "dxsbash_backup_*" \) -type d 2>/dev/null | while read backup_dir; do
     echo -e "  Found backup: ${YELLOW}$backup_dir${NC}"
 done
 
@@ -142,10 +143,11 @@ echo -e "${GREEN}Cleanup completed!${NC}"
 echo -e "${YELLOW}Note: System-wide components installed with sudo were not removed.${NC}"
 echo -e "${YELLOW}To remove them, run the following commands with sudo:${NC}"
 echo -e "  sudo rm -f /usr/local/bin/reset-shell-profile"
-echo -e "  sudo rm -f /usr/local/bin/reset-bash-profile"
-echo -e "  sudo rm -f /usr/local/bin/reset-zsh-profile"
-echo -e "  sudo rm -f /usr/local/bin/reset-fish-profile"
-echo -e "  sudo rm -f /usr/local/bin/upbashdxs"
+echo -e "  sudo rm -f /usr/local/bin/update-dxsbash"
+echo -e "  sudo rm -f /usr/local/bin/dxsbash-config"
+echo -e "  sudo rm -f /usr/local/bin/dxsbash-repair"
+echo -e "  sudo rm -f /usr/local/bin/dxsbash-uninstall"
+echo -e "  sudo rm -f /usr/local/bin/dxsbash-doctor"
 
 echo -e "${BLUE}You may want to restore your original shell configuration files.${NC}"
 echo -e "${BLUE}If you had backups, they should be available with .bak extension.${NC}"
