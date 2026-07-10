@@ -15,6 +15,7 @@
 #   dxsbash update [--check]   Update DXSBash (or just check for updates)
 #   dxsbash config             Interactive configuration menu
 #   dxsbash doctor [args]      Health-check the installation
+#   dxsbash audit [args]       Security audit of the system (read-only)
 #   dxsbash repair [args]      Re-create symlinks and helper commands
 #   dxsbash uninstall [args]   Remove DXSBash and restore defaults
 #   dxsbash version            Print the installed version
@@ -38,6 +39,8 @@ Commands:
               (use 'dxsbash update --check' to only check)
   config      Interactive configuration menu (editor, prompt, themes)
   doctor      Health-check the installation (read-only)
+  audit       Security audit of the system (read-only)
+              (run 'sudo dxsbash audit' for full coverage)
   repair      Re-create broken symlinks and helper commands
   uninstall   Remove DXSBash and restore system defaults
   version     Print the installed version
@@ -45,6 +48,7 @@ Commands:
 
 Extra options are passed through to the underlying script,
 e.g.:  dxsbash doctor --verbose
+       dxsbash audit --verbose
        dxsbash repair --dry-run
 USAGE
 }
@@ -67,6 +71,8 @@ case "$CMD" in
     update)              run_script updater.sh "$@" ;;
     config)              run_script dxsbash-config.sh "$@" ;;
     doctor)              run_script doctor.sh "$@" ;;
+    audit)               run_script secaudit.sh "$@" ;;
+    secsummary)          run_script secsummary.sh "$@" ;;
     repair)              run_script repair.sh "$@" ;;
     uninstall)           run_script uninstall.sh "$@" ;;
     version|-v|--version)

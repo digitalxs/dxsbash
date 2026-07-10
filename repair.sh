@@ -175,7 +175,7 @@ echo ""
 #=================================================================
 echo -e "${CYAN}▶ Fixing script permissions...${RC}"
 for s in setup.sh updater.sh dxsbash.sh dxsbash-config.sh uninstall.sh repair.sh \
-         doctor.sh clean.sh \
+         doctor.sh secaudit.sh secsummary.sh clean.sh \
          reset-bash-profile.sh reset-zsh-profile.sh reset-fish-profile.sh \
          check_dependencies.sh dxsbash-utils.sh; do
     if [ -f "$DXSBASH_DIR/$s" ]; then
@@ -192,6 +192,10 @@ echo -e "${CYAN}▶ Checking system-wide commands...${RC}"
 relink_system "$DXSBASH_DIR/updater.sh"          /usr/local/bin/update-dxsbash     "update-dxsbash"
 relink_system "$DXSBASH_DIR/dxsbash-config.sh"   /usr/local/bin/dxsbash-config     "dxsbash-config"
 relink_system "$DXSBASH_DIR/dxsbash.sh"          /usr/local/bin/dxsbash            "dxsbash"
+relink_system "$DXSBASH_DIR/doctor.sh"           /usr/local/bin/dxsbash-doctor     "dxsbash-doctor"
+relink_system "$DXSBASH_DIR/secaudit.sh"         /usr/local/bin/dxsbash-audit      "dxsbash-audit"
+relink_system "$DXSBASH_DIR/repair.sh"           /usr/local/bin/dxsbash-repair     "dxsbash-repair"
+relink_system "$DXSBASH_DIR/uninstall.sh"        /usr/local/bin/dxsbash-uninstall  "dxsbash-uninstall"
 
 case "$SHELL_TARGET" in
     bash) RESET_SRC="$DXSBASH_DIR/reset-bash-profile.sh" ;;

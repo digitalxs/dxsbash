@@ -47,6 +47,7 @@ DEF_HISTFILESIZE=10000
 DEF_FASTFETCH="true"
 DEF_PROMPT_STYLE="starship"
 DEF_STARSHIP_THEME="dxs-starship.toml"
+DEF_SECSUMMARY="false"
 
 # ── Current (working) values ──────────────────────────────────────
 CUR_EDITOR=""
@@ -55,6 +56,7 @@ CUR_HISTFILESIZE=""
 CUR_FASTFETCH=""
 CUR_PROMPT_STYLE=""
 CUR_STARSHIP_THEME=""
+CUR_SECSUMMARY=""
 
 #=================================================================
 # Banner
@@ -95,6 +97,7 @@ load_config() {
     CUR_FASTFETCH=$(      _read_conf "DXSBASH_FASTFETCH"      "$DEF_FASTFETCH")
     CUR_PROMPT_STYLE=$(   _read_conf "DXSBASH_PROMPT_STYLE"   "$DEF_PROMPT_STYLE")
     CUR_STARSHIP_THEME=$( _read_conf "DXSBASH_STARSHIP_THEME" "$DEF_STARSHIP_THEME")
+    CUR_SECSUMMARY=$(     _read_conf "DXSBASH_SECSUMMARY"     "$DEF_SECSUMMARY")
 
     # If the starship symlink points at a known preset, trust the
     # filesystem over the conf file — users may have run setup.sh or
@@ -134,6 +137,7 @@ export HISTFILESIZE=${CUR_HISTFILESIZE}
 export DXSBASH_FASTFETCH="${CUR_FASTFETCH}"
 export DXSBASH_PROMPT_STYLE="${CUR_PROMPT_STYLE}"
 export DXSBASH_STARSHIP_THEME="${CUR_STARSHIP_THEME}"
+export DXSBASH_SECSUMMARY="${CUR_SECSUMMARY}"
 EOF
 
     # Fish cannot source POSIX files — write a fish-syntax twin so the
@@ -148,6 +152,7 @@ set -gx VISUAL "${CUR_EDITOR}"
 set -gx DXSBASH_FASTFETCH "${CUR_FASTFETCH}"
 set -gx DXSBASH_PROMPT_STYLE "${CUR_PROMPT_STYLE}"
 set -gx DXSBASH_STARSHIP_THEME "${CUR_STARSHIP_THEME}"
+set -gx DXSBASH_SECSUMMARY "${CUR_SECSUMMARY}"
 EOF
 
     echo ""
@@ -188,15 +193,19 @@ show_current_settings() {
     local theme_label
     theme_label="${CYAN}$(starship_theme_display_name "$CUR_STARSHIP_THEME")${RC}"
 
+    local secsummary_label
+    [ "$CUR_SECSUMMARY" = "true" ] && secsummary_label="${GREEN}enabled${RC}" || secsummary_label="${RED}disabled${RC}"
+
     echo -e "${BLUE}┌─────────────────────────────────────────────────────────┐${RC}"
     echo -e "${BLUE}│  Current Configuration                                  │${RC}"
     echo -e "${BLUE}├──────────────────────┬──────────────────────────────────┤${RC}"
-    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Editor"         "${WHITE}$CUR_EDITOR${RC}"
-    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32s${BLUE}│${RC}\n" "History size"   "$CUR_HISTSIZE entries"
-    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32s${BLUE}│${RC}\n" "History file"   "$CUR_HISTFILESIZE entries"
-    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Fastfetch"      "$fastfetch_label"
-    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Prompt style"   "$prompt_label"
-    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Starship theme" "$theme_label"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Editor"          "${WHITE}$CUR_EDITOR${RC}"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32s${BLUE}│${RC}\n" "History size"    "$CUR_HISTSIZE entries"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32s${BLUE}│${RC}\n" "History file"    "$CUR_HISTFILESIZE entries"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Fastfetch"       "$fastfetch_label"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Prompt style"    "$prompt_label"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Starship theme"  "$theme_label"
+    printf "${BLUE}│${RC}  %-20s${BLUE}│${RC}  %-32b${BLUE}│${RC}\n" "Security summary" "$secsummary_label"
     echo -e "${BLUE}└──────────────────────┴──────────────────────────────────┘${RC}"
     echo ""
 }
@@ -493,6 +502,48 @@ configure_fastfetch() {
 }
 
 #=================================================================
+# Submenu — Security summary at login
+#=================================================================
+configure_secsummary() {
+    display_banner
+    echo -e "${CYAN}▶ Security Summary at Login${RC}"
+    echo ""
+    echo -e "  Shows a one-line security status when a new shell opens"
+    echo -e "  (pending security updates, failed SSH logins, firewall"
+    echo -e "  state, reboot-required). Unlike fastfetch it is ${WHITE}also"
+    echo -e "  shown over SSH${RC}, where it is most useful."
+    echo ""
+    echo -e "  It reads from a cache and refreshes in the background, so"
+    echo -e "  it does not slow down opening a terminal. For the full"
+    echo -e "  report run ${WHITE}dxsbash audit${RC}."
+    echo ""
+
+    local ss_setting
+    [ "$CUR_SECSUMMARY" = "true" ] && ss_setting="${GREEN}enabled${RC}" || ss_setting="${RED}disabled${RC}"
+    echo -e "  Current:   $ss_setting"
+    echo ""
+    echo -e "  ${WHITE}1)${RC} Enable  security summary at login"
+    echo -e "  ${WHITE}2)${RC} Disable security summary at login"
+    echo -e "  ${WHITE}0)${RC} Back"
+    echo ""
+
+    read -rp "  Choice: " choice
+    case "$choice" in
+        1)
+            CUR_SECSUMMARY="true"
+            save_config
+            # Prime the cache now so the first login shows real data.
+            if [ -x "$DXSBASH_DIR/secsummary.sh" ]; then
+                "$DXSBASH_DIR/secsummary.sh" --refresh >/dev/null 2>&1 &
+            fi
+            ;;
+        2) CUR_SECSUMMARY="false"; save_config ;;
+        0|"") return ;;
+        *) echo -e "${RED}  Invalid choice.${RC}"; sleep 1 ;;
+    esac
+}
+
+#=================================================================
 # Reset to defaults
 #=================================================================
 reset_to_defaults() {
@@ -502,9 +553,10 @@ reset_to_defaults() {
     echo -e "    Editor         → ${WHITE}$DEF_EDITOR${RC}"
     echo -e "    HISTSIZE       → ${WHITE}$DEF_HISTSIZE${RC}"
     echo -e "    HISTFILESIZE   → ${WHITE}$DEF_HISTFILESIZE${RC}"
-    echo -e "    Fastfetch      → ${WHITE}$DEF_FASTFETCH${RC}"
-    echo -e "    Prompt style   → ${WHITE}$DEF_PROMPT_STYLE${RC}"
-    echo -e "    Starship theme → ${WHITE}$(starship_theme_display_name "$DEF_STARSHIP_THEME")${RC}"
+    echo -e "    Fastfetch        → ${WHITE}$DEF_FASTFETCH${RC}"
+    echo -e "    Prompt style     → ${WHITE}$DEF_PROMPT_STYLE${RC}"
+    echo -e "    Starship theme   → ${WHITE}$(starship_theme_display_name "$DEF_STARSHIP_THEME")${RC}"
+    echo -e "    Security summary → ${WHITE}$DEF_SECSUMMARY${RC}"
     echo ""
     read -rp "  Continue? (y/N): " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
@@ -514,6 +566,7 @@ reset_to_defaults() {
         CUR_FASTFETCH="$DEF_FASTFETCH"
         CUR_PROMPT_STYLE="$DEF_PROMPT_STYLE"
         CUR_STARSHIP_THEME="$DEF_STARSHIP_THEME"
+        CUR_SECSUMMARY="$DEF_SECSUMMARY"
         apply_starship_theme "$DEF_STARSHIP_THEME" >/dev/null 2>&1 || true
         save_config
     else
@@ -536,7 +589,8 @@ main_menu() {
         echo -e "  ${WHITE}3)${RC} Prompt style            ${DIM}(${CUR_PROMPT_STYLE})${RC}"
         echo -e "  ${WHITE}4)${RC} Starship theme          ${DIM}($(starship_theme_display_name "$CUR_STARSHIP_THEME"))${RC}"
         echo -e "  ${WHITE}5)${RC} Startup display         ${DIM}(fastfetch=${CUR_FASTFETCH})${RC}"
-        echo -e "  ${WHITE}6)${RC} Reset to defaults"
+        echo -e "  ${WHITE}6)${RC} Security summary        ${DIM}(secsummary=${CUR_SECSUMMARY})${RC}"
+        echo -e "  ${WHITE}7)${RC} Reset to defaults"
         echo -e "  ${WHITE}0)${RC} Exit"
         echo ""
 
@@ -547,7 +601,8 @@ main_menu() {
             3) configure_prompt ;;
             4) configure_starship_theme ;;
             5) configure_fastfetch ;;
-            6) reset_to_defaults ;;
+            6) configure_secsummary ;;
+            7) reset_to_defaults ;;
             0|"q"|"Q"|"exit") break ;;
             *) echo -e "${RED}  Invalid choice.${RC}"; sleep 1 ;;
         esac

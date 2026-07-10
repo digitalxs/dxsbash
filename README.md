@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.3.1
+v3.4.0
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -89,12 +89,50 @@ Everything can be managed from a single entry point:
 dxsbash update      # update to the latest release
 dxsbash config      # interactive configuration menu
 dxsbash doctor      # health-check the installation
+dxsbash audit       # security audit of the system (read-only)
 dxsbash repair      # fix broken symlinks/commands
 dxsbash uninstall   # remove and restore defaults
 dxsbash version     # show installed version
 ```
 
 The individual commands below keep working — `dxsbash` is a wrapper.
+
+## Security
+
+DXSBash includes read-only, defensive security tooling. Nothing here
+changes system state.
+
+### Security audit
+
+`dxsbash audit` (or `dxsbash-audit`) runs a system security health check
+in the same pass/warn/fail style as `dxsbash doctor`:
+
+```bash
+dxsbash audit              # summary of findings
+dxsbash audit --verbose    # include everything that passed
+sudo dxsbash audit         # full coverage (some checks need root)
+```
+
+It checks pending security updates, firewall state, SSH daemon hardening
+(`PermitRootLogin`, `PasswordAuthentication`), UID-0/empty-password
+accounts and `NOPASSWD` sudo rules, PATH hygiene, world-writable and new
+SUID/SGID files (against a baseline in `~/.dxsbash/`), failed SSH logins,
+and internal services exposed on all interfaces. Exit code is non-zero
+when any check fails, so it can be dropped into cron or CI.
+
+### Security summary at login
+
+An opt-in one-line security status shown when a shell opens — pending
+security updates, failed SSH logins, firewall state, and whether a reboot
+is required. Unlike fastfetch it is **also shown over SSH**, where it
+matters most, and it reads from a background-refreshed cache so it never
+slows down opening a terminal.
+
+Enable it from `dxsbash config` → *Security summary*, or:
+
+```bash
+echo 'export DXSBASH_SECSUMMARY="true"' >> ~/.dxsbash/user.conf
+```
 
 ## Updating
 
@@ -137,6 +175,7 @@ The menu lets you change:
 - Prompt style (Starship vs. built-in custom)
 - Starship theme (DXS, Tokyo Night, Gruvbox Rainbow, Catppuccin, …)
 - Fastfetch on startup (on/off)
+- Security summary at login (on/off)
 - Reset everything to defaults
 
 Changes are written to `~/.dxsbash/user.conf` and take effect in new shell

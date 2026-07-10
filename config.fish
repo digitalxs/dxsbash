@@ -35,7 +35,7 @@ end
 # SOURCED ALIAS'S AND FUNCTIONS BY Luis Freitas and others (2025)
 #######################################################################
 # FISH version converted from dxsbash
-# Version 3.3.1
+# Version 3.4.0
 # Start updating fish config:
 # nano ~/.config/fish/config.fish
 # paste this script and save
@@ -712,5 +712,12 @@ if status is-interactive
     # Set DXSBASH_FASTFETCH=false via dxsbash-config to disable.
     if type -q fastfetch; and not set -q SSH_CLIENT; and not set -q SSH_TTY; and test "$DXSBASH_FASTFETCH" != "false"
         fastfetch
+    end
+
+    # Show a one-line security summary at login (opt-in; shown in SSH
+    # too, where it matters most). Enable via dxsbash-config. Reads from
+    # a cache and refreshes in the background, so startup stays instant.
+    if test "$DXSBASH_SECSUMMARY" = "true"; and test -f "$HOME/linuxtoolbox/dxsbash/secsummary.sh"
+        bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
     end
 end

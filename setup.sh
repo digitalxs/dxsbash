@@ -394,8 +394,8 @@ show_preflight() {
   echo -e "${CYAN}Will install/link:${RC}"
   echo -e "  • ~/.${shell_label}rc (or equivalent) → dxsbash repo"
   echo -e "  • ~/.config/starship.toml, ~/.config/fastfetch/config.jsonc"
-  echo -e "  • /usr/local/bin/{update-dxsbash,dxsbash-config,"
-  echo -e "                    dxsbash-repair,dxsbash-uninstall,reset-shell-profile}"
+  echo -e "  • /usr/local/bin/{dxsbash,update-dxsbash,dxsbash-config,dxsbash-doctor,"
+  echo -e "                    dxsbash-audit,dxsbash-repair,dxsbash-uninstall,reset-shell-profile}"
   echo -e "  • System packages via apt/nala (requires sudo)"
   echo -e "  • FiraCode Nerd Font, starship, zoxide, fzf"
   echo ""
@@ -1035,14 +1035,15 @@ installConfigCommand() {
 }
 
 installLifecycleCommands() {
-  echo -e "${CYAN}▶ Installing repair/uninstall/doctor commands...${RC}"
-  for src in repair.sh uninstall.sh doctor.sh dxsbash.sh; do
+  echo -e "${CYAN}▶ Installing repair/uninstall/doctor/audit commands...${RC}"
+  for src in repair.sh uninstall.sh doctor.sh secaudit.sh dxsbash.sh; do
     if [ -f "$GITPATH/$src" ]; then
       chmod +x "$GITPATH/$src"
       case "$src" in
         repair.sh)    link_name="dxsbash-repair" ;;
         uninstall.sh) link_name="dxsbash-uninstall" ;;
         doctor.sh)    link_name="dxsbash-doctor" ;;
+        secaudit.sh)  link_name="dxsbash-audit" ;;
         dxsbash.sh)   link_name="dxsbash" ;;
       esac
       ${SUDO_CMD} ln -sf "$GITPATH/$src" "/usr/local/bin/$link_name"
@@ -1051,6 +1052,10 @@ installLifecycleCommands() {
       echo -e "${YELLOW}  ⚠ $src missing in repo${RC}"
     fi
   done
+
+  # secsummary.sh is invoked by the shell rc files at login, not a
+  # user-facing command — just make sure it is executable.
+  [ -f "$GITPATH/secsummary.sh" ] && chmod +x "$GITPATH/secsummary.sh"
   echo ""
 }
 

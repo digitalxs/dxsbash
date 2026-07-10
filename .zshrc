@@ -2,7 +2,7 @@
 
 #######################################################################
 # DXSBash Enhanced Zsh Configuration
-# Version 3.3.1
+# Version 3.4.0
 # Author: Luis Miguel P. Freitas
 # Website: https://digitalxs.ca
 #######################################################################
@@ -822,4 +822,11 @@ fi
 # Set DXSBASH_FASTFETCH="false" via dxsbash-config to disable
 if command -v fastfetch &> /dev/null && [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ] && [ "${DXSBASH_FASTFETCH:-true}" = "true" ]; then
     fastfetch
+fi
+
+# Show a one-line security summary at login (opt-in; shown in SSH too,
+# where it matters most). Enable via dxsbash-config. Reads from a cache
+# and refreshes in the background, so startup stays instant.
+if [ "${DXSBASH_SECSUMMARY:-false}" = "true" ] && [ -f "$HOME/linuxtoolbox/dxsbash/secsummary.sh" ]; then
+    bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
 fi

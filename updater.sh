@@ -2,7 +2,7 @@
 #=================================================================
 # DXSBash Updater - Cross-Distribution Compatible
 # Compatible with: Debian 13, Fedora 42, Arch Linux (latest)
-# Version: 3.3.1
+# Version: 3.4.0
 # Author: Luis Miguel P. Freitas
 # License: GPL-3.0
 #
@@ -348,6 +348,8 @@ update_system_scripts() {
         "dxsbash.sh"
         "dxsbash-config.sh"
         "doctor.sh"
+        "secaudit.sh"
+        "secsummary.sh"
         "repair.sh"
         "uninstall.sh"
         "reset-bash-profile.sh"
@@ -374,6 +376,11 @@ update_system_scripts() {
         if [[ -f "${DXSBASH_DIR}/dxsbash.sh" ]]; then
             ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/dxsbash.sh" /usr/local/bin/dxsbash 2>/dev/null || {
                 log WARN "Could not update system-wide dxsbash command"
+            }
+        fi
+        if [[ -f "${DXSBASH_DIR}/secaudit.sh" ]]; then
+            ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/secaudit.sh" /usr/local/bin/dxsbash-audit 2>/dev/null || {
+                log WARN "Could not update system-wide dxsbash-audit command"
             }
         fi
     fi

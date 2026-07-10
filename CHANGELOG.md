@@ -8,6 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-07-10
+
+### Added
+- **`dxsbash audit` — system security health check** (`secaudit.sh`,
+  also `dxsbash-audit`): a read-only, defensive audit in the same
+  pass/warn/fail/skip style as `doctor.sh`. Checks pending security
+  updates and `unattended-upgrades`, firewall state (ufw/nftables/
+  firewalld), SSH hardening (`PermitRootLogin`, `PasswordAuthentication`),
+  additional UID-0 accounts / empty passwords / `NOPASSWD` sudo rules,
+  PATH hygiene (relative and world-writable entries), world-writable
+  files and a SUID/SGID baseline in `~/.dxsbash/`, failed SSH logins
+  (journal or auth.log), and internal services (db/cache/docker) exposed
+  on all interfaces. Exits non-zero on FAIL so it is cron/CI-friendly;
+  `sudo dxsbash audit` gives full coverage. It never changes anything.
+- **Security summary at login** (`secsummary.sh`, opt-in): a one-line
+  status shown when a shell opens — pending security updates, failed SSH
+  logins, firewall state, reboot-required. Unlike fastfetch it is also
+  shown over SSH. Reads from a cache and refreshes in the background, so
+  startup stays instant (measured ~9 ms). Enable via `dxsbash config` →
+  *Security summary* (new `DXSBASH_SECSUMMARY` setting, default off),
+  which also writes the fish twin `~/.dxsbash/user.fish`.
+
+### Changed
+- `dxsbash` umbrella command gains `audit` (and an internal
+  `secsummary`); setup, updater and repair install/relink
+  `/usr/local/bin/dxsbash-audit`; doctor warn-checks it. `dxsbash-repair`
+  now also relinks the `dxsbash-doctor`, `dxsbash-repair` and
+  `dxsbash-uninstall` commands, which it previously left to setup only.
+- CI install-test job now runs `dxsbash audit` and the security-summary
+  cache/startup path on every distro in the matrix.
+
 ## [3.3.1] - 2026-07-10
 
 ### Fixed

@@ -86,6 +86,22 @@ jobs:
           test -x /usr/local/bin/dxsbash-config
           test -x /usr/local/bin/dxsbash-repair
           test -x /usr/local/bin/dxsbash-doctor
+          test -x /usr/local/bin/dxsbash-audit
           test -x /usr/local/bin/dxsbash
           /usr/local/bin/dxsbash version
           /usr/local/bin/dxsbash help
+
+      - name: Security audit runs
+        run: |
+          # audit exits 1 when it finds FAILs, which is expected in a
+          # bare container — assert it produces a summary either way.
+          /usr/local/bin/dxsbash audit --no-color | tee /tmp/audit.txt || true
+          grep -q "Summary" /tmp/audit.txt
+          /usr/local/bin/dxsbash-audit --help >/dev/null
+
+      - name: Security summary caches and prints
+        run: |
+          /root/linuxtoolbox/dxsbash/secsummary.sh --refresh | grep -q "Security:"
+          test -f /root/.dxsbash/security-summary.txt
+          # --startup must be fast and must not error
+          /root/linuxtoolbox/dxsbash/secsummary.sh --startup | grep -q "Security:"
