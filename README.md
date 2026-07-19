@@ -53,6 +53,14 @@ listing.
 
 ## Installation
 
+One-liner (fastest):
+
+```bash
+curl -fsSL https://dxsbash.digitalxs.ca/install.sh | bash
+```
+
+Or clone and run manually if you'd rather inspect the script first:
+
 ```bash
 git clone --depth=1 https://github.com/digitalxs/dxsbash.git
 cd dxsbash
