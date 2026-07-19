@@ -1,8 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Detect distro family from os-release (ID first, ID_LIKE for derivatives)
-DISTRO="unknown"
+# Identify the platform from os-release
 OS_ID=""
 PRETTY="unknown"
 if [ -r /etc/os-release ]; then
@@ -10,18 +9,6 @@ if [ -r /etc/os-release ]; then
     . /etc/os-release
     OS_ID="${ID:-}"
     PRETTY="${PRETTY_NAME:-${ID:-unknown}}"
-    case "${ID:-}" in
-        debian|ubuntu) DISTRO=debian ;;
-        arch|manjaro|endeavouros) DISTRO=arch ;;
-        fedora|rhel|centos|rocky|almalinux) DISTRO=fedora ;;
-        *)
-            case " ${ID_LIKE:-} " in
-                *debian*|*ubuntu*) DISTRO=debian ;;
-                *arch*) DISTRO=arch ;;
-                *fedora*|*rhel*) DISTRO=fedora ;;
-            esac
-            ;;
-    esac
 fi
 
 echo "Testing DXSBash compatibility on: ${PRETTY}"

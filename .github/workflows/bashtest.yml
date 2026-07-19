@@ -43,7 +43,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ["debian:13", "debian:12", "ubuntu:24.04"]
+        include:
+          - image: "debian:13"
+            family: debian
+          - image: "debian:12"
+            family: debian
+          - image: "ubuntu:24.04"
+            family: debian
+          - image: "archlinux:latest"
+            family: arch
+          - image: "fedora:latest"
+            family: fedora
     container:
       image: ${{ matrix.image }}
     env:
@@ -55,10 +65,21 @@ jobs:
       DXSBASH_SKIP_FONT: "1"
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - name: Install prerequisites
+      - name: Install prerequisites (Debian/Ubuntu)
+        if: matrix.family == 'debian'
         run: |
           apt-get update
           apt-get install -y sudo git curl wget ca-certificates unzip
+
+      - name: Install prerequisites (Arch)
+        if: matrix.family == 'arch'
+        run: |
+          pacman -Syu --noconfirm sudo git curl wget ca-certificates unzip tar gzip
+
+      - name: Install prerequisites (Fedora)
+        if: matrix.family == 'fedora'
+        run: |
+          dnf install -y sudo git curl wget ca-certificates unzip tar gzip findutils
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -105,3 +126,36 @@ jobs:
           test -f /root/.dxsbash/security-summary.txt
           # --startup must be fast and must not error
           /root/linuxtoolbox/dxsbash/secsummary.sh --startup | grep -q "Security:"
+
+  build-deb:
+    name: Build .deb package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build package
+        run: |
+          chmod +x packaging/build-deb.sh
+          ./packaging/build-deb.sh
+
+      - name: Verify package metadata and contents
+        run: |
+          dpkg-deb --info dist/dxsbash_*_all.deb
+          dpkg-deb --contents dist/dxsbash_*_all.deb | head -40
+          # The package must ship the installer entry points
+          dpkg-deb --contents dist/dxsbash_*_all.deb | grep -q "usr/bin/dxsbash-installer"
+          dpkg-deb --contents dist/dxsbash_*_all.deb | grep -q "usr/share/dxsbash/setup.sh"
+
+      - name: Smoke-install the package
+        run: |
+          sudo dpkg -i dist/dxsbash_*_all.deb || sudo apt-get install -f -y
+          test -x /usr/bin/dxsbash-installer
+          test -f /usr/share/dxsbash/setup.sh
+          dpkg -s dxsbash | grep -q "Status: install ok installed"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxsbash-deb
+          path: dist/*.deb

@@ -8,6 +8,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-07-19
+
+### Added
+- **CI smoke matrix for all supported distros**: the install-test job
+  now also runs the full non-interactive installer inside
+  `archlinux:latest` and `fedora:latest` containers (joining Debian 13,
+  Debian 12 and Ubuntu 24.04), so multi-distro support is verified on
+  every push.
+- **`dxsbash export` / `dxsbash import`**: pack personal settings —
+  `~/.dxsbash` (user.conf, trusted env allowlist) plus the selected
+  Starship theme — into a tarball and restore them on another machine.
+  Preset themes are re-linked by name; custom `starship.toml` files are
+  carried verbatim.
+- **SSH-aware prompt profile**: over SSH, Starship automatically
+  switches to the new `starship-themes/ssh-lite.toml` preset (no git
+  working-tree scan, no language-version modules) so prompts stay
+  instant on slow links. Opt out with `DXSBASH_SSH_LITE="false"` in
+  `~/.dxsbash/user.conf`. Works in bash, zsh and fish.
+- **`cheat [pattern]`**: offline cheatsheet over `commands.md`,
+  rendered with bat/batcat when available, in all three shells.
+- **Per-directory environments (`.dxsbash-env`)**: a project directory
+  can carry a `.dxsbash-env` file (POSIX sh) that loads automatically
+  on `cd` — but only after being trusted once with `envallow`. Trust is
+  bound to the file's SHA-256, so any later change refuses to load
+  until re-approved; `envdeny` withdraws trust. bash and zsh source the
+  file natively; fish applies the portable `export`/`alias` subset.
+- **`dxsbash bench`**: measures cold/warm interactive startup time for
+  every installed shell, with `--profile` to expose the slowest lines
+  of the bash startup via timestamped xtrace.
+- **Debian packaging**: `packaging/build-deb.sh` builds
+  `dist/dxsbash_<version>_all.deb` (repo shipped to
+  `/usr/share/dxsbash`, per-user bootstrap via
+  `/usr/bin/dxsbash-installer`); a new CI job builds, verifies and
+  smoke-installs the package and uploads it as an artifact.
+- **`DEV.md`**: development guide covering the architecture, symlink
+  layout, cross-shell parity rules, distro-support checklist, testing,
+  packaging and the release process.
+
+### Changed
+- README: documented the new commands, the `.deb` install path, the
+  official website (https://dxsbash.digitalxs.ca) and the development
+  guide; `commands.md` gained entries for `cheat`, `envallow`,
+  `envdeny`, `dxsbash export/import/bench`.
+
 ## [3.6.0] - 2026-07-19
 
 ### Added

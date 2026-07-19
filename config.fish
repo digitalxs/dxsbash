@@ -312,6 +312,93 @@ function aliases
     rm -rf "$dir"
 end
 
+# Offline cheatsheet over the DXSBash command reference (commands.md),
+# rendered with bat when available.
+# Usage: cheat              # browse the whole reference
+#        cheat git         # only sections/lines mentioning git
+function cheat
+    set -l doc "$HOME/linuxtoolbox/dxsbash/commands.md"
+    if not test -f "$doc"
+        echo "cheat: $doc not found (is DXSBash installed?)" >&2
+        return 1
+    end
+    set -l renderer cat
+    if type -q bat
+        set renderer bat --language=md --style=plain --paging=auto
+    else if type -q batcat
+        set renderer batcat --language=md --style=plain --paging=auto
+    end
+    if test (count $argv) -eq 0
+        $renderer "$doc"
+    else
+        grep -i --color=never -- "$argv" "$doc" | $renderer
+    end
+end
+
+#######################################################
+# PER-DIRECTORY ENVIRONMENTS (.dxsbash-env)
+#######################################################
+# A .dxsbash-env file in a directory is applied automatically when you
+# cd there — but only after you trust that exact file once with
+# 'envallow'. Trust is bound to the file's content hash: if the file
+# changes, it will not load again until you re-run envallow. Use
+# 'envdeny' to withdraw trust.
+#
+# .dxsbash-env files are written in POSIX sh (bash and zsh source them
+# directly). Fish applies the portable subset: 'export KEY=VALUE' and
+# "alias name='command'" lines; anything else is ignored here.
+
+function __dxs_env_apply
+    set -l file $argv[1]
+    for line in (grep -E "^(export [A-Za-z_][A-Za-z0-9_]*=|alias [A-Za-z_][A-Za-z0-9_-]*=)" "$file" | string trim)
+        if string match -q 'export *' -- $line
+            set -l kv (string replace 'export ' '' -- $line)
+            set -l parts (string split -m1 '=' -- $kv)
+            set -gx $parts[1] (string trim -c "\"'" -- $parts[2])
+        else
+            set -l kv (string replace 'alias ' '' -- $line)
+            set -l parts (string split -m1 '=' -- $kv)
+            alias $parts[1] (string trim -c "\"'" -- $parts[2])
+        end
+    end
+end
+
+function __dxs_env_check --on-variable PWD
+    status is-interactive; or return 0
+    set -l f "$PWD/.dxsbash-env"
+    test -f "$f"; or return 0
+    set -l allow "$HOME/.dxsbash/env-allow"
+    set -l h (sha256sum "$f" 2>/dev/null | awk '{print $1}')
+    if test -f "$allow"; and grep -qxF "$h  $PWD" "$allow"
+        __dxs_env_apply "$f"
+    else
+        echo "dxsbash: found .dxsbash-env — run 'envallow' to trust and load it (or 'envdeny' to forget)"
+    end
+end
+
+function envallow
+    set -l f "$PWD/.dxsbash-env"
+    set -l allow "$HOME/.dxsbash/env-allow"
+    if not test -f "$f"
+        echo "envallow: no .dxsbash-env in $PWD" >&2
+        return 1
+    end
+    mkdir -p "$HOME/.dxsbash"
+    touch "$allow"
+    set -l h (sha256sum "$f" | awk '{print $1}')
+    awk -v p="$PWD" '{ line=$0; sub(/^[^ ]+  /, "", line); if (line != p) print }' "$allow" > "$allow.tmp"; and mv "$allow.tmp" "$allow"
+    printf '%s  %s\n' "$h" "$PWD" >> "$allow"
+    __dxs_env_apply "$f"
+    echo "envallow: trusted and loaded $f"
+end
+
+function envdeny
+    set -l allow "$HOME/.dxsbash/env-allow"
+    test -f "$allow"; or return 0
+    awk -v p="$PWD" '{ line=$0; sub(/^[^ ]+  /, "", line); if (line != p) print }' "$allow" > "$allow.tmp"; and mv "$allow.tmp" "$allow"
+    echo "envdeny: $PWD is no longer trusted"
+end
+
 # Network commands
 alias openports='netstat -nape --inet'
 alias ports='netstat -tulanp'
@@ -757,6 +844,9 @@ if status is-interactive
         source "$HOME/.dxsbash/user.fish"
     end
 
+    # The PWD watcher does not fire for the login directory — check once
+    __dxs_env_check
+
     # Setup key bindings for Ctrl+F to trigger zoxide interactive
     if type -q zoxide
         function _zoxide_zi_widget
@@ -775,6 +865,24 @@ if status is-interactive
     
     # Use starship prompt if installed
     if type -q starship
+        # In SSH sessions switch to the lightweight preset (no git
+        # status scan, no language versions) so the prompt stays
+        # instant on slow links. Opt out with DXSBASH_SSH_LITE=false.
+        # Heal a stale inherited value first: drop it when this shell
+        # is not an SSH session or the inherited path is unreadable
+        # (e.g. su to a user with a different HOME).
+        if set -q STARSHIP_CONFIG; and string match -q '*/starship-themes/ssh-lite.toml' -- "$STARSHIP_CONFIG"
+            if begin; not set -q SSH_CONNECTION; and not set -q SSH_CLIENT; and not set -q SSH_TTY; end
+                or not test -r "$STARSHIP_CONFIG"
+                set -e STARSHIP_CONFIG
+            end
+        end
+        if begin; set -q SSH_CONNECTION; or set -q SSH_CLIENT; or set -q SSH_TTY; end
+            and test "$DXSBASH_SSH_LITE" != "false"
+            and not set -q STARSHIP_CONFIG
+            and test -f "$HOME/linuxtoolbox/dxsbash/starship-themes/ssh-lite.toml"
+            set -gx STARSHIP_CONFIG "$HOME/linuxtoolbox/dxsbash/starship-themes/ssh-lite.toml"
+        end
         starship init fish | source
     end
     

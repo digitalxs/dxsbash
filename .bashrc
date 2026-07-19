@@ -300,6 +300,9 @@ aliases() {
     rm -rf "$dir"
 }
 
+# cheat, envallow/envdeny and the .dxsbash-env machinery are defined in
+# dxsbash-utils.sh (shared with zsh; fish has its own in config.fish).
+
 # Use the best available editor
 edit() {
     if command -v jpico &> /dev/null; then
@@ -714,11 +717,19 @@ fi
 # Use starship prompt if available (overrides custom prompt)
 # Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
 if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then
+    # In SSH sessions switch to the lightweight ssh-lite preset; heal a
+    # stale inherited one outside SSH (defined in dxsbash-utils.sh).
+    # Opt out with DXSBASH_SSH_LITE="false" in user.conf.
+    command -v __dxs_ssh_lite_starship >/dev/null 2>&1 && __dxs_ssh_lite_starship
     STARSHIP_INIT=$(starship init bash 2>/dev/null)
     if [ $? -eq 0 ] && [ -n "$STARSHIP_INIT" ]; then
         eval "$STARSHIP_INIT"
     fi
 fi
+
+# Per-directory environment hook — registered after starship init so
+# its PROMPT_COMMAND rewrite cannot drop the check.
+PROMPT_COMMAND="__dxs_env_check${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 # Make it compatible with claude code
 export PATH="$HOME/.local/bin:$PATH"
 # To make administrative tool more accessible

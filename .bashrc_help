@@ -105,8 +105,16 @@ ${PURPLE}Tools & Integration:${NC}
   ${CYAN}fzf${NC}              - Fuzzy finder usage
   ${CYAN}kde${NC}              - KDE terminal integration
 
+${BOLD}${GREEN}━━━ DISCOVERY & PROJECT TOOLS ━━━${NC}
+  ${CYAN}aliases [pattern]${NC}              - Browse aliases/functions (fzf picker)
+  ${CYAN}cheat [pattern]${NC}                - Offline command-reference cheatsheet
+  ${CYAN}envallow / envdeny${NC}             - Trust/untrust a .dxsbash-env file
+                                     (per-directory environments)
+
 ${BOLD}${GREEN}━━━ MAINTENANCE ━━━${NC}
   ${CYAN}update-dxsbash ${NC}                      - Update DXSBash
+  ${CYAN}dxsbash export|import <file>${NC}   - Backup/restore personal settings
+  ${CYAN}dxsbash bench [--profile]${NC}      - Benchmark shell startup time
   ${CYAN}install_bashrc_support${NC}         - Install dependencies
   ${CYAN}sudo reset-shell-profile <user>${NC} - Reset to defaults
 

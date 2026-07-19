@@ -18,6 +18,9 @@
 #   dxsbash audit [args]       Security audit of the system (read-only)
 #   dxsbash repair [args]      Re-create symlinks and helper commands
 #   dxsbash uninstall [args]   Remove DXSBash and restore defaults
+#   dxsbash export [file]      Save personal settings to a tarball
+#   dxsbash import <file>      Restore settings from a tarball
+#   dxsbash bench [args]       Benchmark shell startup time
 #   dxsbash version            Print the installed version
 #   dxsbash help               Show this help
 #=================================================================
@@ -43,6 +46,12 @@ Commands:
               (run 'sudo dxsbash audit' for full coverage)
   repair      Re-create broken symlinks and helper commands
   uninstall   Remove DXSBash and restore system defaults
+  export      Save personal settings to a tarball
+              (dxsbash export [file.tar.gz])
+  import      Restore settings from a tarball
+              (dxsbash import <file.tar.gz>)
+  bench       Benchmark shell startup time
+              (dxsbash bench [--runs N] [--profile])
   version     Print the installed version
   help        Show this help
 
@@ -75,6 +84,9 @@ case "$CMD" in
     secsummary)          run_script secsummary.sh "$@" ;;
     repair)              run_script repair.sh "$@" ;;
     uninstall)           run_script uninstall.sh "$@" ;;
+    export)              run_script export-import.sh export "$@" ;;
+    import)              run_script export-import.sh import "$@" ;;
+    bench)               run_script bench.sh "$@" ;;
     version|-v|--version)
         if [ -f "$DXS_DIR/version.txt" ]; then
             cat "$DXS_DIR/version.txt"

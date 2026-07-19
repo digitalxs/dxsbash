@@ -438,6 +438,15 @@ function aliases() {
     rm -rf "$dir"
 }
 
+# cheat, envallow/envdeny and the .dxsbash-env machinery are defined in
+# dxsbash-utils.sh (shared with bash; fish has its own in config.fish).
+if command -v __dxs_env_check >/dev/null 2>&1; then
+    autoload -U add-zsh-hook
+    add-zsh-hook chpwd __dxs_env_check
+    # chpwd does not fire for the login directory — check it once here
+    __dxs_env_check
+fi
+
 # Editor function
 # Note: use command -v, not $(type -p …): in zsh 'type -p missing-cmd'
 # prints "missing-cmd not found" to stdout, so the old string test was
@@ -855,6 +864,10 @@ fi
 # Initialize Starship or use custom prompt
 # Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
 if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then
+    # In SSH sessions switch to the lightweight ssh-lite preset; heal a
+    # stale inherited one outside SSH (defined in dxsbash-utils.sh).
+    # Opt out with DXSBASH_SSH_LITE="false" in user.conf.
+    command -v __dxs_ssh_lite_starship >/dev/null 2>&1 && __dxs_ssh_lite_starship
     eval "$(starship init zsh)"
 else
     setprompt
