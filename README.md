@@ -215,9 +215,11 @@ dxsbash export                    # → ~/dxsbash-backup-YYYYMMDD.tar.gz
 dxsbash import backup.tar.gz      # on the new machine, after installing
 ```
 
-The tarball carries `~/.dxsbash` (preferences, trusted per-directory
-envs) and your Starship theme choice. Logs and machine-specific caches
-are excluded.
+The tarball carries `~/.dxsbash` preferences and your Starship theme
+choice. Logs, machine-specific caches and the `.dxsbash-env` trust
+allowlist are excluded — trust decisions are per-machine and must be
+re-granted locally with `envallow`. Non-interactive imports (cron,
+`ssh host 'dxsbash import …'`) must pass `--yes` explicitly.
 
 ## SSH-aware prompt
 
@@ -245,6 +247,10 @@ envdeny           # withdraw trust
 If the file changes later, it will not load again until you re-run
 `envallow` — so a tampered file can never run silently. Works in bash,
 zsh and fish (fish applies the portable export/alias subset).
+
+Note: loaded variables and aliases persist for the rest of the shell
+session — there is no automatic unload when you leave the directory
+(open a new shell to get a clean environment).
 
 ## Cheatsheet and benchmarking
 

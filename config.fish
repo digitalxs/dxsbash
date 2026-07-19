@@ -386,7 +386,7 @@ function envallow
     mkdir -p "$HOME/.dxsbash"
     touch "$allow"
     set -l h (sha256sum "$f" | awk '{print $1}')
-    awk -v p="$PWD" -F'  ' '$2 != p' "$allow" > "$allow.tmp"; and mv "$allow.tmp" "$allow"
+    awk -v p="$PWD" '{ line=$0; sub(/^[^ ]+  /, "", line); if (line != p) print }' "$allow" > "$allow.tmp"; and mv "$allow.tmp" "$allow"
     printf '%s  %s\n' "$h" "$PWD" >> "$allow"
     __dxs_env_apply "$f"
     echo "envallow: trusted and loaded $f"
@@ -395,7 +395,7 @@ end
 function envdeny
     set -l allow "$HOME/.dxsbash/env-allow"
     test -f "$allow"; or return 0
-    awk -v p="$PWD" -F'  ' '$2 != p' "$allow" > "$allow.tmp"; and mv "$allow.tmp" "$allow"
+    awk -v p="$PWD" '{ line=$0; sub(/^[^ ]+  /, "", line); if (line != p) print }' "$allow" > "$allow.tmp"; and mv "$allow.tmp" "$allow"
     echo "envdeny: $PWD is no longer trusted"
 end
 
@@ -868,6 +868,15 @@ if status is-interactive
         # In SSH sessions switch to the lightweight preset (no git
         # status scan, no language versions) so the prompt stays
         # instant on slow links. Opt out with DXSBASH_SSH_LITE=false.
+        # Heal a stale inherited value first: drop it when this shell
+        # is not an SSH session or the inherited path is unreadable
+        # (e.g. su to a user with a different HOME).
+        if set -q STARSHIP_CONFIG; and string match -q '*/starship-themes/ssh-lite.toml' -- "$STARSHIP_CONFIG"
+            if begin; not set -q SSH_CONNECTION; and not set -q SSH_CLIENT; and not set -q SSH_TTY; end
+                or not test -r "$STARSHIP_CONFIG"
+                set -e STARSHIP_CONFIG
+            end
+        end
         if begin; set -q SSH_CONNECTION; or set -q SSH_CLIENT; or set -q SSH_TTY; end
             and test "$DXSBASH_SSH_LITE" != "false"
             and not set -q STARSHIP_CONFIG

@@ -16,7 +16,7 @@
 #                              bash startup (bash only, xtrace-based)
 #=================================================================
 
-set -u
+set -euo pipefail
 
 RC='\033[0m'
 GREEN='\033[32m'
@@ -49,18 +49,14 @@ now_ms() {
 }
 
 bench_shell() {
-    local shell="$1" launch_cmd cold=0 total=0 t0 t1 dt i
+    local shell="$1" cold=0 total=0 t0 t1 dt i
     command -v "$shell" >/dev/null 2>&1 || return 0
 
-    case "$shell" in
-        bash) launch_cmd=("$shell" -i -c exit) ;;
-        zsh)  launch_cmd=("$shell" -i -c exit) ;;
-        fish) launch_cmd=("$shell" -i -c exit) ;;
-    esac
-
-    for i in $(seq 1 "$RUNS"); do
+    for (( i = 1; i <= RUNS; i++ )); do
         t0=$(now_ms)
-        "${launch_cmd[@]}" </dev/null >/dev/null 2>&1
+        # A broken rc file may make the shell exit non-zero — still
+        # report the timing rather than aborting the benchmark.
+        "$shell" -i -c exit </dev/null >/dev/null 2>&1 || true
         t1=$(now_ms)
         dt=$(( t1 - t0 ))
         if [ "$i" -eq 1 ]; then
@@ -91,11 +87,15 @@ echo ""
 if [ "$PROFILE" -eq 1 ]; then
     echo -e "${CYAN}▶ Profiling bash startup (15 slowest sourced lines)...${RC}"
     TRACE=$(mktemp)
+    # The trace contains a full xtrace of the user's rc files — don't
+    # leave it behind on Ctrl-C or errors.
+    trap 'rm -f "$TRACE"' EXIT INT TERM
     # Timestamp every traced command, then diff consecutive stamps.
     # This is coarse (line granularity, xtrace overhead inflates
     # everything) but reliably points at the expensive block.
+    # '-i' (not '-li') so the profiled path matches the timed runs.
     PS4='+T:${EPOCHREALTIME-0}:${BASH_SOURCE-}:${LINENO-}: ' \
-        bash -li -x -c exit </dev/null >/dev/null 2>"$TRACE" || true
+        bash -i -x -c exit </dev/null >/dev/null 2>"$TRACE" || true
     awk -F: '
         /^\++T:/ {
             gsub(/,/, ".", $2)
@@ -106,7 +106,7 @@ if [ "$PROFILE" -eq 1 ]; then
             }
             prev_t = t; prev_src = $3; prev_line = $4
         }
-    ' "$TRACE" | sort -rn | head -15 | sed 's/^/  /'
+    ' "$TRACE" | sort -rn | head -15 | sed 's/^/  /' || true
     rm -f "$TRACE"
     echo ""
     echo -e "  ${WHITE}Tip:${RC} times include xtrace overhead — compare lines relatively, not absolutely."

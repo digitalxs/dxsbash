@@ -38,11 +38,12 @@ mkdir -p "$SHARE" "$PKGROOT/usr/bin" "$PKGROOT/DEBIAN" \
 #-----------------------------------------------------------------
 # Payload: the repository, minus VCS/CI/build metadata
 #-----------------------------------------------------------------
+# packaging/ stays in: DEV.md (also shipped) documents building the
+# .deb from the installed tree.
 tar -C "$REPO_DIR" \
     --exclude='.git' \
     --exclude='.github' \
     --exclude='dist' \
-    --exclude='packaging' \
     -cf - . | tar -C "$SHARE" -xf -
 
 # Debian policy: changelog and copyright under /usr/share/doc
@@ -55,9 +56,14 @@ cp "$REPO_DIR/LICENSE" "$PKGROOT/usr/share/doc/dxsbash/copyright"
 #-----------------------------------------------------------------
 cat > "$PKGROOT/usr/bin/dxsbash-installer" <<'LAUNCHER'
 #!/bin/bash
-# Bootstrap DXSBash for the current user from /usr/share/dxsbash.
+# Bootstrap DXSBash for the current user.
+#
+# Prefers a real git clone: updater.sh ('dxsbash update') is git-pull
+# based, so a plain copy of /usr/share/dxsbash would have a dead
+# update path. The packaged tree is the offline fallback.
 set -euo pipefail
 
+REPO_URL="https://github.com/digitalxs/dxsbash.git"
 SRC="/usr/share/dxsbash"
 DEST="$HOME/linuxtoolbox/dxsbash"
 
@@ -68,12 +74,21 @@ if [ "$(id -u)" -eq 0 ] && [ -z "${DXSBASH_ALLOW_ROOT:-}" ]; then
 fi
 
 mkdir -p "$HOME/linuxtoolbox"
-if [ -d "$DEST" ]; then
-    echo "Refreshing existing $DEST from $SRC..."
+if [ -d "$DEST/.git" ]; then
+    echo "Existing clone found at $DEST — updating..."
+    git -C "$DEST" pull --ff-only origin main || \
+        echo "Warning: could not update the existing clone; continuing with it as-is."
+elif [ -d "$DEST" ]; then
+    echo "Existing non-git copy found at $DEST — refreshing from $SRC..."
+    cp -a "$SRC/." "$DEST/"
+elif git clone --depth=1 "$REPO_URL" "$DEST" 2>/dev/null; then
+    echo "Cloned $REPO_URL to $DEST."
 else
-    echo "Copying $SRC to $DEST..."
+    echo "No network (or clone failed) — copying packaged tree from $SRC."
+    echo "Note: 'dxsbash update' needs a git clone; re-run dxsbash-installer"
+    echo "with network access to enable updates."
+    cp -a "$SRC/." "$DEST/"
 fi
-cp -a "$SRC/." "$DEST/"
 chmod +x "$DEST/setup.sh"
 cd "$DEST"
 exec ./setup.sh "$@"

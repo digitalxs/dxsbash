@@ -39,7 +39,7 @@ trap '[ -n "$STAGE" ] && rm -rf "$STAGE"' EXIT
 
 usage() {
     echo "Usage: dxsbash export [file.tar.gz]"
-    echo "       dxsbash import <file.tar.gz>"
+    echo "       dxsbash import [--yes] <file.tar.gz>"
 }
 
 do_export() {
@@ -59,6 +59,11 @@ do_export() {
             base=$(basename "$f")
             case "$base" in
                 logs|*.cache|security-summary.txt|suid-baseline.txt) continue ;;
+                # env-allow holds per-machine trust decisions for
+                # .dxsbash-env files — transferring it would let a
+                # shared backup pre-authorize code execution on the
+                # importing machine. Never exported, never imported.
+                env-allow) continue ;;
             esac
             cp -a "$f" "$STAGE/payload/.dxsbash/"
         done
@@ -86,13 +91,18 @@ do_export() {
 }
 
 do_import() {
-    local in="${1:-}"
+    local in="" assume_yes=0 arg
+    for arg in "$@"; do
+        case "$arg" in
+            -y|--yes) assume_yes=1 ;;
+            *) in="$arg" ;;
+        esac
+    done
     if [ -z "$in" ] || [ ! -f "$in" ]; then
         echo -e "${RED}✗ Backup file not found: ${in:-<none given>}${RC}" >&2
         usage >&2
         exit 1
     fi
-
 
     STAGE=$(mktemp -d)
 
@@ -106,15 +116,27 @@ do_import() {
     sed 's/^/  /' "$STAGE/MANIFEST"
     echo ""
 
-    if [ -t 0 ]; then
-        read -r -p "Import these settings, overwriting current ones? (y/N): " ok
-        [[ "$ok" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
+    # Import overwrites current settings — never proceed silently: an
+    # interactive user must confirm, a non-interactive caller (cron,
+    # ssh command, piped stdin) must pass --yes explicitly.
+    if [ "$assume_yes" -ne 1 ]; then
+        if [ -t 0 ]; then
+            read -r -p "Import these settings, overwriting current ones? (y/N): " ok
+            [[ "$ok" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
+        else
+            echo -e "${RED}✗ Refusing to overwrite settings non-interactively without --yes${RC}" >&2
+            exit 1
+        fi
     fi
 
     if [ -d "$STAGE/.dxsbash" ]; then
+        # Strip a trust allowlist from older backups — trust for
+        # .dxsbash-env files is per-machine and must be re-granted
+        # locally with envallow.
+        rm -f "$STAGE/.dxsbash/env-allow"
         mkdir -p "$CONF_DIR"
         cp -a "$STAGE/.dxsbash/." "$CONF_DIR/"
-        echo -e "${GREEN}✓ Restored ~/.dxsbash settings${RC}"
+        echo -e "${GREEN}✓ Restored ~/.dxsbash settings${RC} (per-machine env trust not transferred)"
     fi
 
     # Starship: prefer re-linking the named preset from this machine's

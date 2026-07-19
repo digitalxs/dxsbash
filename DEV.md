@@ -57,6 +57,7 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
 | `secsummary.sh` | cached one-line security summary at login (opt-in) |
 | `dxsbash.sh` | umbrella command — dispatches subcommands to the scripts above |
 | `dxsbash-config.sh` | interactive settings menu; writes `~/.dxsbash/user.conf` |
+| `dxsbash-utils.sh` | shared helpers sourced by `.bashrc` and `.zshrc` (logging, `cheat`, `.dxsbash-env` trust, ssh-lite selector) |
 | `export-import.sh` | `dxsbash export` / `import` — settings backup tarballs |
 | `bench.sh` | `dxsbash bench` — shell startup benchmarking |
 | `.bashrc`, `.bash_aliases` | bash configuration (symlinked to `~`) |
@@ -100,11 +101,14 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
 
 Every user-facing feature must work in **bash, zsh and fish**. The
 three rc files deliberately mirror each other section by section
-(distribution detection → aliases → special functions → init). When
-adding a feature, implement it three times in the same relative
-location, using each shell's native idiom — don't shell out to bash
-from zsh/fish for prompt-path code. Features that read user state must
-use `~/.dxsbash/` so they survive updates.
+(distribution detection → aliases → special functions → init). Code
+that is POSIX-portable between bash and zsh should live **once** in
+`dxsbash-utils.sh` (sourced by both rc files — `cheat`, the
+`.dxsbash-env` machinery and the ssh-lite prompt selector live there);
+fish always needs its own implementation in `config.fish` using fish
+idioms. Don't shell out to bash from zsh/fish for prompt-path code.
+Features that read user state must use `~/.dxsbash/` so they survive
+updates.
 
 The `.dxsbash-env` per-directory files are the one deliberate
 exception: they are POSIX sh, sourced natively by bash/zsh, while fish

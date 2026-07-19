@@ -155,11 +155,20 @@ Fastfetch display includes:
 - CPU and memory stats
 - Uptime information
 
+DISCOVERY & PROJECT TOOLS
+=========================
+
+aliases [pattern]   - Browse aliases/functions (fzf picker)
+cheat [pattern]     - Offline command-reference cheatsheet
+envallow / envdeny  - Trust/untrust a .dxsbash-env file (per-directory envs)
+
 MAINTENANCE COMMANDS
 ===================
 
 install_fish_support - Install required dependencies
 update-dxsbash           - Update dxsbash to latest version
+dxsbash export|import - Backup/restore personal settings
+dxsbash bench       - Benchmark shell startup time
 reset-shell-profile - Reset to default shell configuration
 
 For more information and updates, visit:
