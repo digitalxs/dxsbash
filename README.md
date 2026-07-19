@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.5.0
+v3.6.0
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -45,11 +45,16 @@ listing.
 
 ## Requirements
 
-- Debian 13 (extensively tested)
+- Debian 13 (extensively tested — reference platform)
 - Limited support still for Debian 12
-- Arch Linux (moderately tested)
-- Ubuntu 20.04+ (limited tested)
+- Ubuntu 20.04+ (supported)
+- Arch Linux (supported, incl. Manjaro/EndeavourOS; AUR helpers detected)
+- Fedora 40+ (supported, incl. RHEL-family derivatives via dnf)
 - Administrative privileges (sudo mostly)
+
+The installer detects your distribution from `/etc/os-release` and uses
+the native package manager: apt/nala on Debian and Ubuntu, pacman on
+Arch, dnf on Fedora.
 
 ## Installation
 
@@ -351,7 +356,7 @@ You can customize your environment even more by editing:
 ## Uninstalling
 
 Full uninstall — backs up your current configs, removes all DXSBash files,
-restores Debian 13 defaults from `/etc/skel/`, and optionally reverts your
+restores your distribution's defaults from `/etc/skel/`, and optionally reverts your
 login shell to bash:
 
 ```bash

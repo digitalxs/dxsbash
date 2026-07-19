@@ -247,7 +247,16 @@ else
             run "DXSBASH_SHELL=$SHELL_TARGET \"$DXSBASH_DIR/setup.sh\" --install --yes"
         fi
     else
-        echo -e "${YELLOW}  Re-run with --deps or: sudo apt install$MISSING${RC}"
+        if command -v apt >/dev/null 2>&1; then
+            PKG_HINT="sudo apt install"
+        elif command -v dnf >/dev/null 2>&1; then
+            PKG_HINT="sudo dnf install"
+        elif command -v pacman >/dev/null 2>&1; then
+            PKG_HINT="sudo pacman -S"
+        else
+            PKG_HINT="<your package manager> install"
+        fi
+        echo -e "${YELLOW}  Re-run with --deps or: ${PKG_HINT}$MISSING${RC}"
     fi
 fi
 echo ""

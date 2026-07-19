@@ -14,7 +14,10 @@
 
 # Add an "alert" alias for long running commands. Use like so:
 #   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+# Needs a desktop notification daemon — skip in headless/server installs
+if command -v notify-send &> /dev/null; then
+    alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+fi
 
 # Edit this .bashrc file
 alias ebrc='edit ~/.bashrc'
@@ -35,7 +38,9 @@ alias ps='ps auxf'
 alias ping='ping -c 10'
 alias less='less -R'
 alias cls='clear'
-alias apt-get='sudo apt-get'
+if command -v apt-get &> /dev/null; then
+    alias apt-get='sudo apt-get'
+fi
 alias multitail='multitail --no-repeat -c'
 alias freshclam='sudo freshclam'
 alias vi='vim'
@@ -127,7 +132,11 @@ alias ipview="netstat -anpl | grep :80 | awk {'print \$5'} | cut -d\":\" -f1 | s
 
 # Alias's for safe and forced reboots
 alias restart='sudo shutdown -r now'
-alias forcerestart='sudo systemctl reboot --force'
+if command -v systemctl &> /dev/null; then
+    alias forcerestart='sudo systemctl reboot --force'
+else
+    alias forcerestart='sudo reboot -f'
+fi
 alias turnoff='sudo poweroff'
 
 # Alias's to show disk space and space used in a folder
@@ -494,6 +503,7 @@ showport() {
     if ! command -v lsof &> /dev/null; then
         echo "Error: lsof not found. Please install lsof."
         echo "Try: sudo apt install lsof  # for Debian/Ubuntu"
+        echo "     sudo dnf install lsof  # for Fedora"
         echo "     sudo pacman -S lsof  # for Arch"
         return 1
     fi

@@ -210,7 +210,9 @@ initialize() {
 SUDO_CMD=""
 GITPATH=""
 SELECTED_SHELL="${SELECTED_SHELL:-}"
-IS_DEBIAN_BASED=false
+# Distro family: debian (incl. Ubuntu), arch, fedora (incl. RHEL-likes),
+# or unknown. Set by detectDistro().
+DISTRO="unknown"
 LOG_FILE=""
 
 # Parse CLI arguments up front
@@ -468,27 +470,53 @@ checkEnv() {
 detectDistro() {
   echo -e "${CYAN}▶ Detecting Linux distribution...${RC}"
 
-  # Detect if we're on Debian or Ubuntu
-  if [ -f /etc/debian_version ]; then
-    if [ -f /etc/lsb-release ] && grep -q "Ubuntu" /etc/lsb-release; then
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Ubuntu Linux${RC}"
-      IS_DEBIAN_BASED=true
-    else
-      DEBIAN_VERSION=$(cat /etc/debian_version)
-      echo -e "${GREEN}  ✓ Detected ${WHITE}Debian Linux ${CYAN}(${DEBIAN_VERSION})${RC}"
-      IS_DEBIAN_BASED=true
-    fi
-  else
-    echo -e "${RED}  ⚠ Warning: DXSBash is designed specifically for Debian and Ubuntu.${RC}"
-    echo -e "${YELLOW}  Your system appears to be running a different distribution.${RC}"
-    echo -e "${YELLOW}  Some features may not work as expected.${RC}"
-    echo ""
-    read -p "  Do you want to continue anyway? (y/N): " continue_install
-    if [[ ! "$continue_install" =~ ^[Yy]$ ]]; then
-      echo -e "${RED}  Installation aborted.${RC}"
-      exit 1
-    fi
+  # Family-level detection from os-release: ID first, then ID_LIKE so
+  # derivatives (Mint, Manjaro, Rocky, ...) map to their parent family.
+  # Same logic the shell rc files use at runtime.
+  local os_id="" os_like="" os_name=""
+  if [ -r /etc/os-release ]; then
+    os_id=$(. /etc/os-release && echo "${ID:-}")
+    os_like=$(. /etc/os-release && echo "${ID_LIKE:-}")
+    os_name=$(. /etc/os-release && echo "${PRETTY_NAME:-${ID:-}}")
   fi
+  case "$os_id" in
+    debian|ubuntu)                     DISTRO="debian" ;;
+    arch|manjaro|endeavouros)          DISTRO="arch" ;;
+    fedora|rhel|centos|rocky|almalinux) DISTRO="fedora" ;;
+    *)
+      case " $os_like " in
+        *debian*|*ubuntu*) DISTRO="debian" ;;
+        *arch*)            DISTRO="arch" ;;
+        *fedora*|*rhel*)   DISTRO="fedora" ;;
+      esac
+      ;;
+  esac
+  # Minimal chroots may lack os-release; the marker file still works.
+  if [ "$DISTRO" = "unknown" ] && [ -f /etc/debian_version ]; then
+    DISTRO="debian"
+    os_name="Debian $(cat /etc/debian_version)"
+  fi
+
+  case "$DISTRO" in
+    debian) echo -e "${GREEN}  ✓ Detected ${WHITE}${os_name:-Debian/Ubuntu}${GREEN} — using apt${RC}" ;;
+    arch)   echo -e "${GREEN}  ✓ Detected ${WHITE}${os_name:-Arch Linux}${GREEN} — using pacman${RC}" ;;
+    fedora) echo -e "${GREEN}  ✓ Detected ${WHITE}${os_name:-Fedora}${GREEN} — using dnf${RC}" ;;
+    *)
+      echo -e "${RED}  ⚠ Warning: DXSBash supports Debian, Ubuntu, Arch Linux and Fedora.${RC}"
+      echo -e "${YELLOW}  Your system appears to be running a different distribution.${RC}"
+      echo -e "${YELLOW}  Some features may not work as expected.${RC}"
+      echo ""
+      if [ "$NONINTERACTIVE" -eq 1 ]; then
+        echo -e "${YELLOW}  Continuing anyway (--yes)${RC}"
+      else
+        read -p "  Do you want to continue anyway? (y/N): " continue_install
+        if [[ ! "$continue_install" =~ ^[Yy]$ ]]; then
+          echo -e "${RED}  Installation aborted.${RC}"
+          exit 1
+        fi
+      fi
+      ;;
+  esac
   echo ""
 }
 
@@ -506,8 +534,12 @@ installDepend() {
   ZSH_DEPENDENCIES="zsh zsh-autosuggestions zsh-syntax-highlighting"
   FISH_DEPENDENCIES="fish"
 
-  # Combine dependencies based on the selected shell
-  DEPENDENCIES="$COMMON_DEPENDENCIES nala plocate trash-cli powerline"
+  # Combine dependencies based on the selected shell.
+  # nala is a Debian/Ubuntu apt frontend and only exists there.
+  DEPENDENCIES="$COMMON_DEPENDENCIES plocate trash-cli powerline"
+  if [ "$DISTRO" = "debian" ]; then
+    DEPENDENCIES="$DEPENDENCIES nala"
+  fi
 
   # Add shell-specific dependencies
   if [ "$SELECTED_SHELL" = "bash" ]; then
@@ -523,7 +555,7 @@ installDepend() {
   fi
 
   echo -e "${YELLOW}  Installing required packages: ${WHITE}$DEPENDENCIES${RC}"
-  if [ "$IS_DEBIAN_BASED" = true ]; then
+  if [ "$DISTRO" = "debian" ]; then
     # First check if nala is installed; fall back to apt if it can't be.
     # 'update' failures are tolerated: unrelated third-party repos with
     # broken metadata (dead PPAs, changed labels, expired keys) are
@@ -573,8 +605,54 @@ installDepend() {
         exit 1
       fi
     fi
+  elif [ "$DISTRO" = "arch" ]; then
+    # Refresh the sync database, then filter out packages this system's
+    # repos don't carry so one miss doesn't abort the transaction.
+    ${SUDO_CMD} pacman -Sy --noconfirm || \
+      echo -e "${YELLOW}  ⚠ pacman -Sy reported errors; continuing with existing sync db${RC}"
+    local available_pkgs="" unavailable_pkgs=""
+    local pkg
+    for pkg in $DEPENDENCIES; do
+      if pacman -Si "$pkg" >/dev/null 2>&1; then
+        available_pkgs="$available_pkgs $pkg"
+      else
+        unavailable_pkgs="$unavailable_pkgs $pkg"
+      fi
+    done
+    if [ -n "$unavailable_pkgs" ]; then
+      echo -e "${YELLOW}  ⚠ Not in the configured repos (skipped):${WHITE}$unavailable_pkgs${RC}"
+    fi
+    # -Su alongside the install list: installing new packages against a
+    # stale system is a partial upgrade, which Arch does not support —
+    # one transaction that upgrades and installs avoids broken libs.
+    # shellcheck disable=SC2086  # word splitting of the package list is intended
+    if ! ${SUDO_CMD} pacman -Su --needed --noconfirm $available_pkgs; then
+      echo -e "${RED}  ✗ Package installation failed${RC}"
+      exit 1
+    fi
+  elif [ "$DISTRO" = "fedora" ]; then
+    # Same availability filter for dnf (RHEL-likes may lack e.g.
+    # fastfetch or powerline without EPEL).
+    local available_pkgs="" unavailable_pkgs=""
+    local pkg
+    for pkg in $DEPENDENCIES; do
+      if dnf info -q "$pkg" >/dev/null 2>&1; then
+        available_pkgs="$available_pkgs $pkg"
+      else
+        unavailable_pkgs="$unavailable_pkgs $pkg"
+      fi
+    done
+    if [ -n "$unavailable_pkgs" ]; then
+      echo -e "${YELLOW}  ⚠ Not in the configured repos (skipped):${WHITE}$unavailable_pkgs${RC}"
+    fi
+    # shellcheck disable=SC2086  # word splitting of the package list is intended
+    if ! ${SUDO_CMD} dnf install -y $available_pkgs; then
+      echo -e "${RED}  ✗ Package installation failed${RC}"
+      exit 1
+    fi
   else
-    # Fallback to apt if available for non-Debian distros
+    # Unknown distro: fall back to apt if available, otherwise ask the
+    # user to install manually.
     if command_exists apt; then
       ${SUDO_CMD} apt update
       ${SUDO_CMD} apt install -y $DEPENDENCIES
@@ -1251,8 +1329,8 @@ main() {
   echo -e "${BLUE}║                                                          ${RC}"
   echo -e "${BLUE}║  ${YELLOW}Please log out and log back in to use your new shell${BLUE} ${RC}"
   echo -e "${BLUE}║                                                          ${RC}"
-  if [ "$IS_DEBIAN_BASED" != true ]; then
-    echo -e "${BLUE}║  ${RED}Note: DXSBash is optimized for Debian/Ubuntu systems${BLUE}  ${RC}"
+  if [ "$DISTRO" = "unknown" ]; then
+    echo -e "${BLUE}║  ${RED}Note: DXSBash targets Debian, Ubuntu, Arch and Fedora${BLUE} ${RC}"
     echo -e "${BLUE}║  ${RED}Some features may not work as expected on your system${BLUE} ${RC}"
     echo -e "${BLUE}║                                                        ${RC}"
   fi

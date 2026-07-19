@@ -89,7 +89,8 @@ alias web='cd /var/www/html'
 alias password='pwgen -A'
 
 #######################################################
-# Update Computer - Debian (nala when available, apt otherwise)
+# Package management — nala/apt (Debian/Ubuntu), dnf (Fedora/RHEL),
+# paru/yay/pacman (Arch)
 #######################################################
 if type -q nala
     alias install='sudo nala update && sudo nala install -y'
@@ -107,6 +108,40 @@ else if type -q apt
     alias removeall='sudo apt purge'
     alias historypkg='grep " install " /var/log/apt/history.log'
     alias searchpkg='apt search'
+else if type -q dnf
+    alias install='sudo dnf install -y'
+    alias update='sudo dnf upgrade -y'
+    alias upgrade='sudo dnf upgrade -y'
+    alias remove='sudo dnf remove'
+    alias removeall='sudo dnf remove'
+    alias historypkg='dnf history'
+    alias searchpkg='dnf search'
+else if type -q pacman
+    # Prefer an AUR helper when present; they wrap pacman and call sudo
+    # themselves, so they must not be run under sudo
+    if type -q paru
+        alias install='paru -S'
+        alias update='paru -Syu'
+        alias upgrade='paru -Syu'
+        alias remove='paru -R'
+        alias removeall='paru -Rns'
+        alias searchpkg='paru -Ss'
+    else if type -q yay
+        alias install='yay -S'
+        alias update='yay -Syu'
+        alias upgrade='yay -Syu'
+        alias remove='yay -R'
+        alias removeall='yay -Rns'
+        alias searchpkg='yay -Ss'
+    else
+        alias install='sudo pacman -S'
+        alias update='sudo pacman -Syu'
+        alias upgrade='sudo pacman -Syu'
+        alias remove='sudo pacman -R'
+        alias removeall='sudo pacman -Rns'
+        alias searchpkg='pacman -Ss'
+    end
+    alias historypkg='grep -E "installed|upgraded|removed" /var/log/pacman.log'
 end
 
 #######################################################
@@ -134,7 +169,9 @@ alias ps='ps auxf'
 alias ping='ping -c 10'
 alias less='less -R'
 alias cls='clear'
-alias apt-get='sudo apt-get'
+if type -q apt-get
+    alias apt-get='sudo apt-get'
+end
 alias multitail='multitail --no-repeat -c'
 alias freshclam='sudo freshclam'
 
@@ -282,7 +319,11 @@ alias ipview="netstat -anpl | grep :80 | awk '{print \$5}' | cut -d: -f1 | sort 
 
 # Reboot/shutdown
 alias restart='sudo shutdown -r now'
-alias forcerestart='sudo systemctl reboot --force'
+if type -q systemctl
+    alias forcerestart='sudo systemctl reboot --force'
+else
+    alias forcerestart='sudo reboot -f'
+end
 alias turnoff='sudo poweroff'
 
 # Disk usage
@@ -326,8 +367,11 @@ function checksum
     command {$algo}sum $argv
 end
 
-# Copy-paste with delay
-alias clickpaste='sleep 3; xdotool type (xclip -o -selection clipboard)'
+# Copy-paste with delay — X11-only (xdotool/xclip are absent on
+# Wayland-only or headless setups)
+if type -q xdotool; and type -q xclip
+    alias clickpaste='sleep 3; xdotool type (xclip -o -selection clipboard)'
+end
 
 # Kitty SSH
 alias kssh="kitty +kitten ssh"
@@ -347,7 +391,7 @@ function get_distribution
     if test -r /etc/os-release
         set -l distro_id (cat /etc/os-release | grep "^ID=" | cut -d= -f2 | tr -d '"')
         switch $distro_id
-            case 'fedora' 'rhel' 'centos'
+            case 'fedora' 'rhel' 'centos' 'rocky' 'almalinux'
                 set dtype "redhat"
             case 'sles' 'opensuse*'
                 set dtype "suse"
@@ -355,7 +399,7 @@ function get_distribution
                 set dtype "debian"
             case 'gentoo'
                 set dtype "gentoo"
-            case 'arch' 'manjaro'
+            case 'arch' 'manjaro' 'endeavouros'
                 set dtype "arch"
             case 'slackware'
                 set dtype "slackware"
@@ -558,14 +602,20 @@ function install_fish_support
     
     switch $dtype
         case "redhat"
-            sudo yum install multitail tree zoxide trash-cli fzf fish
+            sudo dnf install -y fish bash-completion tar bat tree multitail curl wget unzip fontconfig joe git plocate nano zoxide trash-cli fzf pwgen powerline
         case "suse"
             sudo zypper install multitail tree zoxide trash-cli fzf fish
         case "debian"
             sudo apt-get install fish bash-completion tar bat tree multitail curl wget unzip fontconfig joe git nala plocate nano fish zoxide trash-cli fzf pwgen powerline
         case "arch"
             # AUR helpers must NOT run under sudo; they call sudo themselves
-            paru -S multitail tree zoxide trash-cli fzf fish
+            if type -q paru
+                paru -S --needed multitail tree zoxide trash-cli fzf fish
+            else if type -q yay
+                yay -S --needed multitail tree zoxide trash-cli fzf fish
+            else
+                sudo pacman -S --needed multitail tree zoxide trash-cli fzf fish
+            end
         case "slackware"
             echo "No install support for Slackware yet. Sorry my good old friend Patrick V."
         case "*"

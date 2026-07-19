@@ -8,6 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-07-19
+
+### Added
+- **Full multi-distro support: Debian 13, Ubuntu, Arch Linux and
+  Fedora.** `setup.sh` now detects the distro family from
+  `/etc/os-release` (`ID` plus `ID_LIKE` for derivatives such as Mint,
+  Manjaro and Rocky) and installs dependencies with the native package
+  manager: apt/nala on Debian and Ubuntu, `pacman` on Arch (as a single
+  `-Su --needed` transaction to avoid unsupported partial upgrades),
+  and `dnf` on Fedora/RHEL-likes — each with the same
+  unavailable-package filtering apt already had. Previously the
+  installer was apt-only and could not complete on Arch or Fedora.
+- **Fedora/RHEL package-management aliases** in bash, zsh and fish:
+  `install`, `update`, `upgrade`, `remove`, `removeall`,
+  `searchpkg` and `historypkg` now map to `dnf` when the shell detects
+  a Red Hat-family distro; fish also gained the full
+  paru/yay/pacman fallback chain for Arch.
+- `install_bashrc_support` / `install_zshrc_support` /
+  `install_fish_support` gained Fedora (`dnf`) branches; the fish
+  Red Hat branch used the retired `yum` and the fish Arch branch
+  required `paru` unconditionally — both fixed.
+
+### Changed
+- Aliases that depend on optional infrastructure are now guarded so
+  they never shadow a missing command: `alert` (needs `notify-send`),
+  `apt-get` (Debian-family only), `clickpaste` (needs X11
+  `xdotool`/`xclip`; absent on Wayland/headless), and `forcerestart`
+  (falls back to `sudo reboot -f` on non-systemd systems).
+- `test_compatibility.sh` is distro-aware: Debian 13 Trixie remains the
+  strict reference platform, while other distros get informational
+  version reporting instead of hard failures; the `dpkg`
+  deprecated-package check is skipped on non-dpkg systems.
+- `repair.sh` and `check_dependencies.sh` print install hints using the
+  detected package manager (apt, dnf or pacman) instead of
+  hardcoding apt.
+- `uninstall.sh` restores `/etc/skel` defaults distro-neutrally,
+  including `.bash_profile` (shipped by Fedora and Arch, not Debian).
+- Fixed wrong package name in the `.bashrc` apt fallback: the Debian
+  package is `bat` (the *binary* is `batcat`), so `apt install batcat`
+  always failed.
+
 ## [3.5.0] - 2026-07-10
 
 ### Added
