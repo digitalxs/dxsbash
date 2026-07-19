@@ -258,14 +258,16 @@ echo -e "${GREEN}  ✓ System commands removed${RC}"
 echo ""
 
 #=================================================================
-# 4. Restore Debian /etc/skel defaults
+# 4. Restore distribution /etc/skel defaults
 #=================================================================
 if [ "$RESTORE_SKEL" -eq 1 ]; then
-    echo -e "${CYAN}▶ Restoring Debian defaults from /etc/skel/...${RC}"
+    echo -e "${CYAN}▶ Restoring system defaults from /etc/skel/...${RC}"
     if [ ! -d /etc/skel ]; then
         echo -e "${RED}  ✗ /etc/skel not found; skipping restore${RC}"
     else
-        for file in .bashrc .profile .bash_logout; do
+        # .profile is Debian/Ubuntu; .bash_profile is Fedora/Arch —
+        # the loop restores whichever this distro actually ships.
+        for file in .bashrc .profile .bash_profile .bash_logout; do
             if [ -f "/etc/skel/$file" ]; then
                 echo -e "  ${GREEN}restore${RC}    $HOME/$file"
                 run "cp -f \"/etc/skel/$file\" \"$HOME/$file\""
@@ -282,14 +284,14 @@ if [ "$RESTORE_SKEL" -eq 1 ]; then
             run "chmod 644 \"$HOME/.zshrc\""
         fi
 
-        # fish — Debian does not ship a skel config; leave directory clean
+        # fish — distros do not ship a skel config; leave directory clean
         if [ -d "$HOME/.config/fish" ]; then
             if [ -z "$(ls -A "$HOME/.config/fish" 2>/dev/null)" ]; then
                 remove_path "$HOME/.config/fish"
             fi
         fi
     fi
-    echo -e "${GREEN}  ✓ Debian defaults restored${RC}"
+    echo -e "${GREEN}  ✓ System defaults restored${RC}"
     echo ""
 fi
 

@@ -243,11 +243,22 @@ elif [[ "$DISTRIBUTION" == "arch" ]]; then
         alias removeall='sudo pacman -Rns'
         alias searchpkg='pacman -Ss'
     fi
-    alias historypkg='cat /var/log/pacman.log'
+    alias historypkg='grep -E "installed|upgraded|removed" /var/log/pacman.log'
+elif [[ "$DISTRIBUTION" == "redhat" ]]; then
+    alias install='sudo dnf install -y'
+    alias update='sudo dnf upgrade -y'
+    alias upgrade='sudo dnf upgrade -y'
+    alias remove='sudo dnf remove'
+    alias removeall='sudo dnf remove'
+    alias searchpkg='dnf search'
+    alias historypkg='dnf history'
 fi
 
 # General aliases
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+# alert needs a desktop notification daemon — skip in headless/server installs
+if command -v notify-send &> /dev/null; then
+    alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history | tail -n1 | sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+fi
 alias ezrc='edit ~/.zshrc'
 # Show help (execute the script, pipe through pager)
 help() { bash "$HOME/.zshrc_help" "$@" 2>/dev/null | less -RFX; }
@@ -261,7 +272,9 @@ alias ps='ps auxf'
 alias ping='ping -c 10'
 alias less='less -R'
 alias cls='clear'
-alias apt-get='sudo apt-get'
+if command -v apt-get &> /dev/null; then
+    alias apt-get='sudo apt-get'
+fi
 alias multitail='multitail --no-repeat -c'
 alias freshclam='sudo freshclam'
 
@@ -328,7 +341,11 @@ alias openports='netstat -nape --inet'
 alias ports='netstat -tulanp'
 alias ipview="netstat -anpl | grep :80 | awk {'print \$5'} | cut -d\":\" -f1 | sort | uniq -c | sort -n | sed -e 's/^ *//' -e 's/ *\$//'"
 alias restart='sudo shutdown -r now'
-alias forcerestart='sudo systemctl reboot --force'
+if command -v systemctl &> /dev/null; then
+    alias forcerestart='sudo systemctl reboot --force'
+else
+    alias forcerestart='sudo reboot -f'
+fi
 alias turnoff='sudo poweroff'
 
 # Disk usage aliases
@@ -368,7 +385,10 @@ function checksum() {
     "${algo}sum" "$@"
 }
 
-alias clickpaste='sleep 3; xdotool type "$(xclip -o -selection clipboard)"'
+# X11-only helper — xdotool/xclip do not exist on Wayland-only or headless setups
+if command -v xdotool &> /dev/null && command -v xclip &> /dev/null; then
+    alias clickpaste='sleep 3; xdotool type "$(xclip -o -selection clipboard)"'
+fi
 alias kssh="kitty +kitten ssh"
 
 # Source additional aliases if they exist
@@ -649,6 +669,9 @@ function install_zshrc_support() {
         else
             sudo pacman -S --needed multitail tree zoxide trash-cli fzf zsh zsh-completions zsh-autosuggestions zsh-syntax-highlighting
         fi
+    elif [[ "$DISTRIBUTION" == "redhat" ]]; then
+        echo "Installing dependencies for Fedora/RHEL..."
+        sudo dnf install -y zsh zsh-autosuggestions zsh-syntax-highlighting bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline
     else
         echo "Unsupported distribution. Please install dependencies manually."
         return 1

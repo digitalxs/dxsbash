@@ -213,9 +213,18 @@ setup_package_aliases() {
             fi
             alias historypkg='grep -E "installed|upgraded|removed" /var/log/pacman.log'
             ;;
+        "redhat")
+            alias install='sudo dnf install -y'
+            alias update='sudo dnf upgrade -y'
+            alias upgrade='sudo dnf upgrade -y'
+            alias remove='sudo dnf remove'
+            alias removeall='sudo dnf remove'
+            alias searchpkg='dnf search'
+            alias historypkg='dnf history'
+            ;;
         *)
-            # redhat/suse are recognised but have no alias set yet; only
-            # warn when the distribution is truly unknown.
+            # suse is recognised but has no alias set yet; only warn
+            # when the distribution is truly unknown.
             if [ "$DISTRIBUTION" = "unknown" ]; then
                 echo "Warning: Unknown distribution, package management aliases not set" >&2
             fi
@@ -436,8 +445,12 @@ install_bashrc_support() {
             if command -v nala &> /dev/null; then
                 sudo nala install -y bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline neovim ripgrep
             else
-                sudo apt install -y bash bash-completion tar batcat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline neovim ripgrep
+                sudo apt install -y bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline neovim ripgrep
             fi
+            ;;
+        "redhat")
+            echo "Installing packages for Fedora/RHEL..."
+            sudo dnf install -y bash bash-completion tar bat tree multitail curl wget unzip fontconfig joe git plocate nano fish zoxide trash-cli fzf pwgen powerline neovim ripgrep
             ;;
         "arch")
             echo "Installing packages for Arch Linux..."

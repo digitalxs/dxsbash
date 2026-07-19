@@ -38,3 +38,12 @@ elif command -v batcat &> /dev/null; then
 else
     echo "✗ bat / batcat (missing) — install the 'bat' package"
 fi
+
+echo ""
+if command -v apt &> /dev/null; then
+    echo "Install anything missing with: sudo apt install <package>"
+elif command -v dnf &> /dev/null; then
+    echo "Install anything missing with: sudo dnf install <package>"
+elif command -v pacman &> /dev/null; then
+    echo "Install anything missing with: sudo pacman -S <package>"
+fi
