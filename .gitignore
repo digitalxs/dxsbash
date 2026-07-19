@@ -1,0 +1,7 @@
+# Package build output
+dist/
+
+# Editor droppings
+*.swp
+*~
+.DS_Store

@@ -399,13 +399,18 @@
 |:--------|:------------|
 | `where <cmd>` | Better alternative to 'which' command |
 | `bk <cmd>` | Run command in background |
-| `cheat <cmd>` | Display cheatsheet for a command |
+| `cheat [pattern]` | Offline cheatsheet over this reference, rendered with bat; no args = browse all, pattern = filter |
+| `envallow` | Trust and load the `.dxsbash-env` file in the current directory (per-directory environments) |
+| `envdeny` | Withdraw trust for the current directory's `.dxsbash-env` |
 | `install_bashrc_support` | Install required dependencies for bashrc |
 | `update-dxsbash` | Update dxsbash to latest version |
 | `dxsbash-config` | Interactive settings menu (editor, history, prompt, theme, fastfetch) |
 | `dxsbash-repair` | Re-link symlinks and helper commands without changing settings |
 | `dxsbash-doctor` | Run diagnostics on the DXSBash install |
 | `dxsbash-uninstall` | Remove DXSBash and restore system defaults |
+| `dxsbash export [file]` | Save personal settings (user.conf, theme, trusted envs) to a tarball |
+| `dxsbash import <file>` | Restore settings from a `dxsbash export` tarball |
+| `dxsbash bench [--profile]` | Benchmark shell startup time; `--profile` shows the slowest bash startup lines |
 | `reset-shell-profile` | Reset to default shell configuration |
 | `kssh` | SSH with Kitty terminal features |
 

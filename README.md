@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.6.0
+v3.7.0
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -73,6 +73,15 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
+Or, on Debian/Ubuntu, install the `.deb` package (built by CI, or
+locally with `./packaging/build-deb.sh`), then run the per-user
+bootstrap:
+
+```bash
+sudo dpkg -i dxsbash_*_all.deb
+dxsbash-installer        # as your normal user, not root
+```
+
 The installer provides an interactive experience:
 1. Shows an Install / Repair / Uninstall menu
 2. Detects your Linux distribution automatically
@@ -105,6 +114,9 @@ dxsbash doctor      # health-check the installation
 dxsbash audit       # security audit of the system (read-only)
 dxsbash repair      # fix broken symlinks/commands
 dxsbash uninstall   # remove and restore defaults
+dxsbash export      # save personal settings to a tarball
+dxsbash import <f>  # restore settings from a tarball
+dxsbash bench       # benchmark shell startup time
 dxsbash version     # show installed version
 ```
 
@@ -193,6 +205,55 @@ The menu lets you change:
 
 Changes are written to `~/.dxsbash/user.conf` and take effect in new shell
 sessions (or after `source ~/.bashrc` / `source ~/.zshrc`).
+
+## Portable settings (export / import)
+
+Replicate your DXSBash setup on another machine:
+
+```bash
+dxsbash export                    # → ~/dxsbash-backup-YYYYMMDD.tar.gz
+dxsbash import backup.tar.gz      # on the new machine, after installing
+```
+
+The tarball carries `~/.dxsbash` (preferences, trusted per-directory
+envs) and your Starship theme choice. Logs and machine-specific caches
+are excluded.
+
+## SSH-aware prompt
+
+Over SSH, DXSBash automatically switches Starship to a lightweight
+preset (`starship-themes/ssh-lite.toml`) with no git working-tree scan
+and no language-version lookups, so the prompt stays instant on slow
+links and busy servers. Opt out with:
+
+```bash
+echo 'export DXSBASH_SSH_LITE="false"' >> ~/.dxsbash/user.conf
+```
+
+## Per-directory environments
+
+Drop a `.dxsbash-env` file (POSIX sh: `export KEY=value`, aliases) in a
+project directory. When you `cd` there, DXSBash offers to load it —
+nothing is executed until you trust that exact file once:
+
+```bash
+cd ~/work/project
+envallow          # trust and load .dxsbash-env (records a content hash)
+envdeny           # withdraw trust
+```
+
+If the file changes later, it will not load again until you re-run
+`envallow` — so a tampered file can never run silently. Works in bash,
+zsh and fish (fish applies the portable export/alias subset).
+
+## Cheatsheet and benchmarking
+
+```bash
+cheat             # browse the full command reference offline (bat-rendered)
+cheat git         # filter it
+dxsbash bench     # startup time per shell (cold/warm)
+dxsbash bench --profile   # show the slowest bash startup lines
+```
 
 ## Core Components
 
@@ -398,12 +459,20 @@ If you find DXSBash valuable for your workflow, consider supporting its developm
 <a href="https://www.buymeacoffee.com/digitalxs" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="45"></a>
 </div>
 
+## Contributing and development
+
+Want to hack on DXSBash? Start with the [Development Guide](DEV.md) —
+it covers the architecture, symlink layout, cross-shell parity rules,
+the CI matrix and the release process. Contribution basics are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
+- Official website: [https://dxsbash.digitalxs.ca](https://dxsbash.digitalxs.ca)
 - GitHub: [digitalxs/dxsbash](https://github.com/digitalxs/dxsbash)
 - Email: luis@digitalxs.ca
 - Website: [https://digitalxs.ca](https://digitalxs.ca)

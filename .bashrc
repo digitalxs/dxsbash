@@ -300,6 +300,77 @@ aliases() {
     rm -rf "$dir"
 }
 
+# Offline cheatsheet over the DXSBash command reference (commands.md),
+# rendered with bat when available.
+# Usage: cheat              # browse the whole reference
+#        cheat git         # only sections/lines mentioning git
+cheat() {
+    local doc="$HOME/linuxtoolbox/dxsbash/commands.md"
+    if [ ! -f "$doc" ]; then
+        echo "cheat: $doc not found (is DXSBash installed?)" >&2
+        return 1
+    fi
+    local renderer="cat"
+    if command -v bat &> /dev/null; then
+        renderer="bat --language=md --style=plain --paging=auto"
+    elif command -v batcat &> /dev/null; then
+        renderer="batcat --language=md --style=plain --paging=auto"
+    fi
+    if [ $# -eq 0 ]; then
+        $renderer "$doc"
+    else
+        grep -i --color=never -- "$*" "$doc" | $renderer
+    fi
+}
+
+#######################################################
+# PER-DIRECTORY ENVIRONMENTS (.dxsbash-env)
+#######################################################
+# A .dxsbash-env file in a directory is sourced automatically when you
+# cd there — but only after you trust that exact file once with
+# 'envallow'. Trust is bound to the file's content hash: if the file
+# changes, it will not load again until you re-run envallow. Use
+# 'envdeny' to withdraw trust.
+
+__dxs_env_hash() { sha256sum "$1" 2>/dev/null | awk '{print $1}'; }
+
+__dxs_env_check() {
+    [ "$PWD" = "${__DXS_ENV_LAST_PWD:-}" ] && return
+    __DXS_ENV_LAST_PWD="$PWD"
+    local f="$PWD/.dxsbash-env" allow="$HOME/.dxsbash/env-allow" h
+    [ -f "$f" ] || return 0
+    h=$(__dxs_env_hash "$f")
+    if [ -f "$allow" ] && grep -qxF "$h  $PWD" "$allow"; then
+        # shellcheck source=/dev/null
+        source "$f"
+    else
+        echo "dxsbash: found .dxsbash-env — run 'envallow' to trust and load it (or 'envdeny' to forget)"
+    fi
+}
+
+envallow() {
+    local f="$PWD/.dxsbash-env" allow="$HOME/.dxsbash/env-allow" h
+    if [ ! -f "$f" ]; then
+        echo "envallow: no .dxsbash-env in $PWD" >&2
+        return 1
+    fi
+    mkdir -p "$HOME/.dxsbash"
+    touch "$allow"
+    h=$(__dxs_env_hash "$f")
+    awk -v p="$PWD" -F'  ' '$2 != p' "$allow" > "$allow.tmp" && mv "$allow.tmp" "$allow"
+    printf '%s  %s\n' "$h" "$PWD" >> "$allow"
+    # shellcheck source=/dev/null
+    source "$f"
+    echo "envallow: trusted and loaded $f"
+}
+
+envdeny() {
+    local allow="$HOME/.dxsbash/env-allow"
+    [ -f "$allow" ] || return 0
+    awk -v p="$PWD" -F'  ' '$2 != p' "$allow" > "$allow.tmp" && mv "$allow.tmp" "$allow"
+    echo "envdeny: $PWD is no longer trusted"
+}
+
 # Use the best available editor
 edit() {
     if command -v jpico &> /dev/null; then
@@ -714,11 +785,23 @@ fi
 # Use starship prompt if available (overrides custom prompt)
 # Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
 if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then
+    # In SSH sessions switch to the lightweight preset (no git status
+    # scan, no language versions) so the prompt stays instant on slow
+    # links. Opt out with DXSBASH_SSH_LITE="false" in user.conf.
+    if [ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}${SSH_TTY:-}" ] && \
+       [ "${DXSBASH_SSH_LITE:-true}" = "true" ] && [ -z "${STARSHIP_CONFIG:-}" ] && \
+       [ -f "$HOME/linuxtoolbox/dxsbash/starship-themes/ssh-lite.toml" ]; then
+        export STARSHIP_CONFIG="$HOME/linuxtoolbox/dxsbash/starship-themes/ssh-lite.toml"
+    fi
     STARSHIP_INIT=$(starship init bash 2>/dev/null)
     if [ $? -eq 0 ] && [ -n "$STARSHIP_INIT" ]; then
         eval "$STARSHIP_INIT"
     fi
 fi
+
+# Per-directory environment hook — registered after starship init so
+# its PROMPT_COMMAND rewrite cannot drop the check.
+PROMPT_COMMAND="__dxs_env_check${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 # Make it compatible with claude code
 export PATH="$HOME/.local/bin:$PATH"
 # To make administrative tool more accessible

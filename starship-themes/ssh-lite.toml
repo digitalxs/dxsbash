@@ -1,0 +1,79 @@
+# DXSBash ssh-lite — minimal Starship preset for remote sessions.
+#
+# Selected automatically when a shell starts inside an SSH session
+# (opt out with DXSBASH_SSH_LITE="false" in ~/.dxsbash/user.conf).
+# Everything that scans the filesystem or spawns helper processes on
+# every prompt — git status, language toolchain versions, package
+# metadata — is disabled so the prompt stays instant on slow links
+# and busy servers.
+
+add_newline = false
+command_timeout = 300
+
+format = """$username$hostname$directory$git_branch$cmd_duration$status$character"""
+
+[username]
+show_always = true
+format = "[$user]($style)@"
+style_user = "bold green"
+style_root = "bold red"
+
+[hostname]
+ssh_only = false
+format = "[$hostname]($style) "
+style = "bold blue"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+format = "[$path]($style) "
+style = "bold cyan"
+
+# Branch name only — read from .git/HEAD, no working-tree scan
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "purple"
+
+[git_status]
+disabled = true
+
+[cmd_duration]
+min_time = 2000
+format = "[$duration]($style) "
+style = "yellow"
+
+[status]
+disabled = false
+format = "[$status]($style) "
+style = "bold red"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+# Explicitly off: each of these can cost tens of ms per prompt
+[aws]
+disabled = true
+[gcloud]
+disabled = true
+[package]
+disabled = true
+[nodejs]
+disabled = true
+[python]
+disabled = true
+[rust]
+disabled = true
+[golang]
+disabled = true
+[java]
+disabled = true
+[php]
+disabled = true
+[ruby]
+disabled = true
+[docker_context]
+disabled = true
+[kubernetes]
+disabled = true
