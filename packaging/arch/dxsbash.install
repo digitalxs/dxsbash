@@ -1,0 +1,8 @@
+post_install() {
+    echo "DXSBash installed to /usr/share/dxsbash."
+    echo "Each user should now run: dxsbash-installer"
+}
+
+post_upgrade() {
+    echo "DXSBash package updated. Existing users update with: update-dxsbash"
+}

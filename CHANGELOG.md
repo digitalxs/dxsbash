@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.6] - 2026-09-27
+
+### Added
+- **Arch Linux package.** `packaging/build-arch.sh` builds a native
+  `dxsbash-<version>-1-any.pkg.tar.zst` (install with `pacman -U`) from
+  the checkout; `packaging/arch/PKGBUILD` builds from the GitHub release
+  tarball (AUR-ready). Same layout as the .deb: `/usr/share/dxsbash` +
+  `dxsbash-installer`. Verified on a real Arch root: build as a user,
+  `pacman -U`, `dxsbash-installer --install`, doctor 0 failures. CI
+  builds, installs and publishes it (`dxsbash-arch` artifact).
+- README: *Packages (.deb and Arch)* — how to build, install and remove
+  both, and where to download CI-built packages.
+
+### Changed
+- `dxsbash-installer` is one shared file (`packaging/dxsbash-installer`)
+  used by both packages, and makes a full clone (a shallow clone could
+  not fast-forward to release tags).
+- `build-deb.sh` works on Arch/Fedora too (with the `dpkg` package) and
+  says exactly what to install when `dpkg-deb` is missing — including
+  that a .deb cannot be installed on Arch.
+
 ## [3.9.5] - 2026-09-27
 
 ### Fixed

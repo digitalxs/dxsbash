@@ -94,6 +94,8 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
 | `reset-*-profile.sh` | revert a user's rc files to distro defaults |
 | `check_dependencies.sh`, `test_compatibility.sh` | diagnostics |
 | `packaging/build-deb.sh` | builds `dist/dxsbash_<version>_all.deb` |
+| `packaging/build-arch.sh`, `packaging/arch/` | builds the Arch package (`PKGBUILD`, install hook) |
+| `packaging/dxsbash-installer` | per-user bootstrap shipped by both packages |
 | `.github/workflows/bashtest.yml` | CI: lint, 5-distro install matrix, deb build |
 | `version.txt` | single source of truth for the version |
 | `install.sh` | curl-pipe bootstrap (clones repo, runs `setup.sh`) |
@@ -224,21 +226,32 @@ CI (`.github/workflows/bashtest.yml`) runs three jobs on every push/PR:
    and `fedora:latest` containers (with `DXSBASH_SKIP_FONT=1`),
    followed by `doctor.sh`, config-load, audit and summary smoke tests
 3. **build-deb** — builds the `.deb`, verifies contents, smoke-installs
+4. **build-arch** — builds the Arch package in `archlinux:latest`, installs it
 
-## Packaging (.deb)
+## Packaging (.deb and Arch)
 
 ```bash
-./packaging/build-deb.sh         # → dist/dxsbash_<version>_all.deb
+./packaging/build-deb.sh     # → dist/dxsbash_<version>_all.deb   (needs dpkg-deb)
+./packaging/build-arch.sh    # → dist/dxsbash-<version>-1-any.pkg.tar.zst  (Arch, non-root, makepkg)
 ```
 
-The package ships the repo to `/usr/share/dxsbash` plus a
-`/usr/bin/dxsbash-installer` bootstrap that clones the repo into the
-invoking user's `~/linuxtoolbox/dxsbash` (falling back to copying the
-packaged tree when offline — updates then need a later re-run) and runs
-`setup.sh`. The .deb is a
-distribution vehicle — per-user setup still happens through the normal
-installer, so multi-user machines work and nothing in `$HOME` is owned
-by the package manager.
+Both packages ship the repository to `/usr/share/dxsbash` and install
+`packaging/dxsbash-installer` (shared by both) as `/usr/bin/dxsbash-installer`.
+That per-user bootstrap clones the repo into `~/linuxtoolbox/dxsbash` (full
+clone, so release fast-forwards work; the packaged tree is the offline
+fallback) and runs `setup.sh`. Packages are distribution vehicles —
+nothing in `$HOME` is owned by the package manager, and multi-user
+machines work.
+
+- `packaging/arch/PKGBUILD` builds from the GitHub release tarball
+  (`v$pkgver`), suitable for the AUR. `build-arch.sh` rewrites its
+  `pkgver`/`source`/`sha256sums` to package the local working tree.
+- `build-deb.sh` also runs on Arch/Fedora with the `dpkg` package
+  installed (to publish a .deb from there).
+- CI builds and installs both (`build-deb`, `build-arch` jobs) and
+  uploads them as the `dxsbash-deb` / `dxsbash-arch` artifacts.
+- Both were verified end to end: `pacman -U` + `dxsbash-installer` on a
+  real Arch root; `apt install` + `dxsbash-installer` on Debian/Ubuntu.
 
 ## Update channels
 

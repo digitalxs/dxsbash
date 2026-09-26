@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.9.5
+v3.9.6
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -73,14 +73,7 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-Or, on Debian/Ubuntu, install the `.deb` package (built by CI, or
-locally with `./packaging/build-deb.sh`), then run the per-user
-bootstrap:
-
-```bash
-sudo dpkg -i dxsbash_*_all.deb
-dxsbash-installer        # as your normal user, not root
-```
+Or install a distribution package — see [Packages (.deb and Arch)](#packages-deb-and-arch).
 
 The installer provides an interactive experience:
 1. Shows an Install / Repair / Uninstall menu
@@ -90,6 +83,58 @@ The installer provides an interactive experience:
 5. Configures your chosen shell with enhanced features
 6. Sets up visual elements and productivity tools
 7. Configures KDE terminal Konsole and Yakuake profiles and defaults
+
+### Packages (.deb and Arch)
+
+DXSBash can also be installed as a system package. Both packages put
+DXSBash in `/usr/share/dxsbash` and add the command `dxsbash-installer`;
+**each user then runs `dxsbash-installer` once** (as themselves, not root)
+to set DXSBash up in their home — it clones the repository, so
+`update-dxsbash` keeps working, and runs the normal installer.
+
+**Ready-made packages:** every push builds both on GitHub Actions — open
+the repository's **Actions** tab, pick the latest run and download the
+`dxsbash-deb` or `dxsbash-arch` artifact.
+
+#### Debian / Ubuntu (.deb)
+
+Build (needs only `dpkg-deb`, which Debian and Ubuntu always have):
+
+```bash
+git clone https://github.com/digitalxs/dxsbash.git && cd dxsbash
+git checkout v3.9.6                    # optional: build a released version
+./packaging/build-deb.sh               # → dist/dxsbash_<version>_all.deb
+```
+
+Install and set up:
+
+```bash
+sudo apt install ./dist/dxsbash_*_all.deb   # apt also installs the dependencies
+dxsbash-installer                           # as your normal user
+```
+
+Check a package without installing: `dpkg-deb --info` / `--contents` on the
+file. Remove with `sudo apt remove dxsbash` (per-user setups are removed
+with `dxsbash-uninstall`).
+
+#### Arch Linux (.pkg.tar.zst)
+
+A `.deb` cannot be installed on Arch — build the native package instead.
+Run as your **normal user** (makepkg refuses root):
+
+```bash
+sudo pacman -S --needed base-devel git
+git clone https://github.com/digitalxs/dxsbash.git && cd dxsbash
+./packaging/build-arch.sh              # → dist/dxsbash-<version>-1-any.pkg.tar.zst
+sudo pacman -U dist/dxsbash-*-any.pkg.tar.zst
+dxsbash-installer
+```
+
+`packaging/arch/PKGBUILD` builds from the GitHub release tarball, so it can
+also be used on its own (e.g. for the AUR). Remove with `sudo pacman -R dxsbash`.
+
+(Building the `.deb` *on* Arch also works — `sudo pacman -S dpkg` first — for
+publishing it; it just cannot be installed there.)
 
 ### Non-interactive install
 
