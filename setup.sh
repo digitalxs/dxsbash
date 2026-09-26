@@ -38,7 +38,13 @@ trap on_error ERR
 # If invoked via sudo, SUDO_USER is set to the invoking user and
 # $HOME points to /root. We always want the *real* user's home.
 #=================================================================
-REAL_USER="${SUDO_USER:-${USER:-$(id -un)}}"
+# SUDO_USER only means "the invoking user" when we actually run as root
+# (it can linger in the environment, e.g. after sudo -iu <user>)
+if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+  REAL_USER="$SUDO_USER"
+else
+  REAL_USER="$(id -un)"
+fi
 USER_HOME="$(getent passwd "$REAL_USER" 2>/dev/null | cut -d: -f6)"
 [ -n "$USER_HOME" ] || USER_HOME="${HOME:-/tmp}"
 REAL_GROUP="$(id -gn "$REAL_USER" 2>/dev/null || echo "$REAL_USER")"

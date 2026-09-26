@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.3] - 2026-09-27
+
+### Fixed
+- **Installs updated by an older updater stayed incomplete** (e.g.
+  `dxsbash-gui: command not found`, no menu entry): `update-dxsbash` only
+  did install steps when there was something to pull. An up-to-date run
+  now links any missing DXSBash command (asking for sudo only then) and
+  adds the desktop integration.
+- **`dxsbash-uninstall` did not back up nested files**: a quoting bug
+  kept `~/.config/starship.toml`, the fastfetch config and the Konsole
+  profile out of the uninstall backup. They are now saved (the theme as
+  its actual contents).
+- **`cheat` behaved differently in bash**: an older online-only `cheat`
+  in `.bash_aliases` overrode the shared one. Now one implementation in
+  every shell: the offline DXSBash reference, falling back to cheat.sh
+  when nothing matches (`cheat --web <cmd>` asks cheat.sh directly).
+- `setup.sh` trusted a leftover `SUDO_USER` when not running as root
+  (e.g. after `sudo -iu <user>`) and tried to install into that user's
+  home.
+- `dxsbash-gui --selftest` no longer triggers desktop cache rebuilds
+  (KDE's kbuildsycoca wrote into the test folder while it was deleted).
+
 ## [3.9.2] - 2026-09-27
 
 ### Fixed

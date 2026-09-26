@@ -399,7 +399,7 @@
 |:--------|:------------|
 | `where <cmd>` | Better alternative to 'which' command |
 | `bk <cmd>` | Run command in background |
-| `cheat [pattern]` | Offline cheatsheet over this reference, rendered with bat; no args = browse all, pattern = filter |
+| `cheat [pattern]` | Cheatsheet: this reference offline (bat-rendered); no match → cheat.sh online; `cheat --web <cmd>` asks cheat.sh directly |
 | `envallow` | Trust and load the `.dxsbash-env` file in the current directory (per-directory environments) |
 | `envdeny` | Withdraw trust for the current directory's `.dxsbash-env` |
 | `install_bashrc_support` | Install required dependencies for bashrc |

@@ -318,6 +318,20 @@ end
 #        cheat git         # only sections/lines mentioning git
 function cheat
     set -l doc "$HOME/linuxtoolbox/dxsbash/commands.md"
+    # --web, or no match in the offline reference: ask cheat.sh
+    if test "$argv[1]" = "--web"; or begin; test (count $argv) -gt 0; and not grep -qi -- "$argv" "$doc" 2>/dev/null; end
+        test "$argv[1]" = "--web"; and set -e argv[1]
+        if test (count $argv) -eq 0
+            echo "Usage: cheat --web <command>" >&2
+            return 1
+        end
+        if not type -q curl
+            echo "cheat: no local match and curl is not installed" >&2
+            return 1
+        end
+        curl -fsS "https://cheat.sh/$argv[1]"; or echo "cheat: cheat.sh unreachable" >&2
+        return
+    end
     if not test -f "$doc"
         echo "cheat: $doc not found (is DXSBash installed?)" >&2
         return 1
