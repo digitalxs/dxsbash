@@ -120,11 +120,14 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
    plugins, fish gets Fisher + Tide.
 6. **Linking** — rc files into `$HOME`, commands into
    `/usr/local/bin`, Konsole/Yakuake profiles when KDE is present.
-7. **Desktop integration** — `has_desktop()` (a `$DISPLAY`/Wayland
-   session, or any installed X/Wayland session; override with
-   `DXSBASH_DESKTOP=1|0`) adds `zenity` to the dependency list and
-   installs the *DXSBash Settings* menu entry. Headless servers get
-   neither, so no GTK stack is pulled in.
+7. **Desktop integration** — `detect_desktop` in `settings-lib.sh`
+   (shared with the updater) reports `kde`, `xfce`, `other` or nothing.
+   KDE Plasma and XFCE count when *installed* (`plasmashell` /
+   `xfce4-session`, or their session files), so SSH/TTY installs still
+   get the GUI; other desktops need a running session or an installed
+   session file. `DXSBASH_DESKTOP=1|0` overrides. A desktop adds `zenity`
+   to the dependency list and installs the *DXSBash Settings* menu entry
+   and update timer; headless servers get neither (no GTK stack).
 
 ## Settings architecture
 

@@ -331,6 +331,55 @@ link_starship_theme() {
 }
 
 #=================================================================
+# Desktop detection — decides whether the settings GUI (zenity, menu
+# entry, update notifications) is installed. Shared by setup.sh and the
+# updater so both agree.
+#=================================================================
+# Where desktop session files live (overridable for the self-test)
+DXS_SESSIONS_ROOT="${DXS_SESSIONS_ROOT:-/usr/share}"
+
+# Print the installed desktop: "kde" (Plasma), "xfce", "other" (another
+# desktop or an active graphical session) or nothing. KDE and XFCE are
+# recognised when *installed*, so running setup over SSH or from a text
+# console still sets the GUI up for them.
+detect_desktop() {
+    local s="$DXS_SESSIONS_ROOT"
+    case "${XDG_CURRENT_DESKTOP:-}:${DESKTOP_SESSION:-}" in
+        *KDE*|*kde*|*plasma*) echo kde; return ;;
+        *XFCE*|*xfce*)        echo xfce; return ;;
+    esac
+    if command -v plasmashell >/dev/null 2>&1 || command -v startplasma-wayland >/dev/null 2>&1 || \
+       compgen -G "$s/xsessions/plasma*.desktop" >/dev/null 2>&1 || \
+       compgen -G "$s/wayland-sessions/plasma*.desktop" >/dev/null 2>&1; then
+        echo kde; return
+    fi
+    if command -v xfce4-session >/dev/null 2>&1 || \
+       compgen -G "$s/xsessions/xfce*.desktop" >/dev/null 2>&1 || \
+       compgen -G "$s/wayland-sessions/xfce*.desktop" >/dev/null 2>&1; then
+        echo xfce; return
+    fi
+    # Another desktop: a local graphical session (not an ssh -X forwarded
+    # display on a server) or any installed session
+    if [ -z "${SSH_CONNECTION:-}${SSH_CLIENT:-}" ] && \
+       [ -n "${XDG_CURRENT_DESKTOP:-}${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+        echo other; return
+    fi
+    if compgen -G "$s/xsessions/*.desktop" >/dev/null 2>&1 || \
+       compgen -G "$s/wayland-sessions/*.desktop" >/dev/null 2>&1; then
+        echo other
+    fi
+}
+
+# Install the GUI? DXSBASH_DESKTOP=1|0 forces it, else detect_desktop
+wants_desktop_gui() {
+    case "${DXSBASH_DESKTOP:-auto}" in
+        1|yes|true) return 0 ;;
+        0|no|false) return 1 ;;
+    esac
+    [ -n "$(detect_desktop)" ]
+}
+
+#=================================================================
 # Terminal colors (Konsole / Yakuake)
 #
 # Each built-in theme has a matching Konsole color scheme shipped in
