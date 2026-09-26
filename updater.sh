@@ -11,7 +11,12 @@
 #   update-dxsbash --check     only check whether an update exists
 #                              (exit 0: up to date, 10: update available,
 #                               1: could not check)
+#   update-dxsbash --channel stable|main   use this channel once
 #   update-dxsbash --help      show help
+#
+# Channels (DXSBASH_UPDATE_CHANNEL in ~/.dxsbash/user.conf):
+#   stable (default)  the newest release tag vX.Y.Z (pre-releases skipped)
+#   main              the tip of the main branch — every change, untested
 #=================================================================
 
 set -euo pipefail
@@ -38,6 +43,8 @@ LOG_FILE="${LOG_DIR}/updater-$(date +%Y%m%d).log"
 DETECTED_SHELL=""
 ERRORS=0
 SUDO_CMD=""
+REPO_URL="https://github.com/digitalxs/dxsbash.git"
+UPDATE_CHANNEL=""   # stable | main — see resolve_channel
 
 #=================================================================
 # Logging Functions
@@ -116,15 +123,119 @@ get_current_version() {
     fi
 }
 
+# Channel precedence: --channel flag, then ~/.dxsbash/user.conf (the
+# live setting), then the environment, then "stable".
+resolve_channel() {
+    local conf="${HOME}/.dxsbash/user.conf"
+    if [[ -z "${UPDATE_CHANNEL}" && -f "${conf}" ]]; then
+        UPDATE_CHANNEL=$(sed -n 's/^export DXSBASH_UPDATE_CHANNEL="\{0,1\}\([a-z]*\)"\{0,1\}$/\1/p' "${conf}" | head -1)
+    fi
+    [[ -n "${UPDATE_CHANNEL}" ]] || UPDATE_CHANNEL="${DXSBASH_UPDATE_CHANNEL:-stable}"
+    case "${UPDATE_CHANNEL}" in
+        stable|main) ;;
+        *) UPDATE_CHANNEL="stable" ;;
+    esac
+}
+
+# Newest release tag (vX.Y.Z; -beta/-rc pre-releases skipped), or empty
+latest_stable_tag() {
+    { timeout 30 git ls-remote --tags --refs "${REPO_URL}" 'v*' 2>/dev/null || true; } \
+        | awk '{ sub("refs/tags/", "", $2); print $2 }' \
+        | { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } \
+        | sort -V | tail -n 1
+}
+
 get_remote_version() {
-    local remote_version
-    remote_version=$(curl -sL https://raw.githubusercontent.com/digitalxs/dxsbash/main/version.txt 2>/dev/null || echo "")
-    
-    if [[ -n "${remote_version}" ]]; then
+    local remote_version="" tag
+    if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+        # -f: an HTTP error page must not be read as a version number
+        remote_version=$(curl -fsSL --max-time 20 \
+            https://raw.githubusercontent.com/digitalxs/dxsbash/main/version.txt 2>/dev/null \
+            | tr -d '[:space:]' || true)
+    else
+        tag=$(latest_stable_tag)
+        remote_version="${tag#v}"
+    fi
+
+    if [[ "${remote_version}" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
         echo "${remote_version}"
     else
         echo "unknown"
     fi
+}
+
+# Commit the channel points at: the newest release tag (peeled to its
+# commit) for stable, the tip of main for main. Empty if unreachable.
+target_commit() {
+    local ref tag
+    if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+        ref="refs/heads/main"
+    else
+        tag=$(latest_stable_tag)
+        [[ -n "${tag}" ]] || return 0
+        ref="refs/tags/${tag}^{}"
+    fi
+    { timeout 30 git ls-remote "${REPO_URL}" "${ref}" 2>/dev/null || true; } | awk 'NR==1 { print $1 }'
+}
+
+# Decide by commits, not version strings: an update exists when the
+# channel's target commit is not already contained in the checkout.
+# This never offers a downgrade (a main snapshot ahead of the newest
+# tag is up to date), sees unbumped commits on main, and cannot loop
+# if a tag's version.txt was not bumped. Returns 0 = update available,
+# 1 = up to date, 2 = cannot tell (caller falls back to versions).
+commit_update_available() {
+    local target="$1"
+    [[ -n "${target}" ]] || return 2
+    git -C "${DXSBASH_DIR}" rev-parse --git-dir >/dev/null 2>&1 || return 2
+    # In a shallow clone missing history looks like "not an ancestor"
+    if [[ "$(git -C "${DXSBASH_DIR}" rev-parse --is-shallow-repository 2>/dev/null)" == "true" ]]; then
+        return 2
+    fi
+    if [[ "$(git -C "${DXSBASH_DIR}" rev-parse HEAD 2>/dev/null)" == "${target}" ]]; then
+        return 1
+    fi
+    if git -C "${DXSBASH_DIR}" merge-base --is-ancestor "${target}" HEAD >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0   # not in our history (or not fetched yet): new
+}
+
+# Combined decision used by --check and the update itself.
+# Prints the status line; returns 10 update / 0 up to date / 1 unknown.
+update_status() {
+    local current remote target rc=0
+    current=$(get_current_version)
+    remote=$(get_remote_version)
+    target=$(target_commit)
+
+    commit_update_available "${target}" || rc=$?
+    case "${rc}" in
+        0)
+            if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+                echo "Update available: ${current} -> ${remote} (main @ ${target:0:7})"
+            else
+                echo "Update available: ${current} -> ${remote} (stable channel)"
+            fi
+            return 10 ;;
+        1)
+            echo "DXSBash is up to date (version ${current}, ${UPDATE_CHANNEL} channel)."
+            return 0 ;;
+    esac
+
+    # Fallback (no git history to compare): version numbers
+    if [[ "${remote}" == "unknown" ]]; then
+        echo "Could not determine the remote version (network problem?)."
+        return 1
+    fi
+    local cmp=0
+    version_compare "${remote}" "${current}" || cmp=$?
+    if [[ ${cmp} -eq 0 || "${current}" == "unknown" ]]; then
+        echo "Update available: ${current} -> ${remote} (${UPDATE_CHANNEL} channel)"
+        return 10
+    fi
+    echo "DXSBash is up to date (version ${current}, ${UPDATE_CHANNEL} channel)."
+    return 0
 }
 
 version_compare() {
@@ -272,14 +383,37 @@ update_repository() {
         git stash push -m "dxsbash-updater-$(date +%Y%m%d-%H%M%S)" >/dev/null 2>&1
     fi
     
-    # Fetch and pull updates
-    if git fetch origin >/dev/null 2>&1 && git pull origin main >/dev/null 2>&1; then
-        log SUCCESS "Repository updated successfully"
-        return 0
-    else
+    if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+        if git fetch origin >/dev/null 2>&1 && git pull origin main >/dev/null 2>&1; then
+            log SUCCESS "Repository updated to the tip of main"
+            return 0
+        fi
         log ERROR "Failed to update repository"
         return 1
     fi
+
+    # A shallow clone (older install.sh used --depth=1) cannot compute
+    # the fast-forward reliably: fetch the full history once
+    if [[ "$(git rev-parse --is-shallow-repository 2>/dev/null)" == "true" ]]; then
+        log INFO "Fetching full history (one-time, shallow clone)..."
+        git fetch --unshallow origin >/dev/null 2>&1 || log WARN "Could not unshallow the clone"
+    fi
+
+    # stable: fast-forward the local main branch to the newest release tag
+    local tag
+    tag=$(latest_stable_tag)
+    if [[ -z "${tag}" ]]; then
+        log ERROR "No release tag found on ${REPO_URL}"
+        return 1
+    fi
+    if git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}" >/dev/null 2>&1 && \
+       git checkout -q -B main >/dev/null 2>&1 && \
+       git merge --ff-only -q "${tag}" >/dev/null 2>&1; then
+        log SUCCESS "Repository updated to release ${tag}"
+        return 0
+    fi
+    log ERROR "Could not fast-forward to ${tag} (local changes or history?). Try: update-dxsbash --channel main"
+    return 1
 }
 
 update_file_link() {
@@ -377,6 +511,7 @@ update_system_scripts() {
         "gui-askpass.sh"
         "export-import.sh"
         "bench.sh"
+        "update-notify.sh"
     )
 
     for script in "${scripts[@]}"; do
@@ -432,27 +567,20 @@ perform_update() {
     current_version=$(get_current_version)
     remote_version=$(get_remote_version)
     
+    log INFO "Update channel: ${UPDATE_CHANNEL}"
     log INFO "Current version: ${current_version}"
     log INFO "Remote version: ${remote_version}"
     
-    if [[ "${remote_version}" == "unknown" ]]; then
-        log WARN "Could not determine remote version, proceeding with update anyway"
-    else
-        local cmp_result
-        version_compare "${remote_version}" "${current_version}" && cmp_result=0 || cmp_result=$?
-        if [[ ${cmp_result} -eq 0 ]]; then
-            log INFO "Update available: ${current_version} -> ${remote_version}"
-        elif [[ ${cmp_result} -eq 2 ]]; then
-            log INFO "Already up to date (version ${current_version})"
-            echo -e "${GREEN}DXSBash is already up to date (version ${current_version})${RC}"
-            return 0
-        else
-            log INFO "Local version (${current_version}) is newer than remote (${remote_version}), skipping"
-            echo -e "${GREEN}DXSBash local version (${current_version}) is ahead of remote — no update needed.${RC}"
-            return 0
-        fi
+    local status_line status_rc=0
+    status_line=$(update_status) || status_rc=$?
+    log INFO "${status_line}"
+    if [[ ${status_rc} -eq 0 ]]; then
+        echo -e "${GREEN}${status_line}${RC}"
+        return 0
+    elif [[ ${status_rc} -eq 1 ]]; then
+        log WARN "Could not determine the remote state, proceeding with update anyway"
     fi
-    
+
     # Create backup
     backup_path=$(create_backup)
     if [[ -z "${backup_path}" ]]; then
@@ -502,51 +630,45 @@ perform_update() {
 # Check-only mode (for scripts, cron jobs and prompt integrations)
 #=================================================================
 usage() {
-    sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 check_for_update() {
-    local current remote
-    current=$(get_current_version)
-    remote=$(get_remote_version)
-
-    if [[ "${remote}" == "unknown" ]]; then
-        echo "Could not determine the remote version (network problem?)." >&2
-        exit 1
+    local out rc=0
+    out=$(update_status) || rc=$?
+    if [[ ${rc} -eq 1 ]]; then
+        echo "${out}" >&2
+    else
+        echo "${out}"
     fi
-    if [[ "${current}" == "${remote}" ]]; then
-        echo "DXSBash is up to date (version ${current})."
-        exit 0
-    fi
-    if [[ "${current}" == "unknown" ]]; then
-        echo "Update available: ${current} -> ${remote}"
-        exit 10
-    fi
-
-    local cmp=0
-    version_compare "${remote}" "${current}" || cmp=$?
-    if [[ ${cmp} -eq 0 ]]; then
-        echo "Update available: ${current} -> ${remote}"
-        exit 10
-    fi
-    echo "Local version (${current}) is ahead of remote (${remote})."
-    exit 0
+    exit "${rc}"
 }
 
 #=================================================================
 # Main Entry Point
 #=================================================================
 main() {
-    case "${1:-}" in
-        --check)   check_for_update ;;
-        -h|--help) usage; exit 0 ;;
-        "")        ;;
-        *)
-            echo "Unknown option: $1" >&2
-            usage >&2
-            exit 2
-            ;;
-    esac
+    local mode="update"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --check)     mode="check" ;;
+            --channel)   UPDATE_CHANNEL="${2:-}"; shift ;;
+            --channel=*) UPDATE_CHANNEL="${1#--channel=}" ;;
+            -h|--help)   usage; exit 0 ;;
+            *)
+                echo "Unknown option: $1" >&2
+                usage >&2
+                exit 2
+                ;;
+        esac
+        shift
+    done
+    if [[ -n "${UPDATE_CHANNEL}" && "${UPDATE_CHANNEL}" != "stable" && "${UPDATE_CHANNEL}" != "main" ]]; then
+        echo "Unknown channel: ${UPDATE_CHANNEL} (use stable or main)" >&2
+        exit 2
+    fi
+    resolve_channel
+    [[ "${mode}" == "check" ]] && check_for_update
 
     echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
     echo -e "${BLUE}║              DXSBash Updater $(date +%Y)                      ║${RC}"

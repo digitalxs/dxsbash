@@ -131,10 +131,10 @@ show_current_settings() {
 # settings-lib.sh).
 apply_starship_theme() {
     if ! link_starship_theme "$1"; then
-        echo -e "${RED}  ✗ Theme file not found: $STARSHIP_THEMES_DIR/$1${RC}"
+        echo -e "${RED}  ✗ Theme file not found: $(theme_path "$1")${RC}"
         return 1
     fi
-    echo -e "${GREEN}  ✓ Linked $STARSHIP_LINK → $STARSHIP_THEMES_DIR/$1${RC}"
+    echo -e "${GREEN}  ✓ Linked $STARSHIP_LINK → $(theme_path "$1")${RC}"
     [ -n "$STARSHIP_BACKUP" ] && \
         echo -e "${YELLOW}  Your own starship.toml was kept as ${WHITE}$STARSHIP_BACKUP${RC}"
     return 0
@@ -306,12 +306,14 @@ configure_starship_theme() {
     echo -e "  Starship: $starship_status"
     echo -e "  Current:  ${WHITE}$(starship_theme_display_name "$CUR_STARSHIP_THEME")${RC}"
     echo ""
-    echo -e "  Pick a preset:"
+    echo -e "  Pick a theme ${DIM}(your own: drop .toml files into ~/.dxsbash/themes)${RC}:"
     echo ""
 
+    local -a entries=()
+    mapfile -t entries < <(theme_entries)
     local i=1
     local entry name fname marker
-    for entry in "${STARSHIP_THEMES[@]}"; do
+    for entry in "${entries[@]}"; do
         name="$(theme_field "$entry" 1)"
         fname="$(theme_field "$entry" 2)"
         marker=""
@@ -328,13 +330,13 @@ configure_starship_theme() {
         return
     fi
     if ! [[ "$choice" =~ ^[0-9]+$ ]] || \
-       [ "$choice" -lt 1 ] || [ "$choice" -gt "${#STARSHIP_THEMES[@]}" ]; then
+       [ "$choice" -lt 1 ] || [ "$choice" -gt "${#entries[@]}" ]; then
         echo -e "${RED}  Invalid choice.${RC}"
         sleep 1
         return
     fi
 
-    entry="${STARSHIP_THEMES[$((choice-1))]}"
+    entry="${entries[$((choice-1))]}"
     name="$(theme_field "$entry" 1)"
     fname="$(theme_field "$entry" 2)"
 
@@ -348,6 +350,10 @@ configure_starship_theme() {
             echo -e "${YELLOW}  Prompt style switched to 'starship'.${RC}"
         fi
         save_config
+        local scheme
+        if scheme=$(apply_terminal_colors "$fname"); then
+            echo -e "${GREEN}  ✓ Konsole/Yakuake colors: ${WHITE}$scheme${RC}${DIM} (new terminal windows)${RC}"
+        fi
         echo -e "${GREEN}  Theme set to: ${WHITE}$name${RC}"
         sleep 1
     else
@@ -462,6 +468,43 @@ configure_ssh_lite() {
 }
 
 #=================================================================
+# Submenu — Updates & terminal colors
+#=================================================================
+configure_updates() {
+    display_banner
+    echo -e "${CYAN}▶ Updates & Terminal Colors${RC}"
+    echo ""
+    echo -e "  ${WHITE}Update channel${RC}      ${CYAN}$CUR_UPDATE_CHANNEL${RC}"
+    echo -e "    stable = tagged releases (recommended), main = every change"
+    echo -e "  ${WHITE}Update notifications${RC} $([ "$CUR_UPDATE_NOTIFY" = true ] && echo -e "${GREEN}on${RC}" || echo -e "${RED}off${RC}")"
+    echo -e "    daily check; desktop notification when a release is out"
+    echo -e "  ${WHITE}Terminal colors${RC}      $([ "$CUR_TERM_COLORS" = true ] && echo -e "${GREEN}match theme${RC}" || echo -e "${RED}unchanged${RC}")"
+    echo -e "    Konsole/Yakuake colors follow the prompt theme"
+    echo ""
+    echo -e "  ${WHITE}1)${RC} Switch channel to $([ "$CUR_UPDATE_CHANNEL" = main ] && echo stable || echo main)"
+    echo -e "  ${WHITE}2)${RC} Turn update notifications $([ "$CUR_UPDATE_NOTIFY" = true ] && echo off || echo on)"
+    echo -e "  ${WHITE}3)${RC} Turn terminal color matching $([ "$CUR_TERM_COLORS" = true ] && echo off || echo on)"
+    echo -e "  ${WHITE}0)${RC} Back"
+    echo ""
+
+    read -rp "  Choice: " choice
+    case "$choice" in
+        1) [ "$CUR_UPDATE_CHANNEL" = main ] && CUR_UPDATE_CHANNEL=stable || CUR_UPDATE_CHANNEL=main
+           save_config && rm -f "$CONF_DIR/update-notified" ;;
+        2) [ "$CUR_UPDATE_NOTIFY" = true ] && CUR_UPDATE_NOTIFY=false || CUR_UPDATE_NOTIFY=true
+           save_config ;;
+        3) [ "$CUR_TERM_COLORS" = true ] && CUR_TERM_COLORS=false || CUR_TERM_COLORS=true
+           if save_config && [ "$CUR_TERM_COLORS" = true ]; then
+               apply_terminal_colors >/dev/null && \
+                   echo -e "${GREEN}  ✓ Konsole/Yakuake colors applied (new terminal windows)${RC}"
+               sleep 1
+           fi ;;
+        0|"") return ;;
+        *) echo -e "${RED}  Invalid choice.${RC}"; sleep 1 ;;
+    esac
+}
+
+#=================================================================
 # Reset to defaults
 #=================================================================
 reset_to_defaults() {
@@ -480,6 +523,7 @@ reset_to_defaults() {
     read -rp "  Continue? (y/N): " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         reset_settings_to_defaults
+        apply_terminal_colors >/dev/null || true
         apply_starship_theme "$DEF_STARSHIP_THEME" >/dev/null 2>&1 || true
         save_config
     else
@@ -504,7 +548,8 @@ main_menu() {
         echo -e "  ${WHITE}5)${RC} Startup display         ${DIM}(fastfetch=${CUR_FASTFETCH})${RC}"
         echo -e "  ${WHITE}6)${RC} Security summary        ${DIM}(secsummary=${CUR_SECSUMMARY})${RC}"
         echo -e "  ${WHITE}7)${RC} SSH-lite prompt         ${DIM}(ssh-lite=${CUR_SSH_LITE})${RC}"
-        echo -e "  ${WHITE}8)${RC} Reset to defaults"
+        echo -e "  ${WHITE}8)${RC} Updates & terminal colors ${DIM}(${CUR_UPDATE_CHANNEL}, notify=${CUR_UPDATE_NOTIFY}, colors=${CUR_TERM_COLORS})${RC}"
+        echo -e "  ${WHITE}9)${RC} Reset to defaults"
         echo -e "  ${WHITE}0)${RC} Exit"
         echo ""
 
@@ -517,7 +562,8 @@ main_menu() {
             5) configure_fastfetch ;;
             6) configure_secsummary ;;
             7) configure_ssh_lite ;;
-            8) reset_to_defaults ;;
+            8) configure_updates ;;
+            9) reset_to_defaults ;;
             0|"q"|"Q"|"exit") break ;;
             *) echo -e "${RED}  Invalid choice.${RC}"; sleep 1 ;;
         esac

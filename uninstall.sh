@@ -224,6 +224,19 @@ remove_path "$HOME/.local/share/konsole/DXSBash.profile"
 remove_path "$HOME/update-dxsbash.sh"
 remove_path "$HOME/.dxsbash"
 
+# Daily update check (systemd user timer installed with the menu entry)
+run "systemctl --user disable --now dxsbash-update-check.timer >/dev/null 2>&1 || true"
+SYSTEMD_USER_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+remove_path "$SYSTEMD_USER_DIR/timers.target.wants/dxsbash-update-check.timer"
+remove_path "$SYSTEMD_USER_DIR/dxsbash-update-check.timer"
+remove_path "$SYSTEMD_USER_DIR/dxsbash-update-check.service"
+run "systemctl --user daemon-reload >/dev/null 2>&1 || true"
+
+# Konsole color schemes that follow the prompt theme
+for scheme in "$HOME"/.local/share/konsole/DXSBash*.colorscheme; do
+    remove_path "$scheme"   # an unmatched glob is a no-op in remove_path
+done
+
 # "DXSBash Settings" menu entry and its icons (installed by dxsbash-gui).
 # Check both locations: setup.sh run through sudo installs into
 # ~/.local/share even when the user has a custom XDG_DATA_HOME.

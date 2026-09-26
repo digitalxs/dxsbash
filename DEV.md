@@ -31,6 +31,8 @@ that is cloned to a fixed location and then *symlinked into place*:
   desktop integration (desktops only, per user — written by dxsbash-gui --install-desktop):
     ~/.local/share/applications/dxsbash-settings.desktop   (System category)
     ~/.local/share/icons/hicolor/{16..256,scalable}/apps/dxsbash.{png,svg}
+    ~/.config/systemd/user/dxsbash-update-check.{timer,service}  (daily update-notify.sh)
+    ~/.local/share/konsole/DXSBash*.colorscheme                 (theme-matched colors)
 ```
 
 Because every installed file is a symlink back into the repo, a
@@ -48,6 +50,8 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
 | `user.conf` | preference overrides sourced by bash/zsh (`user.fish` for fish) — written only through `settings-lib.sh` |
 | `custom-aliases.sh` | user aliases from the GUI editor, sourced by bash/zsh after the DXSBash defaults |
 | `custom-aliases.fish` | generated fish twin of `custom-aliases.sh` (never edit by hand) |
+| `themes/` | the user's own Starship themes (`*.toml`), shown in both pickers as id `user/<file>` |
+| `update-notified` | last version the update notifier announced (one notification per version) |
 | `env-allow` | SHA-256 allowlist for trusted `.dxsbash-env` files |
 | `logs/` | installer/updater logs; `gui.log` holds zenity diagnostics for the last GUI session |
 | `security-summary.txt` | cached login security summary (regenerated) |
@@ -69,6 +73,9 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
 | `dxsbash-config.sh` | terminal settings menu (front end over `settings-lib.sh`) |
 | `dxsbash-gui.sh` | zenity settings window (front end over `settings-lib.sh`); also owns the menu entry (`--install-desktop` / `--remove-desktop`, called by setup/repair/updater) and `--selftest` |
 | `gui-askpass.sh` | graphical `SUDO_ASKPASS` helper so sudo can prompt without a terminal |
+| `update-notify.sh` | daily update check → desktop notification with *Update now* (run by the systemd user timer) |
+| `systemd/` | `dxsbash-update-check.{service,timer}` (per-user; installed with the menu entry) |
+| `assets/konsole/` | Konsole color schemes matched to the built-in themes (see `konsole_scheme_for_theme`) |
 | `desktop/dxsbash-settings.desktop.in` | menu entry template (`@GUI@` is replaced at install time) |
 | `assets/icons/hicolor/` | app icon: SVG master + pre-rendered PNG sizes (GTK4 only resolves themed icons from sized PNG dirs) |
 | `assets/theme-previews/`, `assets/screenshots/` | README images (theme previews are generated — see below) |
@@ -142,6 +149,12 @@ Rules of the model:
   setting = a `DEF_*` default + `load_settings` + `write_settings` entry.
 - Values are written in bash's language (`HISTSIZE=-1` = unlimited);
   `.zshrc` translates what zsh spells differently (`SAVEHIST`, no -1).
+- Themes have ids: a built-in preset's file name, or `user/<file>` for
+  `~/.dxsbash/themes`. Always go through `theme_entries` / `theme_path` /
+  `link_starship_theme` — never build paths by hand.
+- `apply_terminal_colors` edits only `ColorScheme=` in the DXSBash Konsole
+  profile (`_ini_set`), and only for built-in themes; `setup.sh` calls it
+  (via `dxsbash-gui --apply-colors`) right after writing the profile.
 - Custom aliases are stored as `alias name='cmd'` lines; POSIX
   single-quote escaping (`'\''`) differs from fish (`\'`), so the fish
   file is regenerated from the POSIX one after every change and on
@@ -224,6 +237,26 @@ distribution vehicle — per-user setup still happens through the normal
 installer, so multi-user machines work and nothing in `$HOME` is owned
 by the package manager.
 
+## Update channels
+
+`updater.sh` resolves a channel (`--channel` flag > `user.conf` >
+`$DXSBASH_UPDATE_CHANNEL` > `stable`):
+
+- **stable** — the newest `vX.Y.Z` tag from `git ls-remote` (pre-release
+  tags like `-beta` are skipped); the local `main` branch is
+  fast-forwarded to it (never moved backwards).
+- **main** — `git pull origin main`, as before.
+
+The decision is commit-based (`update_status` / `commit_update_available`):
+an update exists when the channel's target commit — the newest tag,
+peeled, or `main`'s tip — is not already contained in the checkout. So
+no downgrades (a main snapshot ahead of the newest tag is up to date),
+unbumped commits on main are seen, and a tag whose `version.txt` was not
+bumped cannot loop. Shallow clones fall back to comparing versions and
+are unshallowed on the first stable update. Fresh installs (`setup.sh`,
+`install.sh`) clone `main`; stable users then move on at the next tag.
+A release therefore reaches stable users **only once it is tagged**.
+
 ## Release process
 
 1. Update `version.txt` (semver — this file is the single source of truth).
@@ -236,8 +269,11 @@ by the package manager.
    previews: `sudo tools/render-theme-previews.sh` (needs starship,
    ImageMagick with Pango, a Nerd Font).
 6. Run the local test pass above; push and let the CI matrix go green.
-7. Merge to `main`. `update-dxsbash` on user machines pulls the tagged
-   state of `main`.
+7. Merge to `main`, then **tag the merge commit** — stable-channel users
+   (the default) only receive tagged releases:
+   `git tag -a v3.9.0 -m "DXSBash 3.9.0" && git push origin v3.9.0`
+   (the tag must match `version.txt`). `update-dxsbash` then moves stable
+   machines to the new tag; main-channel machines already follow `main`.
 
 ## Coding conventions
 

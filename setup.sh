@@ -1271,6 +1271,12 @@ EOL
       chown "$REAL_USER:$REAL_GROUP" "$PROFILE_PATH"
     fi
 
+    # Color scheme matching the prompt theme (DXSBASH_TERM_COLORS);
+    # keeps Breeze if the user turned the feature off
+    if [ -f "$GITPATH/dxsbash-gui.sh" ]; then
+      as_user bash "$GITPATH/dxsbash-gui.sh" --apply-colors >/dev/null 2>&1 || true
+    fi
+
     # Update konsolerc to use this profile as the default
     set_default_profile "$USER_HOME/.config/konsolerc"
 

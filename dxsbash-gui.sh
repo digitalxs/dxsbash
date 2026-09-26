@@ -14,8 +14,9 @@
 #   dxsbash-gui --update           jump straight to the update check
 #   dxsbash-gui --themes           jump straight to the theme picker
 #   dxsbash-gui --aliases          jump straight to the alias editor
-#   dxsbash-gui --install-desktop  install the menu entry + icon
-#   dxsbash-gui --remove-desktop   remove the menu entry + icon
+#   dxsbash-gui --install-desktop  install menu entry, icon and daily update check
+#   dxsbash-gui --remove-desktop   remove them again
+#   dxsbash-gui --apply-colors     re-apply terminal colors for the current theme
 #   dxsbash-gui --sync-aliases     regenerate the fish alias twin
 #   dxsbash-gui --selftest         non-GUI self test (used by CI)
 #
@@ -46,6 +47,9 @@ ICON_PNG="$ICON_SRC_DIR/256x256/apps/dxsbash.png"
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 DESKTOP_FILE="$DATA_HOME/applications/dxsbash-settings.desktop"
 ICON_HICOLOR="$DATA_HOME/icons/hicolor"
+SYSTEMD_USER_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+UPDATE_TIMER="dxsbash-update-check.timer"
+UPDATE_SERVICE="dxsbash-update-check.service"
 # zenity/GTK diagnostics for troubleshooting (overwritten each session)
 GUI_LOG="$CONF_DIR/logs/gui.log"
 
@@ -107,7 +111,39 @@ install_desktop() {
     chmod 644 "$DESKTOP_FILE"
 
     _refresh_menus
+    install_update_timer
     echo "Installed menu entry: $DESKTOP_FILE"
+}
+
+# Daily update check (update-notify.sh) as a systemd user timer. The
+# units are copied and enabled by creating the wants/ link directly, so
+# this works even without a reachable user manager (setup.sh running
+# through sudo): the timer then starts at the next login.
+# systemctl --user, except inside --selftest (the sandboxed unit files
+# must not stop/start the real user's timer)
+_systemctl_user() {
+    [ -n "${DXS_SELFTEST:-}" ] && return 0
+    systemctl --user "$@"
+}
+
+install_update_timer() {
+    command -v systemctl >/dev/null 2>&1 || return 0
+    [ -f "$DXSBASH_DIR/systemd/$UPDATE_TIMER" ] || return 0
+    mkdir -p "$SYSTEMD_USER_DIR/timers.target.wants"
+    cp "$DXSBASH_DIR/systemd/$UPDATE_SERVICE" "$DXSBASH_DIR/systemd/$UPDATE_TIMER" "$SYSTEMD_USER_DIR/"
+    ln -sf "../$UPDATE_TIMER" "$SYSTEMD_USER_DIR/timers.target.wants/$UPDATE_TIMER"
+    if _systemctl_user daemon-reload >/dev/null 2>&1; then
+        _systemctl_user start "$UPDATE_TIMER" >/dev/null 2>&1 || true
+    fi
+    return 0
+}
+
+remove_update_timer() {
+    _systemctl_user disable --now "$UPDATE_TIMER" >/dev/null 2>&1 || true
+    rm -f "$SYSTEMD_USER_DIR/timers.target.wants/$UPDATE_TIMER" \
+          "$SYSTEMD_USER_DIR/$UPDATE_TIMER" "$SYSTEMD_USER_DIR/$UPDATE_SERVICE"
+    _systemctl_user daemon-reload >/dev/null 2>&1 || true
+    return 0
 }
 
 remove_desktop() {
@@ -117,7 +153,8 @@ remove_desktop() {
         rm -f "$ICON_HICOLOR/$f"
     done < <(_icon_files)
     _refresh_menus
-    echo "Removed menu entry and icons"
+    remove_update_timer
+    echo "Removed menu entry, icons and update check"
 }
 
 # Tell the desktop about the change. All optional: KDE also rescans
@@ -290,10 +327,12 @@ ui_update() {
     esac
 
     # "Update available: 3.7.0 -> 3.8.0" → "3.7.0  →  3.8.0"
-    local from to versions
+    local from to versions detail=""
     if [[ "$out" =~ ([0-9][0-9.]*|unknown)\ -\>\ ([0-9][0-9.]*) ]]; then
         from="${BASH_REMATCH[1]}"; to="${BASH_REMATCH[2]}"
-        versions="<big>$(esc "$from")  →  <b>$(esc "$to")</b></big>"
+        # "(stable channel)" / "(main @ abc1234)"
+        [[ "$out" =~ \((.*)\)$ ]] && detail="\n<small>$(esc "${BASH_REMATCH[1]}")</small>"
+        versions="<big>$(esc "$from")  →  <b>$(esc "$to")</b></big>$detail"
     else
         versions="$(esc "$out")"
     fi
@@ -331,35 +370,62 @@ PREVIEW_FONT="FiraCode Nerd Font Mono,FiraCode Nerd Font,Symbols Nerd Font Mono,
 
 # Render one theme's real prompt — the user's own starship, fonts and
 # DXSBash git checkout — as Pango markup for display in a dialog.
-_theme_preview() { # $1 = theme file
+_theme_preview() { # $1 = theme id
+    local path
+    path="$(theme_path "$1")"
     (
         cd "$DXSBASH_DIR" 2>/dev/null || cd "$HOME" || exit 0
         env -u STARSHIP_SHELL -u STARSHIP_SESSION_KEY \
-            STARSHIP_CONFIG="$STARSHIP_THEMES_DIR/$1" \
+            STARSHIP_CONFIG="$path" \
             timeout 3 starship prompt --status=0 --cmd-duration=0 --jobs=0 \
                 --terminal-width=110 2>/dev/null
     ) | awk -f "$DXSBASH_DIR/tools/ansi2pango.awk" \
             -v bg="#0d1117" -v pad=1 -v font="$PREVIEW_FONT"
 }
 
+# Previews are drawn in the dialog header, which cannot scroll: beyond
+# this many themes the rest are listed without a preview
+MAX_PREVIEWS=10
+
+# Ask for a Starship .toml file and add it to ~/.dxsbash/themes.
+# Prints the new theme id on success.
+_add_user_theme() {
+    local src id err
+    src=$(Z --file-selection --title="$APP_NAME — add your own Starship theme" \
+        --file-filter="Starship config | *.toml") || return 1
+    [ -n "$src" ] || return 1
+    if [ -f "$USER_THEMES_DIR/${src##*/}" ] && \
+       ! ask "A theme named <tt>$(esc "${src##*/}")</tt> already exists. Replace it?"; then
+        return 1
+    fi
+    if ! id=$(import_user_theme "$src" 2>"$GUI_LOG.theme"); then
+        err="$(cat "$GUI_LOG.theme" 2>/dev/null)"
+        error "<b>Could not add this theme.</b>\n\n$(esc "$err")"
+        rm -f "$GUI_LOG.theme"
+        return 1
+    fi
+    rm -f "$GUI_LOG.theme"
+    printf '%s' "$id"
+}
+
 ui_themes() {
-    local have_starship=0 gallery="" entry name file desc preview
+    local have_starship=0 gallery="" entry name id desc preview shown=0
     command -v starship >/dev/null 2>&1 && have_starship=1
 
     local -a rows=()
-    for entry in "${STARSHIP_THEMES[@]}"; do
+    while IFS= read -r entry; do
         name="$(theme_field "$entry" 1)"
-        file="$(theme_field "$entry" 2)"
+        id="$(theme_field "$entry" 2)"
         desc="$(theme_field "$entry" 3)"
-        [ -f "$STARSHIP_THEMES_DIR/$file" ] || continue
-        rows+=("$([ "$file" = "$CUR_STARSHIP_THEME" ] && echo TRUE || echo FALSE)" \
-               "$name" "$desc" "$file")
-        if [ "$have_starship" -eq 1 ]; then
-            preview="$(_theme_preview "$file")"
+        rows+=("$([ "$id" = "$CUR_STARSHIP_THEME" ] && echo TRUE || echo FALSE)" \
+               "$(cell "$name")" "$(cell "$desc")" "$id")
+        if [ "$have_starship" -eq 1 ] && [ "$shown" -lt "$MAX_PREVIEWS" ]; then
+            preview="$(_theme_preview "$id")"
             preview="${preview//\\/"\\\\"}"
             gallery+="<small><b>$(esc "$name")</b></small>\n${preview//$'\n'/\\n}\n"
+            shown=$((shown + 1))
         fi
-    done
+    done < <(theme_entries)
 
     local header
     if [ "$have_starship" -eq 1 ]; then
@@ -368,35 +434,62 @@ ui_themes() {
         header="<big><b>Choose your prompt style</b></big>\n<small>Install Starship (dxsbash-repair --deps) to see live previews here.</small>"
     fi
 
-    local sel
+    local sel rc
     sel=$(Z --list --radiolist --width=1080 --height=780 \
         --text="$header" \
-        --column="" --column="Theme" --column="Style" --column="file" \
+        --column="" --column="Theme" --column="Style" --column="id" \
         --hide-column=4 --print-column=4 \
-        --ok-label="Apply theme" --cancel-label="Back" "${rows[@]}") || return
-    [ -n "$sel" ] || return
+        --ok-label="Apply theme" --cancel-label="Back" \
+        --extra-button="Add your own…" "${rows[@]}")
+    rc=$?
+    if [ "$sel" = "Add your own…" ]; then
+        # Import, then show the picker again with the new theme in it
+        _add_user_theme >/dev/null && info "Theme added — it is now in the list with a live preview."
+        ui_themes
+        return
+    fi
+    [ "$rc" -eq 0 ] && [ -n "$sel" ] || return
 
     if ! link_starship_theme "$sel"; then
-        error "Theme file not found: $(esc "$sel")"
+        error "Theme file not found: $(esc "$(theme_path "$sel")")"
         return
     fi
     CUR_STARSHIP_THEME="$sel"
-    local note
+    local note scheme
     note="$(backup_note)"
     # Picking a Starship theme implies wanting the Starship prompt
     if [ "$CUR_PROMPT_STYLE" != "starship" ]; then
         CUR_PROMPT_STYLE="starship"
-        note="\nPrompt engine switched to Starship."
+        note+="\nPrompt engine switched to Starship."
     fi
     save_settings || return
+    if scheme=$(apply_terminal_colors "$sel"); then
+        note+="\nKonsole/Yakuake colors: <b>$(esc "$scheme")</b> (new terminal windows)."
+    fi
     if [ "$have_starship" -eq 0 ]; then
-        note="$note\n\n<b>Note:</b> Starship is not installed — the theme applies once it is (run dxsbash-repair --deps)."
+        note+="\n\n<b>Note:</b> Starship is not installed — the theme applies once it is (run dxsbash-repair --deps)."
         applied "Prompt theme set to <b>$(esc "$(starship_theme_display_name "$sel")")</b>.$note"
     else
         # --no-wrap: a wrapped prompt preview would be unreadable
         Z --info "$(_icon_opt)" --no-wrap \
           --text="Prompt theme set to <b>$(esc "$(starship_theme_display_name "$sel")")</b>.$note\n\n$(_theme_preview "$sel" | sed 's/\\/\\\\/g' | sed ':a;N;$!ba;s/\n/\\n/g')\n\n<small>Takes effect in new terminal windows\n(or run <tt>source ~/.bashrc</tt> in an open one).</small>"
     fi
+}
+
+ui_update_channel() {
+    local st="FALSE" mn="FALSE" sel
+    [ "$CUR_UPDATE_CHANNEL" = "main" ] && mn="TRUE" || st="TRUE"
+    sel=$(Z --list --radiolist --width=620 --height=270 \
+        --text="<b>Update channel</b>\nWhich DXSBash versions updates (and update notifications) follow.\n<small>Switching to Stable never downgrades: you move on at the next release.</small>" \
+        --column="" --column="Channel" --column="What you get" --column="key" \
+        --hide-column=4 --print-column=4 \
+        "$st" "Stable" "Tagged releases only (recommended)" "stable" \
+        "$mn" "Main" "Every change as soon as it is pushed — newest, least tested" "main") || return
+    [ -n "$sel" ] || return
+    CUR_UPDATE_CHANNEL="$sel"
+    save_settings || return
+    rm -f "$CONF_DIR/update-notified"   # re-evaluate notifications for the new channel
+    applied "Update channel set to <b>$sel</b>."
 }
 
 ui_prompt_engine() {
@@ -419,7 +512,7 @@ ui_prompt_engine() {
 #=================================================================
 ui_options() {
     local out
-    out=$(Z --list --checklist --width=680 --height=320 \
+    out=$(Z --list --checklist --width=720 --height=380 \
         --text="<b>Startup &amp; behavior</b>\nTick the features you want." \
         --column="On" --column="Option" --column="What it does" --column="key" \
         --hide-column=4 --print-column=4 --separator=" " \
@@ -428,16 +521,27 @@ ui_options() {
         "$([ "$CUR_SECSUMMARY" = true ] && echo TRUE || echo FALSE)" \
             "Security summary at login" "One-line security status (also over SSH)" "secsummary" \
         "$([ "$CUR_SSH_LITE" = true ] && echo TRUE || echo FALSE)" \
-            "Lightweight prompt over SSH" "Minimal, instant prompt inside SSH sessions" "sshlite") || return
+            "Lightweight prompt over SSH" "Minimal, instant prompt inside SSH sessions" "sshlite" \
+        "$([ "$CUR_UPDATE_NOTIFY" = true ] && echo TRUE || echo FALSE)" \
+            "Notify me about updates" "Daily check; a desktop notification when a release is out" "notify" \
+        "$([ "$CUR_TERM_COLORS" = true ] && echo TRUE || echo FALSE)" \
+            "Match terminal colors to theme" "Konsole/Yakuake colors follow the prompt theme" "colors") || return
 
-    local was_ss="$CUR_SECSUMMARY"
+    local was_ss="$CUR_SECSUMMARY" was_colors="$CUR_TERM_COLORS" extra=""
     CUR_FASTFETCH=false; CUR_SECSUMMARY=false; CUR_SSH_LITE=false
+    CUR_UPDATE_NOTIFY=false; CUR_TERM_COLORS=false
     [[ " $out " == *" fastfetch "* ]]  && CUR_FASTFETCH=true
     [[ " $out " == *" secsummary "* ]] && CUR_SECSUMMARY=true
     [[ " $out " == *" sshlite "* ]]    && CUR_SSH_LITE=true
+    [[ " $out " == *" notify "* ]]     && CUR_UPDATE_NOTIFY=true
+    [[ " $out " == *" colors "* ]]     && CUR_TERM_COLORS=true
     save_settings || return
     [ "$was_ss" != "true" ] && [ "$CUR_SECSUMMARY" = "true" ] && prime_secsummary_cache
-    applied "Options saved.\n\nSystem info: <b>$(onoff "$CUR_FASTFETCH")</b>   Security summary: <b>$(onoff "$CUR_SECSUMMARY")</b>   SSH-lite: <b>$(onoff "$CUR_SSH_LITE")</b>"
+    local scheme
+    if [ "$was_colors" != "true" ] && [ "$CUR_TERM_COLORS" = "true" ] && scheme=$(apply_terminal_colors); then
+        extra="\nKonsole/Yakuake colors: <b>$(esc "$scheme")</b>"
+    fi
+    applied "Options saved.\n\nSystem info: <b>$(onoff "$CUR_FASTFETCH")</b>   Security summary: <b>$(onoff "$CUR_SECSUMMARY")</b>   SSH-lite: <b>$(onoff "$CUR_SSH_LITE")</b>\nUpdate notifications: <b>$(onoff "$CUR_UPDATE_NOTIFY")</b>   Terminal colors: <b>$(onoff "$CUR_TERM_COLORS")</b>$extra"
 }
 
 #=================================================================
@@ -683,11 +787,12 @@ ui_bench() {
 }
 
 ui_reset() {
-    ask "<b>Reset all DXSBash settings to their defaults?</b>\n\nEditor: $DEF_EDITOR · History: $DEF_HISTSIZE / $DEF_HISTFILESIZE\nTheme: $(esc "$(starship_theme_display_name "$DEF_STARSHIP_THEME")") · Prompt: Starship\nSystem info: $(onoff "$DEF_FASTFETCH") · Security summary: $(onoff "$DEF_SECSUMMARY") · SSH-lite: $(onoff "$DEF_SSH_LITE")\n\n<small>Custom aliases are not touched.</small>" \
+    ask "<b>Reset all DXSBash settings to their defaults?</b>\n\nEditor: $DEF_EDITOR · History: $DEF_HISTSIZE / $DEF_HISTFILESIZE\nTheme: $(esc "$(starship_theme_display_name "$DEF_STARSHIP_THEME")") · Prompt: Starship\nSystem info: $(onoff "$DEF_FASTFETCH") · Security summary: $(onoff "$DEF_SECSUMMARY") · SSH-lite: $(onoff "$DEF_SSH_LITE")\nUpdates: $DEF_UPDATE_CHANNEL channel, notifications $(onoff "$DEF_UPDATE_NOTIFY") · Terminal colors: $(onoff "$DEF_TERM_COLORS")\n\n<small>Custom aliases are not touched.</small>" \
         --ok-label="Reset" --cancel-label="Cancel" || return
     reset_settings_to_defaults
     link_starship_theme "$DEF_STARSHIP_THEME" || true
     save_settings || return
+    apply_terminal_colors >/dev/null || true
     applied "All settings reset to defaults.$(backup_note)"
 }
 
@@ -703,15 +808,16 @@ main_menu() {
         load_settings
         local engine opts
         [ "$CUR_PROMPT_STYLE" = "custom" ] && engine="Built-in" || engine="Starship"
-        opts="Info $(onoff "$CUR_FASTFETCH") · Security $(onoff "$CUR_SECSUMMARY") · SSH-lite $(onoff "$CUR_SSH_LITE")"
+        opts="Info $(onoff "$CUR_FASTFETCH") · Security $(onoff "$CUR_SECSUMMARY") · SSH-lite $(onoff "$CUR_SSH_LITE") · Colors $(onoff "$CUR_TERM_COLORS")"
 
         local choice
-        choice=$(Z --list --width=640 --height=620 \
+        choice=$(Z --list --width=680 --height=650 \
             --text="<big><b>DXSBash</b></big>  <small>v$(esc "$(version)")</small>\nYour shell environment, configured.  Double-click a setting to change it." \
             --column="key" --column="Setting" --column="Current" \
             --hide-column=1 --print-column=1 \
             --ok-label="Open" --cancel-label="Close" \
             update  "🔄  Check for updates"          "v$(version)" \
+            channel "📡  Update channel"             "$CUR_UPDATE_CHANNEL · notifications $(onoff "$CUR_UPDATE_NOTIFY")" \
             themes  "🎨  Prompt theme"               "$(starship_theme_display_name "$CUR_STARSHIP_THEME")" \
             engine  "💻  Prompt engine"              "$engine" \
             aliases "🔖  Custom aliases"             "$(alias_count) defined" \
@@ -728,6 +834,7 @@ main_menu() {
 
         case "$choice" in
             update)  ui_update ;;
+            channel) ui_update_channel ;;
             themes)  ui_themes ;;
             engine)  ui_prompt_engine ;;
             aliases) ui_aliases ;;
@@ -752,6 +859,7 @@ main_menu() {
 # shellcheck disable=SC2034  # overrides globals consumed by settings-lib.sh
 selftest() {
     local tmp fails=0
+    DXS_SELFTEST=1
     tmp=$(mktemp -d)
     HOME="$tmp"
     # Redirect every settings path into the sandbox (these globals are
@@ -762,6 +870,9 @@ selftest() {
     DATA_HOME="$tmp/.local/share"
     DESKTOP_FILE="$DATA_HOME/applications/dxsbash-settings.desktop"
     ICON_HICOLOR="$DATA_HOME/icons/hicolor"
+    SYSTEMD_USER_DIR="$tmp/.config/systemd/user"
+    USER_THEMES_DIR="$CONF_DIR/themes"
+    KONSOLE_DIR="$tmp/.local/share/konsole"; KONSOLE_PROFILE="$KONSOLE_DIR/DXSBash.profile"
 
     t() { if eval "$2" >/dev/null 2>&1; then echo "ok   $1"; else echo "FAIL $1"; fails=$((fails+1)); fi; }
 
@@ -798,11 +909,75 @@ selftest() {
     t "hand-written alias read"  'echo "alias hw=\"ls -l\"" >> "$ALIAS_FILE" && [ "$(alias_get hw)" = "ls -l" ]'
 
     t "markup escaping"          '[ "$(esc "a<b>&c")" = "a&lt;b&gt;&amp;c" ]'
+
+    # --- 3.9.0: settings keys, user themes, terminal colors, update check
+    CUR_UPDATE_CHANNEL=main; CUR_UPDATE_NOTIFY=false; CUR_TERM_COLORS=false
+    write_settings selftest; load_settings
+    t "new keys round-trip"      '[ "$CUR_UPDATE_CHANNEL" = main ] && [ "$CUR_UPDATE_NOTIFY" = false ] && [ "$CUR_TERM_COLORS" = false ]'
+    sed -i 's/^export DXSBASH_UPDATE_CHANNEL=.*/export DXSBASH_UPDATE_CHANNEL="nightly"/' "$CONF_FILE"; load_settings
+    t "bad channel -> stable"    '[ "$CUR_UPDATE_CHANNEL" = stable ]'
+
+    printf 'format = "$directory$character"\n' > "$tmp/my-prompt.toml"
+    t "user theme import"        '[ "$(import_user_theme "$tmp/my-prompt.toml")" = user/my-prompt.toml ]'
+    t "user theme listed"        'theme_entries | grep -q "^my-prompt (yours)|user/my-prompt.toml|"'
+    link_starship_theme user/my-prompt.toml; load_settings
+    t "user theme link detected" '[ "$CUR_STARSHIP_THEME" = user/my-prompt.toml ] && [ "$(readlink "$STARSHIP_LINK")" = "$USER_THEMES_DIR/my-prompt.toml" ]'
+    printf 'x' > "$tmp/bad name.toml"
+    t "unsafe theme name refused" '! import_user_theme "$tmp/bad name.toml" 2>/dev/null'
+    : > "$USER_THEMES_DIR/bad|name.toml"; : > "$USER_THEMES_DIR/cash\$.toml"
+    t "unsafe hand-dropped names hidden" '! theme_entries | grep -q "bad\|cash" && [ "$(theme_entries | grep -c "(yours)")" = 1 ]'
+    rm -f "$USER_THEMES_DIR/bad|name.toml" "$USER_THEMES_DIR/cash\$.toml"
+    t "re-adding own file works" '[ "$(import_user_theme "$USER_THEMES_DIR/my-prompt.toml")" = user/my-prompt.toml ]'
+    if command -v starship >/dev/null 2>&1; then
+        printf '[character\nbroken =\n' > "$tmp/broken.toml"
+        t "broken toml refused"  '! import_user_theme "$tmp/broken.toml" 2>/dev/null && [ ! -f "$USER_THEMES_DIR/broken.toml" ]'
+    fi
+
+    mkdir -p "$KONSOLE_DIR"
+    printf '[Appearance]\nColorScheme=Breeze\nFont=FiraCode Nerd Font,12\n\n[General]\nName=DXSBash\n' > "$KONSOLE_PROFILE"
+    CUR_TERM_COLORS=true
+    t "colors applied"           '[ "$(apply_terminal_colors tokyo-night.toml)" = DXSBash-TokyoNight ] && grep -qx "ColorScheme=DXSBash-TokyoNight" "$KONSOLE_PROFILE"'
+    t "profile keys preserved"   'grep -qx "Font=FiraCode Nerd Font,12" "$KONSOLE_PROFILE" && grep -qx "Name=DXSBash" "$KONSOLE_PROFILE" && [ "$(grep -c "^ColorScheme=" "$KONSOLE_PROFILE")" = 1 ]'
+    t "schemes installed"        '[ -f "$KONSOLE_DIR/DXSBash-Gruvbox.colorscheme" ] && [ -f "$KONSOLE_DIR/DXSBash.colorscheme" ]'
+    t "user theme keeps colors"  '! apply_terminal_colors user/my-prompt.toml && grep -qx "ColorScheme=DXSBash-TokyoNight" "$KONSOLE_PROFILE"'
+    CUR_TERM_COLORS=false
+    t "colors off = untouched"   '! apply_terminal_colors gruvbox-rainbow.toml && grep -qx "ColorScheme=DXSBash-TokyoNight" "$KONSOLE_PROFILE"'
+    printf '[General]\nName=x\n' > "$tmp/ini"; _ini_set "$tmp/ini" Appearance ColorScheme Y
+    printf '[Appearance]\r\nColorScheme=Breeze\r\n' > "$tmp/crlf"; _ini_set "$tmp/crlf" Appearance ColorScheme Z
+    t "ini CRLF header reused"   '[ "$(grep -c Appearance "$tmp/crlf")" = 1 ] && grep -q "^ColorScheme=Z" "$tmp/crlf" && ! grep -q Breeze "$tmp/crlf"'
+    t "ini group created"        '[ "$(sed -n "/^\[Appearance\]/,\$p" "$tmp/ini" | tail -1)" = ColorScheme=Y ] && grep -qx "Name=x" "$tmp/ini"'
+
+    # update notifier with a fake updater and a fake notify-send
+    mkdir -p "$tmp/bin"
+    printf '#!/bin/sh\necho "Update available: 3.8.0 -> 3.9.0 (stable channel)"; exit 10\n' > "$tmp/fake-updater"
+    printf '#!/bin/sh\ncase "$1" in --help) echo "  --action=[NAME=]Text"; exit 0;; esac\necho "$*" >> "%s/notified.log"\necho later\n' "$tmp" > "$tmp/bin/notify-send"
+    chmod +x "$tmp/fake-updater" "$tmp/bin/notify-send"
+    CUR_UPDATE_NOTIFY=true; write_settings selftest
+    # fake display so the actionable path is used; DISPLAY= tests the other
+    _notify() { HOME="$tmp" PATH="$tmp/bin:$PATH" DXSBASH_UPDATER_CMD="$tmp/fake-updater" DISPLAY="${_ND-:0}" bash "$DXSBASH_DIR/update-notify.sh" >/dev/null; }
+    _notify; _notify
+    t "notifies once per version" '[ "$(grep -c "DXSBash 3.9.0 is available" "$tmp/notified.log")" = 1 ] && grep -q "3.8.0 -> 3.9.0" "$CONF_DIR/update-notified"'
+    t "notification has action"  'grep -q "update=Update now" "$tmp/notified.log"'
+    rm -f "$tmp/notified.log" "$CONF_DIR/update-notified"
+    _ND="" _notify
+    t "no display = plain text"  '[ -f "$tmp/notified.log" ] && ! grep -q -- "--action" "$tmp/notified.log" && grep -q "run update-dxsbash" "$tmp/notified.log"'
+    rm -f "$tmp/notified.log" "$CONF_DIR/update-notified"
+    CUR_UPDATE_NOTIFY=false; write_settings selftest; _notify
+    t "notify off = silent"      '[ ! -f "$tmp/notified.log" ]'
+    CUR_UPDATE_NOTIFY=true; write_settings selftest
+    printf '#!/bin/sh\ncase "$1" in --help) echo "  --action"; exit 0;; esac\nexit 1\n' > "$tmp/bin/notify-send"
+    _notify
+    t "failed notify not marked" '[ ! -f "$CONF_DIR/update-notified" ]'
+    printf '#!/bin/sh\necho "DXSBash is up to date"; exit 0\n' > "$tmp/fake-updater"; _notify
+    t "up to date = silent"      '[ ! -f "$tmp/notified.log" ] || { cat "$tmp/notified.log" >&2; false; }'
     t "dash-leading list cells"  '[ "$(cell -la)" = "$(printf "\u200b-la")" ] && [ "$(cell ls)" = ls ]'
     t "unlimited history label"  '[ "$(hist_label -1)" = unlimited ] && [ "$(hist_label 500)" = 500 ]'
     t "canonical alias parsing"  'printf "%s\n" "alias cc='"'"'ls'"'"'  # note" "alias dq=\"echo \\\$HOME\"" >> "$ALIAS_FILE" && [ "$(alias_get cc)" = ls ] && [ "$(alias_get dq)" = "echo \$HOME" ]'
     install_desktop >/dev/null
     t "desktop entry installed"  '[ -f "$DESKTOP_FILE" ]'
+    if command -v systemctl >/dev/null 2>&1; then
+        t "update timer installed" '[ -f "$SYSTEMD_USER_DIR/$UPDATE_TIMER" ] && [ -f "$SYSTEMD_USER_DIR/$UPDATE_SERVICE" ] && [ -L "$SYSTEMD_USER_DIR/timers.target.wants/$UPDATE_TIMER" ]'
+    fi
     t "icon set installed"       '[ -f "$ICON_HICOLOR/scalable/apps/dxsbash.svg" ] && [ -f "$ICON_HICOLOR/48x48/apps/dxsbash.png" ] && [ -f "$ICON_HICOLOR/256x256/apps/dxsbash.png" ]'
     t "no placeholders left"     '! grep -q "@GUI@" "$DESKTOP_FILE"'
     t "System category"          'grep -qx "Categories=System;" "$DESKTOP_FILE"'
@@ -810,6 +985,7 @@ selftest() {
         t "desktop-file-validate" 'desktop-file-validate "$DESKTOP_FILE"'
     fi
     remove_desktop >/dev/null
+    t "update timer removed"     '[ ! -e "$SYSTEMD_USER_DIR/$UPDATE_TIMER" ] && [ ! -e "$SYSTEMD_USER_DIR/timers.target.wants/$UPDATE_TIMER" ]'
     t "desktop entry removed"    '[ ! -f "$DESKTOP_FILE" ] && [ -z "$(find "$ICON_HICOLOR" -name "dxsbash.*" 2>/dev/null)" ]'
 
     rm -rf "$tmp"
@@ -830,6 +1006,7 @@ case "${1:-}" in
     --install-desktop) install_desktop; exit $? ;;
     --remove-desktop)  remove_desktop; exit $? ;;
     --sync-aliases)    alias_sync_fish; exit $? ;;
+    --apply-colors)    load_settings; apply_terminal_colors >/dev/null; exit 0 ;;
     -h|--help)         sed -n '/^# Usage:/,/^# All settings/p' "$SELF" | sed '$d; s/^# \{0,1\}//'; exit 0 ;;
 esac
 

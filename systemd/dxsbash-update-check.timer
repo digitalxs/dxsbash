@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily DXSBash update check
+Documentation=https://dxsbash.digitalxs.ca
+
+[Timer]
+# Shortly after logging in, then once a day; a day missed while the
+# machine was off is caught up at the next login
+OnStartupSec=10min
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

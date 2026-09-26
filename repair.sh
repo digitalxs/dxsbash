@@ -187,7 +187,7 @@ for s in setup.sh updater.sh dxsbash.sh dxsbash-config.sh uninstall.sh repair.sh
          doctor.sh secaudit.sh secsummary.sh clean.sh \
          reset-bash-profile.sh reset-zsh-profile.sh reset-fish-profile.sh \
          check_dependencies.sh dxsbash-utils.sh dxsbash-gui.sh gui-askpass.sh \
-         export-import.sh bench.sh; do
+         export-import.sh bench.sh update-notify.sh; do
     if [ -f "$DXSBASH_DIR/$s" ]; then
         run "chmod +x \"$DXSBASH_DIR/$s\""
     fi

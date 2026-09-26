@@ -27,7 +27,9 @@ cd "$HOME" || exit 1
 
 # Clone the repository
 echo -e "${GREEN}Cloning DXSBash repository...${NC}"
-git clone --depth=1 https://github.com/digitalxs/dxsbash.git "$HOME/linuxtoolbox/dxsbash"
+# Full clone: update-dxsbash fast-forwards to release tags, which
+# needs the history (a --depth=1 clone cannot compute that reliably)
+git clone https://github.com/digitalxs/dxsbash.git "$HOME/linuxtoolbox/dxsbash"
 
 # Change to the repository directory
 cd "$HOME/linuxtoolbox/dxsbash" || { echo "Failed to navigate to repository directory"; exit 1; }

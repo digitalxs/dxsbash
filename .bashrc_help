@@ -112,7 +112,7 @@ ${BOLD}${GREEN}━━━ DISCOVERY & PROJECT TOOLS ━━━${NC}
                                      (per-directory environments)
 
 ${BOLD}${GREEN}━━━ MAINTENANCE ━━━${NC}
-  ${CYAN}update-dxsbash ${NC}                      - Update DXSBash
+  ${CYAN}update-dxsbash ${NC}                      - Update DXSBash (--channel stable|main)
   ${CYAN}dxsbash-gui${NC}                    - Graphical settings (themes, aliases, updates)
   ${CYAN}dxsbash export|import <file>${NC}   - Backup/restore personal settings
   ${CYAN}dxsbash bench [--profile]${NC}      - Benchmark shell startup time
