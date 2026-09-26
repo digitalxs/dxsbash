@@ -76,7 +76,7 @@ do_export() {
         # recorded as user/<file>; built-in presets by file name
         local target
         target="$(readlink "$STARSHIP_CONFIG")"
-        if [ "$(dirname "$target")" = "$CONF_DIR/themes" ]; then
+        if [ "$(cd "$(dirname "$target")" 2>/dev/null && pwd -P)" = "$(cd "$CONF_DIR/themes" 2>/dev/null && pwd -P)" ]; then
             echo "user/$(basename "$target")" > "$STAGE/payload/starship-theme.txt"
         else
             basename "$target" > "$STAGE/payload/starship-theme.txt"

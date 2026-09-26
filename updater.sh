@@ -164,6 +164,80 @@ get_remote_version() {
     fi
 }
 
+# Commit the channel points at: the newest release tag (peeled to its
+# commit) for stable, the tip of main for main. Empty if unreachable.
+target_commit() {
+    local ref tag
+    if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+        ref="refs/heads/main"
+    else
+        tag=$(latest_stable_tag)
+        [[ -n "${tag}" ]] || return 0
+        ref="refs/tags/${tag}^{}"
+    fi
+    { timeout 30 git ls-remote "${REPO_URL}" "${ref}" 2>/dev/null || true; } | awk 'NR==1 { print $1 }'
+}
+
+# Decide by commits, not version strings: an update exists when the
+# channel's target commit is not already contained in the checkout.
+# This never offers a downgrade (a main snapshot ahead of the newest
+# tag is up to date), sees unbumped commits on main, and cannot loop
+# if a tag's version.txt was not bumped. Returns 0 = update available,
+# 1 = up to date, 2 = cannot tell (caller falls back to versions).
+commit_update_available() {
+    local target="$1"
+    [[ -n "${target}" ]] || return 2
+    git -C "${DXSBASH_DIR}" rev-parse --git-dir >/dev/null 2>&1 || return 2
+    # In a shallow clone missing history looks like "not an ancestor"
+    if [[ "$(git -C "${DXSBASH_DIR}" rev-parse --is-shallow-repository 2>/dev/null)" == "true" ]]; then
+        return 2
+    fi
+    if [[ "$(git -C "${DXSBASH_DIR}" rev-parse HEAD 2>/dev/null)" == "${target}" ]]; then
+        return 1
+    fi
+    if git -C "${DXSBASH_DIR}" merge-base --is-ancestor "${target}" HEAD >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0   # not in our history (or not fetched yet): new
+}
+
+# Combined decision used by --check and the update itself.
+# Prints the status line; returns 10 update / 0 up to date / 1 unknown.
+update_status() {
+    local current remote target rc=0
+    current=$(get_current_version)
+    remote=$(get_remote_version)
+    target=$(target_commit)
+
+    commit_update_available "${target}" || rc=$?
+    case "${rc}" in
+        0)
+            if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+                echo "Update available: ${current} -> ${remote} (main @ ${target:0:7})"
+            else
+                echo "Update available: ${current} -> ${remote} (stable channel)"
+            fi
+            return 10 ;;
+        1)
+            echo "DXSBash is up to date (version ${current}, ${UPDATE_CHANNEL} channel)."
+            return 0 ;;
+    esac
+
+    # Fallback (no git history to compare): version numbers
+    if [[ "${remote}" == "unknown" ]]; then
+        echo "Could not determine the remote version (network problem?)."
+        return 1
+    fi
+    local cmp=0
+    version_compare "${remote}" "${current}" || cmp=$?
+    if [[ ${cmp} -eq 0 || "${current}" == "unknown" ]]; then
+        echo "Update available: ${current} -> ${remote} (${UPDATE_CHANNEL} channel)"
+        return 10
+    fi
+    echo "DXSBash is up to date (version ${current}, ${UPDATE_CHANNEL} channel)."
+    return 0
+}
+
 version_compare() {
     # Returns 0 if $1 > $2, 1 if $1 < $2, 2 if equal
     if [[ "$1" == "$2" ]]; then
@@ -316,6 +390,13 @@ update_repository() {
         fi
         log ERROR "Failed to update repository"
         return 1
+    fi
+
+    # A shallow clone (older install.sh used --depth=1) cannot compute
+    # the fast-forward reliably: fetch the full history once
+    if [[ "$(git rev-parse --is-shallow-repository 2>/dev/null)" == "true" ]]; then
+        log INFO "Fetching full history (one-time, shallow clone)..."
+        git fetch --unshallow origin >/dev/null 2>&1 || log WARN "Could not unshallow the clone"
     fi
 
     # stable: fast-forward the local main branch to the newest release tag
@@ -490,24 +571,16 @@ perform_update() {
     log INFO "Current version: ${current_version}"
     log INFO "Remote version: ${remote_version}"
     
-    if [[ "${remote_version}" == "unknown" ]]; then
-        log WARN "Could not determine remote version, proceeding with update anyway"
-    else
-        local cmp_result
-        version_compare "${remote_version}" "${current_version}" && cmp_result=0 || cmp_result=$?
-        if [[ ${cmp_result} -eq 0 ]]; then
-            log INFO "Update available: ${current_version} -> ${remote_version}"
-        elif [[ ${cmp_result} -eq 2 ]]; then
-            log INFO "Already up to date (version ${current_version})"
-            echo -e "${GREEN}DXSBash is already up to date (version ${current_version})${RC}"
-            return 0
-        else
-            log INFO "Local version (${current_version}) is newer than remote (${remote_version}), skipping"
-            echo -e "${GREEN}DXSBash local version (${current_version}) is ahead of remote — no update needed.${RC}"
-            return 0
-        fi
+    local status_line status_rc=0
+    status_line=$(update_status) || status_rc=$?
+    log INFO "${status_line}"
+    if [[ ${status_rc} -eq 0 ]]; then
+        echo -e "${GREEN}${status_line}${RC}"
+        return 0
+    elif [[ ${status_rc} -eq 1 ]]; then
+        log WARN "Could not determine the remote state, proceeding with update anyway"
     fi
-    
+
     # Create backup
     backup_path=$(create_backup)
     if [[ -z "${backup_path}" ]]; then
@@ -561,31 +634,14 @@ usage() {
 }
 
 check_for_update() {
-    local current remote
-    current=$(get_current_version)
-    remote=$(get_remote_version)
-
-    if [[ "${remote}" == "unknown" ]]; then
-        echo "Could not determine the remote version (network problem?)." >&2
-        exit 1
+    local out rc=0
+    out=$(update_status) || rc=$?
+    if [[ ${rc} -eq 1 ]]; then
+        echo "${out}" >&2
+    else
+        echo "${out}"
     fi
-    if [[ "${current}" == "${remote}" ]]; then
-        echo "DXSBash is up to date (version ${current}, ${UPDATE_CHANNEL} channel)."
-        exit 0
-    fi
-    if [[ "${current}" == "unknown" ]]; then
-        echo "Update available: ${current} -> ${remote} (${UPDATE_CHANNEL} channel)"
-        exit 10
-    fi
-
-    local cmp=0
-    version_compare "${remote}" "${current}" || cmp=$?
-    if [[ ${cmp} -eq 0 ]]; then
-        echo "Update available: ${current} -> ${remote} (${UPDATE_CHANNEL} channel)"
-        exit 10
-    fi
-    echo "DXSBash ${current} is newer than the latest ${UPDATE_CHANNEL} release (${remote}) — nothing to update."
-    exit 0
+    exit "${rc}"
 }
 
 #=================================================================

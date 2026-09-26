@@ -119,23 +119,30 @@ install_desktop() {
 # units are copied and enabled by creating the wants/ link directly, so
 # this works even without a reachable user manager (setup.sh running
 # through sudo): the timer then starts at the next login.
+# systemctl --user, except inside --selftest (the sandboxed unit files
+# must not stop/start the real user's timer)
+_systemctl_user() {
+    [ -n "${DXS_SELFTEST:-}" ] && return 0
+    systemctl --user "$@"
+}
+
 install_update_timer() {
     command -v systemctl >/dev/null 2>&1 || return 0
     [ -f "$DXSBASH_DIR/systemd/$UPDATE_TIMER" ] || return 0
     mkdir -p "$SYSTEMD_USER_DIR/timers.target.wants"
     cp "$DXSBASH_DIR/systemd/$UPDATE_SERVICE" "$DXSBASH_DIR/systemd/$UPDATE_TIMER" "$SYSTEMD_USER_DIR/"
     ln -sf "../$UPDATE_TIMER" "$SYSTEMD_USER_DIR/timers.target.wants/$UPDATE_TIMER"
-    if systemctl --user daemon-reload >/dev/null 2>&1; then
-        systemctl --user start "$UPDATE_TIMER" >/dev/null 2>&1 || true
+    if _systemctl_user daemon-reload >/dev/null 2>&1; then
+        _systemctl_user start "$UPDATE_TIMER" >/dev/null 2>&1 || true
     fi
     return 0
 }
 
 remove_update_timer() {
-    systemctl --user disable --now "$UPDATE_TIMER" >/dev/null 2>&1 || true
+    _systemctl_user disable --now "$UPDATE_TIMER" >/dev/null 2>&1 || true
     rm -f "$SYSTEMD_USER_DIR/timers.target.wants/$UPDATE_TIMER" \
           "$SYSTEMD_USER_DIR/$UPDATE_TIMER" "$SYSTEMD_USER_DIR/$UPDATE_SERVICE"
-    systemctl --user daemon-reload >/dev/null 2>&1 || true
+    _systemctl_user daemon-reload >/dev/null 2>&1 || true
     return 0
 }
 
@@ -320,10 +327,12 @@ ui_update() {
     esac
 
     # "Update available: 3.7.0 -> 3.8.0" → "3.7.0  →  3.8.0"
-    local from to versions
+    local from to versions detail=""
     if [[ "$out" =~ ([0-9][0-9.]*|unknown)\ -\>\ ([0-9][0-9.]*) ]]; then
         from="${BASH_REMATCH[1]}"; to="${BASH_REMATCH[2]}"
-        versions="<big>$(esc "$from")  →  <b>$(esc "$to")</b></big>"
+        # "(stable channel)" / "(main @ abc1234)"
+        [[ "$out" =~ \((.*)\)$ ]] && detail="\n<small>$(esc "${BASH_REMATCH[1]}")</small>"
+        versions="<big>$(esc "$from")  →  <b>$(esc "$to")</b></big>$detail"
     else
         versions="$(esc "$out")"
     fi
@@ -471,7 +480,7 @@ ui_update_channel() {
     local st="FALSE" mn="FALSE" sel
     [ "$CUR_UPDATE_CHANNEL" = "main" ] && mn="TRUE" || st="TRUE"
     sel=$(Z --list --radiolist --width=620 --height=270 \
-        --text="<b>Update channel</b>\nWhich DXSBash versions updates (and update notifications) follow." \
+        --text="<b>Update channel</b>\nWhich DXSBash versions updates (and update notifications) follow.\n<small>Switching to Stable never downgrades: you move on at the next release.</small>" \
         --column="" --column="Channel" --column="What you get" --column="key" \
         --hide-column=4 --print-column=4 \
         "$st" "Stable" "Tagged releases only (recommended)" "stable" \
@@ -850,6 +859,7 @@ main_menu() {
 # shellcheck disable=SC2034  # overrides globals consumed by settings-lib.sh
 selftest() {
     local tmp fails=0
+    DXS_SELFTEST=1
     tmp=$(mktemp -d)
     HOME="$tmp"
     # Redirect every settings path into the sandbox (these globals are
@@ -914,6 +924,10 @@ selftest() {
     t "user theme link detected" '[ "$CUR_STARSHIP_THEME" = user/my-prompt.toml ] && [ "$(readlink "$STARSHIP_LINK")" = "$USER_THEMES_DIR/my-prompt.toml" ]'
     printf 'x' > "$tmp/bad name.toml"
     t "unsafe theme name refused" '! import_user_theme "$tmp/bad name.toml" 2>/dev/null'
+    : > "$USER_THEMES_DIR/bad|name.toml"; : > "$USER_THEMES_DIR/cash\$.toml"
+    t "unsafe hand-dropped names hidden" '! theme_entries | grep -q "bad\|cash" && [ "$(theme_entries | grep -c "(yours)")" = 1 ]'
+    rm -f "$USER_THEMES_DIR/bad|name.toml" "$USER_THEMES_DIR/cash\$.toml"
+    t "re-adding own file works" '[ "$(import_user_theme "$USER_THEMES_DIR/my-prompt.toml")" = user/my-prompt.toml ]'
     if command -v starship >/dev/null 2>&1; then
         printf '[character\nbroken =\n' > "$tmp/broken.toml"
         t "broken toml refused"  '! import_user_theme "$tmp/broken.toml" 2>/dev/null && [ ! -f "$USER_THEMES_DIR/broken.toml" ]'
@@ -929,6 +943,8 @@ selftest() {
     CUR_TERM_COLORS=false
     t "colors off = untouched"   '! apply_terminal_colors gruvbox-rainbow.toml && grep -qx "ColorScheme=DXSBash-TokyoNight" "$KONSOLE_PROFILE"'
     printf '[General]\nName=x\n' > "$tmp/ini"; _ini_set "$tmp/ini" Appearance ColorScheme Y
+    printf '[Appearance]\r\nColorScheme=Breeze\r\n' > "$tmp/crlf"; _ini_set "$tmp/crlf" Appearance ColorScheme Z
+    t "ini CRLF header reused"   '[ "$(grep -c Appearance "$tmp/crlf")" = 1 ] && grep -q "^ColorScheme=Z" "$tmp/crlf" && ! grep -q Breeze "$tmp/crlf"'
     t "ini group created"        '[ "$(sed -n "/^\[Appearance\]/,\$p" "$tmp/ini" | tail -1)" = ColorScheme=Y ] && grep -qx "Name=x" "$tmp/ini"'
 
     # update notifier with a fake updater and a fake notify-send
@@ -937,10 +953,14 @@ selftest() {
     printf '#!/bin/sh\ncase "$1" in --help) echo "  --action=[NAME=]Text"; exit 0;; esac\necho "$*" >> "%s/notified.log"\necho later\n' "$tmp" > "$tmp/bin/notify-send"
     chmod +x "$tmp/fake-updater" "$tmp/bin/notify-send"
     CUR_UPDATE_NOTIFY=true; write_settings selftest
-    _notify() { HOME="$tmp" PATH="$tmp/bin:$PATH" DXSBASH_UPDATER_CMD="$tmp/fake-updater" bash "$DXSBASH_DIR/update-notify.sh"; }
+    # fake display so the actionable path is used; DISPLAY= tests the other
+    _notify() { HOME="$tmp" PATH="$tmp/bin:$PATH" DXSBASH_UPDATER_CMD="$tmp/fake-updater" DISPLAY="${_ND-:0}" bash "$DXSBASH_DIR/update-notify.sh" >/dev/null; }
     _notify; _notify
-    t "notifies once per version" '[ "$(grep -c "DXSBash 3.9.0 is available" "$tmp/notified.log")" = 1 ] && [ "$(cat "$CONF_DIR/update-notified")" = 3.9.0 ]'
+    t "notifies once per version" '[ "$(grep -c "DXSBash 3.9.0 is available" "$tmp/notified.log")" = 1 ] && grep -q "3.8.0 -> 3.9.0" "$CONF_DIR/update-notified"'
     t "notification has action"  'grep -q "update=Update now" "$tmp/notified.log"'
+    rm -f "$tmp/notified.log" "$CONF_DIR/update-notified"
+    _ND="" _notify
+    t "no display = plain text"  '[ -f "$tmp/notified.log" ] && ! grep -q -- "--action" "$tmp/notified.log" && grep -q "run update-dxsbash" "$tmp/notified.log"'
     rm -f "$tmp/notified.log" "$CONF_DIR/update-notified"
     CUR_UPDATE_NOTIFY=false; write_settings selftest; _notify
     t "notify off = silent"      '[ ! -f "$tmp/notified.log" ]'

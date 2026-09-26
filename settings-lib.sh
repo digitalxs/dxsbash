@@ -113,7 +113,7 @@ load_settings() {
     if [ -L "$STARSHIP_LINK" ]; then
         local target id
         target="$(readlink "$STARSHIP_LINK")"
-        if [ "$(dirname "$target")" = "$USER_THEMES_DIR" ]; then
+        if _in_user_themes_dir "$target"; then
             id="user/${target##*/}"
         else
             id="${target##*/}"
@@ -222,16 +222,33 @@ theme_field() { # $1 = registry entry, $2 = 1 name | 2 file | 3 description
 # built-in presets whose files exist, then the user's own themes from
 # ~/.dxsbash/themes (id "user/<file>").
 theme_entries() {
-    local entry f base
+    local entry name id desc f base
     for entry in "${STARSHIP_THEMES[@]}"; do
-        [ -f "$STARSHIP_THEMES_DIR/$(theme_field "$entry" 2)" ] && printf '%s\n' "$entry"
+        IFS='|' read -r name id desc <<< "$entry"
+        [ -f "$STARSHIP_THEMES_DIR/$id" ] && printf '%s\n' "$entry"
     done
     [ -d "$USER_THEMES_DIR" ] || return 0
     for f in "$USER_THEMES_DIR"/*.toml; do
         [ -f "$f" ] || continue
         base="${f##*/}"
+        # Same naming rule as import_user_theme: a hand-dropped file with
+        # | " $ ` \ or spaces would corrupt this list or user.conf
+        user_theme_name_ok "$base" || continue
         printf '%s|user/%s|Your own theme (~/.dxsbash/themes/%s)\n' "${base%.toml} (yours)" "$base" "$base"
     done
+}
+
+user_theme_name_ok() {
+    [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.toml$ ]]
+}
+
+# Is the directory of symlink target $1 the user themes dir? (compared
+# after resolving, so ./, trailing slashes or symlinked dirs match)
+_in_user_themes_dir() {
+    local d u
+    d="$(cd "$(dirname "$1")" 2>/dev/null && pwd -P)" || return 1
+    u="$(cd "$USER_THEMES_DIR" 2>/dev/null && pwd -P)" || return 1
+    [ "$d" = "$u" ]
 }
 
 # File behind a theme id
@@ -243,18 +260,18 @@ theme_path() {
 }
 
 theme_known() {
-    local entry
-    while IFS= read -r entry; do
-        [ "$(theme_field "$entry" 2)" = "$1" ] && return 0
+    local name id desc
+    while IFS='|' read -r name id desc; do
+        [ "$id" = "$1" ] && return 0
     done < <(theme_entries)
     return 1
 }
 
 starship_theme_display_name() {
-    local entry
-    while IFS= read -r entry; do
-        if [ "$(theme_field "$entry" 2)" = "$1" ]; then
-            theme_field "$entry" 1
+    local name id desc
+    while IFS='|' read -r name id desc; do
+        if [ "$id" = "$1" ]; then
+            printf '%s\n' "$name"
             return
         fi
     done < <(theme_entries)
@@ -271,7 +288,7 @@ import_user_theme() {
     if [ ! -f "$src" ] || [ ! -r "$src" ]; then
         echo "cannot read $src" >&2; return 1
     fi
-    if [[ ! "$base" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.toml$ ]]; then
+    if ! user_theme_name_ok "$base"; then
         echo "use a .toml file named with letters, digits, . _ - only" >&2; return 1
     fi
     if [ "$(wc -c < "$src")" -gt 262144 ]; then
@@ -286,7 +303,11 @@ import_user_theme() {
         fi
     fi
     mkdir -p "$USER_THEMES_DIR"
-    cp "$src" "$USER_THEMES_DIR/$base" || return 1
+    # Picking a file that is already in the themes dir (e.g. after
+    # editing it) needs no copy
+    if ! [ "$src" -ef "$USER_THEMES_DIR/$base" ]; then
+        cp "$src" "$USER_THEMES_DIR/$base" || return 1
+    fi
     printf 'user/%s' "$base"
 }
 
@@ -333,7 +354,9 @@ konsole_scheme_for_theme() {
 _ini_set() { # file group key value
     local file="$1" tmp="$1.tmp.$$"
     awk -v g="[$2]" -v k="$3" -v v="$4" '
-        /^\[/ { if (ing && !done) { print k "=" v; done = 1 } ing = ($0 == g) }
+        # headers compared without CR (CRLF files) or surrounding blanks
+        /^[ \t]*\[/ { h = $0; sub(/\r$/, "", h); gsub(/^[ \t]+|[ \t]+$/, "", h)
+                    if (ing && !done) { print k "=" v; done = 1 } ing = (h == g) }
         ing && index($0, k "=") == 1 { if (!done) { print k "=" v; done = 1 } next }
         { print }
         END {

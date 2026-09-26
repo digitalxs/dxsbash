@@ -21,8 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Update channels.** `stable` (default) follows tagged releases
   (`vX.Y.Z`, pre-releases skipped); `main` follows every push. Set it in
   the GUI (*Update channel*), `dxsbash-config` (*Updates & terminal
-  colors*) or once with `update-dxsbash --channel main`. setup.sh applies
-  the same rule to fresh installs and re-runs.
+  colors*) or once with `update-dxsbash --channel main`. Updates are
+  decided by commits, not version strings: no downgrades when switching
+  channels, main-channel users see commits made without a version bump,
+  and a mis-tagged release cannot be offered forever.
+- `install.sh` makes a full clone (a `--depth=1` history cannot be
+  fast-forwarded to release tags reliably); existing shallow installs are
+  unshallowed on their first stable update.
 - **Terminal colors that match the prompt theme.** Four Konsole color
   schemes (DXSBash, Tokyo Night, Gruvbox, Catppuccin) ship in
   `assets/konsole/`; applying a theme switches the DXSBash Konsole/Yakuake

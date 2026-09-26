@@ -131,10 +131,10 @@ show_current_settings() {
 # settings-lib.sh).
 apply_starship_theme() {
     if ! link_starship_theme "$1"; then
-        echo -e "${RED}  ✗ Theme file not found: $STARSHIP_THEMES_DIR/$1${RC}"
+        echo -e "${RED}  ✗ Theme file not found: $(theme_path "$1")${RC}"
         return 1
     fi
-    echo -e "${GREEN}  ✓ Linked $STARSHIP_LINK → $STARSHIP_THEMES_DIR/$1${RC}"
+    echo -e "${GREEN}  ✓ Linked $STARSHIP_LINK → $(theme_path "$1")${RC}"
     [ -n "$STARSHIP_BACKUP" ] && \
         echo -e "${YELLOW}  Your own starship.toml was kept as ${WHITE}$STARSHIP_BACKUP${RC}"
     return 0

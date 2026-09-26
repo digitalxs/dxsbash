@@ -244,12 +244,18 @@ by the package manager.
 
 - **stable** — the newest `vX.Y.Z` tag from `git ls-remote` (pre-release
   tags like `-beta` are skipped); the local `main` branch is
-  fast-forwarded to it.
+  fast-forwarded to it (never moved backwards).
 - **main** — `git pull origin main`, as before.
 
-`setup.sh` (`sync_to_channel`) applies the same rule to fresh clones and
-re-runs, so `install.sh` users land on the latest release too. A release
-therefore reaches stable users **only once it is tagged**.
+The decision is commit-based (`update_status` / `commit_update_available`):
+an update exists when the channel's target commit — the newest tag,
+peeled, or `main`'s tip — is not already contained in the checkout. So
+no downgrades (a main snapshot ahead of the newest tag is up to date),
+unbumped commits on main are seen, and a tag whose `version.txt` was not
+bumped cannot loop. Shallow clones fall back to comparing versions and
+are unshallowed on the first stable update. Fresh installs (`setup.sh`,
+`install.sh`) clone `main`; stable users then move on at the next tag.
+A release therefore reaches stable users **only once it is tagged**.
 
 ## Release process
 

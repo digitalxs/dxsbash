@@ -38,15 +38,18 @@ command -v notify-send >/dev/null 2>&1 || exit 0
 out=$(bash "$UPDATER" --check 2>/dev/null)
 [ $? -eq 10 ] || exit 0
 
-# "Update available: 3.8.0 -> 3.9.0 (stable channel)"
+# "Update available: 3.8.0 -> 3.9.0 (stable channel)" or, on the main
+# channel, "... (main @ abc1234)"
 current="" latest=""
 if [[ "$out" =~ ([0-9][0-9.]*|unknown)\ -\>\ ([0-9][0-9.]*) ]]; then
     current="${BASH_REMATCH[1]}"; latest="${BASH_REMATCH[2]}"
 fi
 [ -n "$latest" ] || exit 0
 
-# One notification per version
-if [ "$FORCE" -eq 0 ] && [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE" 2>/dev/null)" = "$latest" ]; then
+# One notification per update: the whole status line is the key, so a
+# new main-channel commit with an unchanged version still counts as new
+key="$out"
+if [ "$FORCE" -eq 0 ] && [ -f "$STATE_FILE" ] && [ "$(cat "$STATE_FILE" 2>/dev/null)" = "$key" ]; then
     exit 0
 fi
 title="DXSBash $latest is available"
@@ -58,23 +61,41 @@ icon="dxsbash"
 # no desktop session (e.g. an SSH-only login) notify-send fails, and the
 # user must still be told at the next graphical login.
 mark_notified() {
-    mkdir -p "$CONF_DIR" && printf '%s\n' "$latest" > "$STATE_FILE"
+    mkdir -p "$CONF_DIR" && printf '%s\n' "$key" > "$STATE_FILE"
 }
 
+# Open the settings window on its update screen. Under the systemd
+# oneshot service it gets its own transient unit: a child left in this
+# unit's cgroup would be killed when this script exits, and would count
+# against the unit's start timeout.
+open_update_window() {
+    local gui="$DXSBASH_DIR/dxsbash-gui.sh"
+    if [ -n "${INVOCATION_ID:-}" ] && command -v systemd-run >/dev/null 2>&1; then
+        local -a envs=() v
+        for v in DISPLAY WAYLAND_DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR LANG LC_ALL; do
+            [ -n "${!v:-}" ] && envs+=("--setenv=$v=${!v}")
+        done
+        systemd-run --user --quiet --collect "${envs[@]}" bash "$gui" --update >/dev/null 2>&1 && return
+    fi
+    setsid bash "$gui" --update </dev/null >/dev/null 2>&1 &
+}
+
+# Without a display (e.g. a window manager that does not export it to
+# the systemd user manager) the button could not open anything: offer
+# the command instead
+has_display() { [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; }
+
 # libnotify >= 0.7.10 has clickable actions; older ones get plain text
-if notify-send --help 2>&1 | grep -q -- '--action'; then
+if has_display && notify-send --help 2>&1 | grep -q -- '--action'; then
     # --action waits for a click (or the notification expiring).
     # "default" is what clicking the notification body does.
-    choice=$(timeout 6h notify-send --app-name="DXSBash" --icon="$icon" \
+    choice=$(timeout 5h notify-send --app-name="DXSBash" --icon="$icon" \
         --action=default="Open DXSBash Settings" \
         --action=update="Update now" --action=later="Later" \
         "$title" "$body" 2>/dev/null) || exit 0
     mark_notified
     if [ "$choice" = "update" ] || [ "$choice" = "default" ]; then
-        # Foreground on purpose: under the systemd oneshot service a
-        # background child would be killed with the unit's cgroup the
-        # moment this script exits (KillMode=control-group).
-        exec bash "$DXSBASH_DIR/dxsbash-gui.sh" --update </dev/null >/dev/null 2>&1
+        open_update_window
     fi
 else
     notify-send --app-name="DXSBash" --icon="$icon" "$title" \

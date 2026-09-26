@@ -184,8 +184,10 @@ update-dxsbash --channel main      # one-off update from main
 update-dxsbash --check --channel stable
 ```
 
-Fresh installs follow the channel too (`DXSBASH_UPDATE_CHANNEL=main ./setup.sh`
-to install from main).
+Updates are decided by commits, not just version numbers: you are offered
+the newest release tag (stable) or the newest commit on main that your
+checkout does not already contain. Switching from main to stable never
+downgrades you — you simply move on at the next release.
 
 ### Update notifications
 
