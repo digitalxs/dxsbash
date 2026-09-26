@@ -166,7 +166,16 @@ case "$SHELL_TARGET" in
         ;;
 esac
 
-relink "$DXSBASH_DIR/starship.toml" "$HOME/.config/starship.toml"              "starship.toml"
+# starship.toml is user state: a working link to any DXSBash theme
+# (picked in dxsbash-gui / dxsbash-config) or a hand-written file is
+# kept; only a missing or dangling link is repaired to the default.
+STARSHIP_LINK="$HOME/.config/starship.toml"
+if { [ -L "$STARSHIP_LINK" ] && [ -e "$STARSHIP_LINK" ]; } || \
+   { [ -f "$STARSHIP_LINK" ] && [ ! -L "$STARSHIP_LINK" ]; }; then
+    echo -e "  ${GREEN}ok${RC}         starship.toml (keeping your theme)"
+else
+    relink "$DXSBASH_DIR/starship.toml" "$STARSHIP_LINK" "starship.toml"
+fi
 relink "$DXSBASH_DIR/config.jsonc"  "$HOME/.config/fastfetch/config.jsonc"     "fastfetch config"
 echo ""
 
@@ -177,7 +186,8 @@ echo -e "${CYAN}▶ Fixing script permissions...${RC}"
 for s in setup.sh updater.sh dxsbash.sh dxsbash-config.sh uninstall.sh repair.sh \
          doctor.sh secaudit.sh secsummary.sh clean.sh \
          reset-bash-profile.sh reset-zsh-profile.sh reset-fish-profile.sh \
-         check_dependencies.sh dxsbash-utils.sh; do
+         check_dependencies.sh dxsbash-utils.sh dxsbash-gui.sh gui-askpass.sh \
+         export-import.sh bench.sh; do
     if [ -f "$DXSBASH_DIR/$s" ]; then
         run "chmod +x \"$DXSBASH_DIR/$s\""
     fi
@@ -196,6 +206,7 @@ relink_system "$DXSBASH_DIR/doctor.sh"           /usr/local/bin/dxsbash-doctor  
 relink_system "$DXSBASH_DIR/secaudit.sh"         /usr/local/bin/dxsbash-audit      "dxsbash-audit"
 relink_system "$DXSBASH_DIR/repair.sh"           /usr/local/bin/dxsbash-repair     "dxsbash-repair"
 relink_system "$DXSBASH_DIR/uninstall.sh"        /usr/local/bin/dxsbash-uninstall  "dxsbash-uninstall"
+relink_system "$DXSBASH_DIR/dxsbash-gui.sh"      /usr/local/bin/dxsbash-gui        "dxsbash-gui"
 
 case "$SHELL_TARGET" in
     bash) RESET_SRC="$DXSBASH_DIR/reset-bash-profile.sh" ;;
@@ -205,6 +216,15 @@ case "$SHELL_TARGET" in
 esac
 [ -f "$RESET_SRC" ] || RESET_SRC="$DXSBASH_DIR/reset-bash-profile.sh"
 relink_system "$RESET_SRC" /usr/local/bin/reset-shell-profile "reset-shell-profile"
+echo ""
+
+# Desktop menu entry: refresh it if the user has one (paths or actions
+# may have changed), never create one on a machine that had none
+DESKTOP_ENTRY="${XDG_DATA_HOME:-$HOME/.local/share}/applications/dxsbash-settings.desktop"
+if [ -f "$DESKTOP_ENTRY" ] && [ -f "$DXSBASH_DIR/dxsbash-gui.sh" ]; then
+    run "bash \"$DXSBASH_DIR/dxsbash-gui.sh\" --install-desktop >/dev/null"
+    echo -e "  ${GREEN}refreshed${RC}  menu entry (DXSBash Settings)"
+fi
 echo ""
 
 #=================================================================

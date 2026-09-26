@@ -714,6 +714,11 @@ fi
 # shellcheck source=/dev/null
 [ -f "$HOME/.dxsbash/user.conf" ] && source "$HOME/.dxsbash/user.conf"
 
+# Custom aliases added via dxsbash-gui — loaded last so they can
+# override any DXSBash default alias
+# shellcheck source=/dev/null
+[ -f "$HOME/.dxsbash/custom-aliases.sh" ] && source "$HOME/.dxsbash/custom-aliases.sh"
+
 # Use starship prompt if available (overrides custom prompt)
 # Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
 if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then

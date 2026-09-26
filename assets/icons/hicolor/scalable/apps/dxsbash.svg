@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DXSBash application icon — GPL-3.0, DigitalXS.ca
+     Built from plain shapes, gradients and opacity only (no filters,
+     no text) so it renders identically in QtSvg (KDE Plasma), librsvg
+     and browsers, at every size from 16px up. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f3325"/>
+      <stop offset="0.55" stop-color="#061510"/>
+      <stop offset="1" stop-color="#020406"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.42" cy="0.58" r="0.55">
+      <stop offset="0" stop-color="#00ff88" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#00ff88" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00ff88" stop-opacity="0.70"/>
+      <stop offset="1" stop-color="#00ff88" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Body -->
+  <rect x="8" y="8" width="240" height="240" rx="54" fill="url(#bg)"/>
+  <rect x="8" y="8" width="240" height="240" rx="54" fill="url(#halo)"/>
+
+  <!-- Terminal title bar -->
+  <path d="M62 8 H194 A54 54 0 0 1 248 62 V66 H8 V62 A54 54 0 0 1 62 8 Z" fill="#000000" fill-opacity="0.28"/>
+  <circle cx="44" cy="38" r="9" fill="#ff5f57" fill-opacity="0.85"/>
+  <circle cx="72" cy="38" r="9" fill="#febc2e" fill-opacity="0.85"/>
+  <circle cx="100" cy="38" r="9" fill="#00ff88" fill-opacity="0.85"/>
+
+  <!-- Prompt chevron: glow layers, then the stroke -->
+  <g fill="none" stroke="#00ff88" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="64,108 116,148 64,188" stroke-width="44" stroke-opacity="0.10"/>
+    <polyline points="64,108 116,148 64,188" stroke-width="32" stroke-opacity="0.22"/>
+    <polyline points="64,108 116,148 64,188" stroke-width="22"/>
+  </g>
+
+  <!-- Block cursor -->
+  <rect x="128" y="168" width="68" height="28" rx="8" fill="#00ff88" fill-opacity="0.12"/>
+  <rect x="132" y="172" width="60" height="20" rx="5" fill="#00ff88" fill-opacity="0.30"/>
+  <rect x="136" y="175" width="52" height="14" rx="3" fill="#00ff88"/>
+
+  <!-- Glass shine and rim -->
+  <rect x="8" y="8" width="240" height="120" rx="54" fill="url(#shine)"/>
+  <rect x="10" y="10" width="236" height="236" rx="52" fill="none" stroke="url(#rim)" stroke-width="4"/>
+</svg>

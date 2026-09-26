@@ -165,6 +165,7 @@ MAINTENANCE COMMANDS
 
 install_zshrc_support - Install required dependencies
 update-dxsbash           - Update dxsbash to latest version
+dxsbash-gui         - Graphical settings (themes, aliases, updates)
 dxsbash export|import - Backup/restore personal settings
 dxsbash bench       - Benchmark shell startup time
 reset-shell-profile - Reset to default shell configuration

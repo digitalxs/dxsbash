@@ -13,7 +13,7 @@ jobs:
       - name: Install shells and shellcheck
         run: |
           sudo apt-get update
-          sudo apt-get install -y shellcheck zsh fish
+          sudo apt-get install -y shellcheck zsh fish desktop-file-utils
 
       - name: shellcheck (scripts, warning severity)
         run: shellcheck -S warning -f gcc ./*.sh
@@ -36,6 +36,11 @@ jobs:
         run: |
           fish --no-execute config.fish
           fish --no-execute fish_help
+
+      - name: Settings GUI self-test (settings model, aliases, menu entry)
+        run: |
+          bash dxsbash-gui.sh --selftest
+          awk -f tools/ansi2pango.awk </dev/null >/dev/null
 
   install-test:
     name: Install on ${{ matrix.image }}
@@ -109,6 +114,8 @@ jobs:
           test -x /usr/local/bin/dxsbash-doctor
           test -x /usr/local/bin/dxsbash-audit
           test -x /usr/local/bin/dxsbash
+          test -x /usr/local/bin/dxsbash-gui
+          /usr/local/bin/dxsbash-gui --selftest
           /usr/local/bin/dxsbash version
           /usr/local/bin/dxsbash help
 

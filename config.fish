@@ -844,6 +844,13 @@ if status is-interactive
         source "$HOME/.dxsbash/user.fish"
     end
 
+    # Custom aliases added via dxsbash-gui (fish twin generated from
+    # custom-aliases.sh) — loaded after the DXSBash defaults so they
+    # can override them
+    if test -f "$HOME/.dxsbash/custom-aliases.fish"
+        source "$HOME/.dxsbash/custom-aliases.fish"
+    end
+
     # The PWD watcher does not fire for the login directory — check once
     __dxs_env_check
 

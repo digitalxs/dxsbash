@@ -396,7 +396,7 @@ show_preflight() {
   echo -e "${CYAN}Will install/link:${RC}"
   echo -e "  • ~/.${shell_label}rc (or equivalent) → dxsbash repo"
   echo -e "  • ~/.config/starship.toml, ~/.config/fastfetch/config.jsonc"
-  echo -e "  • /usr/local/bin/{dxsbash,update-dxsbash,dxsbash-config,dxsbash-doctor,"
+  echo -e "  • /usr/local/bin/{dxsbash,dxsbash-gui,update-dxsbash,dxsbash-config,dxsbash-doctor,"
   echo -e "                    dxsbash-audit,dxsbash-repair,dxsbash-uninstall,reset-shell-profile}"
   echo -e "  • System packages via apt/nala (requires sudo)"
   echo -e "  • FiraCode Nerd Font, starship, zoxide, fzf"
@@ -422,6 +422,19 @@ command_exists() {
 #=================================================================
 # Environment checking
 #=================================================================
+# Is this a graphical desktop machine? Enables the zenity dependency of
+# the settings GUI and its menu entry; headless servers skip both (no
+# GTK stack pulled in). Override with DXSBASH_DESKTOP=1 or =0.
+has_desktop() {
+  case "${DXSBASH_DESKTOP:-auto}" in
+    1|yes|true) return 0 ;;
+    0|no|false) return 1 ;;
+  esac
+  [ -n "${XDG_CURRENT_DESKTOP:-}${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && return 0
+  compgen -G "/usr/share/xsessions/*.desktop" >/dev/null 2>&1 || \
+    compgen -G "/usr/share/wayland-sessions/*.desktop" >/dev/null 2>&1
+}
+
 checkEnv() {
   echo -e "${CYAN}▶ Checking environment requirements...${RC}"
 
@@ -552,6 +565,11 @@ installDepend() {
 
   if ! command_exists nvim; then
     DEPENDENCIES="${DEPENDENCIES} neovim"
+  fi
+
+  # Graphical settings (dxsbash-gui) — desktops only
+  if has_desktop; then
+    DEPENDENCIES="${DEPENDENCIES} zenity"
   fi
 
   echo -e "${YELLOW}  Installing required packages: ${WHITE}$DEPENDENCIES${RC}"
@@ -1099,10 +1117,12 @@ installConfigCommand() {
   echo -e "${CYAN}▶ Installing dxsbash-config command...${RC}"
 
   if [ -f "$GITPATH/dxsbash-config.sh" ]; then
-    cp -p "$GITPATH/dxsbash-config.sh" "$LINUXTOOLBOXDIR/"
-    chmod +x "$LINUXTOOLBOXDIR/dxsbash-config.sh"
-
-    ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/dxsbash-config.sh" /usr/local/bin/dxsbash-config
+    # Link the repo copy (as updater.sh and repair.sh do) so updates take
+    # effect immediately; it loads settings-lib.sh from next to itself.
+    chmod +x "$GITPATH/dxsbash-config.sh"
+    ${SUDO_CMD} ln -sf "$GITPATH/dxsbash-config.sh" /usr/local/bin/dxsbash-config
+    # Remove the stale copy older versions placed in ~/linuxtoolbox
+    rm -f "$LINUXTOOLBOXDIR/dxsbash-config.sh"
 
     echo -e "${GREEN}  ✓ Configuration tool installed${RC}"
     echo -e "    Run ${WHITE}dxsbash-config${RC} to customise your environment."
@@ -1114,7 +1134,7 @@ installConfigCommand() {
 
 installLifecycleCommands() {
   echo -e "${CYAN}▶ Installing repair/uninstall/doctor/audit commands...${RC}"
-  for src in repair.sh uninstall.sh doctor.sh secaudit.sh dxsbash.sh; do
+  for src in repair.sh uninstall.sh doctor.sh secaudit.sh dxsbash.sh dxsbash-gui.sh; do
     if [ -f "$GITPATH/$src" ]; then
       chmod +x "$GITPATH/$src"
       case "$src" in
@@ -1123,6 +1143,7 @@ installLifecycleCommands() {
         doctor.sh)    link_name="dxsbash-doctor" ;;
         secaudit.sh)  link_name="dxsbash-audit" ;;
         dxsbash.sh)   link_name="dxsbash" ;;
+        dxsbash-gui.sh) link_name="dxsbash-gui" ;;
       esac
       ${SUDO_CMD} ln -sf "$GITPATH/$src" "/usr/local/bin/$link_name"
       echo -e "${GREEN}  ✓ /usr/local/bin/$link_name${RC}"
@@ -1134,6 +1155,26 @@ installLifecycleCommands() {
   # secsummary.sh is invoked by the shell rc files at login, not a
   # user-facing command — just make sure it is executable.
   [ -f "$GITPATH/secsummary.sh" ] && chmod +x "$GITPATH/secsummary.sh"
+  [ -f "$GITPATH/gui-askpass.sh" ] && chmod +x "$GITPATH/gui-askpass.sh"
+  echo ""
+}
+
+# Menu entry "DXSBash Settings" (System category) + icon, per user
+installDesktopEntry() {
+  if ! has_desktop; then
+    echo -e "${YELLOW}  No graphical desktop detected — skipping the settings menu entry${RC}"
+    echo -e "    (add it later with: ${WHITE}dxsbash-gui --install-desktop${RC})"
+    echo ""
+    return 0
+  fi
+  echo -e "${CYAN}▶ Adding DXSBash Settings to the application menu...${RC}"
+  if as_user bash "$GITPATH/dxsbash-gui.sh" --install-desktop >/dev/null; then
+    echo -e "${GREEN}  ✓ Menu entry installed (System → DXSBash Settings)${RC}"
+    command_exists zenity || \
+      echo -e "${YELLOW}  ⚠ zenity is not installed — the settings window needs it${RC}"
+  else
+    echo -e "${YELLOW}  ⚠ Could not install the menu entry${RC}"
+  fi
   echo ""
 }
 
@@ -1305,6 +1346,7 @@ main() {
   installUpdaterCommand
   installConfigCommand
   installLifecycleCommands
+  installDesktopEntry
   configure_terminal
 
   # Final setup
@@ -1321,6 +1363,7 @@ main() {
   [ "$SELECTED_SHELL" = "fish" ] && config_label="~/.config/fish/config.fish"
   echo -e "${BLUE}║  ${WHITE}• Shell:${YELLOW} $SELECTED_SHELL${BLUE}        ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Config:${YELLOW} ${config_label}${BLUE} ${RC}"
+  echo -e "${BLUE}║  ${WHITE}• Settings:${YELLOW} dxsbash-gui (menu: System → DXSBash Settings)${BLUE} ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Update:${YELLOW} update-dxsbash${BLUE}             ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Repair:${YELLOW} dxsbash-repair${BLUE}             ${RC}"
   echo -e "${BLUE}║  ${WHITE}• Doctor:${YELLOW} dxsbash-doctor${BLUE}             ${RC}"

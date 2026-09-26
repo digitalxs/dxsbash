@@ -861,6 +861,32 @@ fi
 # shellcheck source=/dev/null
 [ -f "$HOME/.dxsbash/user.conf" ] && source "$HOME/.dxsbash/user.conf"
 
+# user.conf speaks bash: -1 means unlimited and HISTFILESIZE is the
+# on-disk size. zsh has neither — it clamps a negative HISTSIZE to 1
+# the moment it is assigned (silently losing history) and calls the
+# on-disk size SAVEHIST — so translate from the raw file values.
+if [[ -f "$HOME/.dxsbash/user.conf" ]]; then
+    _dxs_hs="" _dxs_hfs=""
+    while IFS= read -r _dxs_l; do
+        case "$_dxs_l" in
+            "export HISTSIZE="*)     _dxs_hs="${_dxs_l#export HISTSIZE=}" ;;
+            "export HISTFILESIZE="*) _dxs_hfs="${_dxs_l#export HISTFILESIZE=}" ;;
+        esac
+    done < "$HOME/.dxsbash/user.conf"
+    [[ "$_dxs_hs" == -* ]] && HISTSIZE=999999999
+    if [[ "$_dxs_hfs" == -* ]]; then
+        SAVEHIST=999999999
+    elif [[ "$_dxs_hfs" == <-> ]]; then
+        SAVEHIST=$_dxs_hfs
+    fi
+    unset _dxs_l _dxs_hs _dxs_hfs
+fi
+
+# Custom aliases added via dxsbash-gui — loaded last so they can
+# override any DXSBash default alias
+# shellcheck source=/dev/null
+[ -f "$HOME/.dxsbash/custom-aliases.sh" ] && source "$HOME/.dxsbash/custom-aliases.sh"
+
 # Initialize Starship or use custom prompt
 # Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
 if command -v starship &> /dev/null && [ "${DXSBASH_PROMPT_STYLE:-starship}" != "custom" ]; then

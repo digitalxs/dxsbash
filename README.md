@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.7.0
+v3.8.0
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -110,6 +110,7 @@ Everything can be managed from a single entry point:
 ```bash
 dxsbash update      # update to the latest release
 dxsbash config      # interactive configuration menu
+dxsbash gui         # graphical settings window (themes, aliases, updates)
 dxsbash doctor      # health-check the installation
 dxsbash audit       # security audit of the system (read-only)
 dxsbash repair      # fix broken symlinks/commands
@@ -167,6 +168,10 @@ Update to the latest version:
 update-dxsbash
 ```
 
+Or click **Check for updates** in the DXSBash Settings window. Your chosen
+prompt theme (or hand-written `starship.toml`), preferences and custom
+aliases are always kept across updates.
+
 Only check whether an update is available (useful for scripts and cron —
 exit code 10 means an update exists):
 
@@ -201,10 +206,78 @@ The menu lets you change:
 - Starship theme (DXS, Tokyo Night, Gruvbox Rainbow, Catppuccin, …)
 - Fastfetch on startup (on/off)
 - Security summary at login (on/off)
+- Lightweight prompt over SSH (on/off)
 - Reset everything to defaults
 
 Changes are written to `~/.dxsbash/user.conf` and take effect in new shell
 sessions (or after `source ~/.bashrc` / `source ~/.zshrc`).
+
+## Settings window (GUI)
+
+On desktops, DXSBash adds **DXSBash Settings** to the application menu
+under **System** (KDE Plasma, GNOME, XFCE, …). You can also open it with
+`dxsbash gui` or `dxsbash-gui`.
+
+<p align="center">
+  <img src="assets/screenshots/settings-main.png" alt="DXSBash Settings main window" width="480">
+  <img src="assets/screenshots/settings-aliases.png" alt="Custom aliases editor" width="480">
+</p>
+
+From one window you can:
+
+- **Check for updates** — see whether a new release exists and install it
+  with a progress bar and log; administrator prompts appear as a
+  password dialog. Right-click the menu entry for a direct shortcut.
+- **Pick a prompt theme visually** — every theme is shown as a live
+  preview of *your* prompt (your fonts, your repo), then applied in one click.
+- **Edit custom aliases** — add, edit and delete your own commands; they
+  work in bash, zsh and fish (see below).
+- Switch the prompt engine (Starship / built-in), toggle system info at
+  startup, the security summary and the lightweight SSH prompt, choose
+  your editor, history size and login shell.
+- Back up / restore settings to a file, run the health check and the
+  startup speed test, reset to defaults.
+
+It is built on [zenity](https://gitlab.gnome.org/GNOME/zenity), which the
+installer adds automatically when it detects a graphical desktop (headless
+servers skip it). Settings are shared with `dxsbash-config`: change them in
+either tool.
+
+```bash
+dxsbash-gui --install-desktop   # add the menu entry later (e.g. desktop added after install)
+dxsbash-gui --themes            # open the theme picker directly
+dxsbash-gui --aliases           # open the alias editor directly
+```
+
+Set `DXSBASH_DESKTOP=1` (or `0`) when running `setup.sh` to force (or skip)
+the desktop integration. On Plasma under Wayland the open window shows
+zenity's taskbar icon (zenity 4 reports its own app id); the menu entry
+itself always shows the DXSBash icon.
+
+### Custom aliases
+
+Aliases you add in the GUI are stored in `~/.dxsbash/custom-aliases.sh`
+(one `alias name='command'` per line) and loaded after the DXSBash
+defaults, so they can override them. A fish copy is generated
+automatically. The command is shell code, exactly as you would type it in
+a terminal; shell keywords (`if`, `for`, `function`, …) are refused as
+names, and replacing an existing command asks for confirmation.
+Custom aliases are included in `dxsbash export` backups.
+
+### Prompt themes
+
+| Theme | Preview |
+|:------|:--------|
+| DXS Starship (default) | <img src="assets/theme-previews/dxs-starship.png" height="40"> |
+| Nerd Font Symbols | <img src="assets/theme-previews/nerd-font-symbols.png" height="46"> |
+| Bracketed Segments | <img src="assets/theme-previews/bracketed-segments.png" height="46"> |
+| Pastel Powerline | <img src="assets/theme-previews/pastel-powerline.png" height="32"> |
+| Tokyo Night | <img src="assets/theme-previews/tokyo-night.png" height="46"> |
+| Gruvbox Rainbow | <img src="assets/theme-previews/gruvbox-rainbow.png" height="46"> |
+| Catppuccin Powerline | <img src="assets/theme-previews/catppuccin-powerline.png" height="32"> |
+
+The icons need a Nerd Font in your terminal (the installer sets up
+FiraCode Nerd Font); *Bracketed Segments* works with any font.
 
 ## Portable settings (export / import)
 

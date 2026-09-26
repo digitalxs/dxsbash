@@ -25,22 +25,31 @@ that is cloned to a fixed location and then *symlinked into place*:
   ~/.bashrc      /usr/local/bin/dxsbash          ~/.config/starship.toml
   ~/.zshrc       /usr/local/bin/update-dxsbash        → starship-themes/<theme>.toml
   ~/.config/     /usr/local/bin/dxsbash-config   ~/.config/fastfetch/config.jsonc
-    fish/          …repair …doctor …audit
-    config.fish    …uninstall
+    fish/        /usr/local/bin/dxsbash-gui
+    config.fish    …repair …doctor …audit …uninstall
+
+  desktop integration (desktops only, per user — written by dxsbash-gui --install-desktop):
+    ~/.local/share/applications/dxsbash-settings.desktop   (System category)
+    ~/.local/share/icons/hicolor/{16..256,scalable}/apps/dxsbash.{png,svg}
 ```
 
 Because every installed file is a symlink back into the repo, a
 `git pull` (via `updater.sh`) updates the live configuration instantly,
 and `repair.sh` only ever needs to re-create links — user data is never
-inside the repo.
+inside the repo. The one symlink that is *user state* is
+`~/.config/starship.toml`: it points at whichever theme the user picked
+(or is a hand-written file), so `updater.sh` and `repair.sh` only relink
+it when it is missing or dangling — never back to the default.
 
 Per-user state lives outside the repo in `~/.dxsbash/`:
 
 | File | Purpose |
 |------|---------|
-| `user.conf` | preference overrides sourced by bash/zsh (`user.fish` for fish) |
+| `user.conf` | preference overrides sourced by bash/zsh (`user.fish` for fish) — written only through `settings-lib.sh` |
+| `custom-aliases.sh` | user aliases from the GUI editor, sourced by bash/zsh after the DXSBash defaults |
+| `custom-aliases.fish` | generated fish twin of `custom-aliases.sh` (never edit by hand) |
 | `env-allow` | SHA-256 allowlist for trusted `.dxsbash-env` files |
-| `logs/` | installer/updater logs |
+| `logs/` | installer/updater logs; `gui.log` holds zenity diagnostics for the last GUI session |
 | `security-summary.txt` | cached login security summary (regenerated) |
 | `suid-baseline.txt` | baseline for `dxsbash audit` SUID diffing |
 
@@ -56,7 +65,15 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
 | `secaudit.sh` | read-only system security audit (`dxsbash audit`) |
 | `secsummary.sh` | cached one-line security summary at login (opt-in) |
 | `dxsbash.sh` | umbrella command — dispatches subcommands to the scripts above |
-| `dxsbash-config.sh` | interactive settings menu; writes `~/.dxsbash/user.conf` |
+| `settings-lib.sh` | **the settings model** — defaults, theme registry, read/write of `user.conf`/`user.fish`, theme linking, custom-alias store. Sourced by both settings front ends; add new settings here only |
+| `dxsbash-config.sh` | terminal settings menu (front end over `settings-lib.sh`) |
+| `dxsbash-gui.sh` | zenity settings window (front end over `settings-lib.sh`); also owns the menu entry (`--install-desktop` / `--remove-desktop`, called by setup/repair/updater) and `--selftest` |
+| `gui-askpass.sh` | graphical `SUDO_ASKPASS` helper so sudo can prompt without a terminal |
+| `desktop/dxsbash-settings.desktop.in` | menu entry template (`@GUI@` is replaced at install time) |
+| `assets/icons/hicolor/` | app icon: SVG master + pre-rendered PNG sizes (GTK4 only resolves themed icons from sized PNG dirs) |
+| `assets/theme-previews/`, `assets/screenshots/` | README images (theme previews are generated — see below) |
+| `tools/ansi2pango.awk` | ANSI → Pango markup converter (POSIX awk); powers the GUI's live theme previews |
+| `tools/render-theme-previews.sh` | dev-only: regenerates `assets/theme-previews/*.png` |
 | `dxsbash-utils.sh` | shared helpers sourced by `.bashrc` and `.zshrc` (logging, `cheat`, `.dxsbash-env` trust, ssh-lite selector) |
 | `export-import.sh` | `dxsbash export` / `import` — settings backup tarballs |
 | `bench.sh` | `dxsbash bench` — shell startup benchmarking |
@@ -96,6 +113,46 @@ Per-user state lives outside the repo in `~/.dxsbash/`:
    plugins, fish gets Fisher + Tide.
 6. **Linking** — rc files into `$HOME`, commands into
    `/usr/local/bin`, Konsole/Yakuake profiles when KDE is present.
+7. **Desktop integration** — `has_desktop()` (a `$DISPLAY`/Wayland
+   session, or any installed X/Wayland session; override with
+   `DXSBASH_DESKTOP=1|0`) adds `zenity` to the dependency list and
+   installs the *DXSBash Settings* menu entry. Headless servers get
+   neither, so no GTK stack is pulled in.
+
+## Settings architecture
+
+```
+  dxsbash-config.sh (terminal)      dxsbash-gui.sh (zenity)
+            │                                │
+            └──────────► settings-lib.sh ◄───┘
+                 defaults · theme registry · load/write · alias store
+                                 │
+       ┌─────────────────────────┼──────────────────────────────┐
+       ▼                         ▼                              ▼
+ ~/.dxsbash/user.conf     ~/.config/starship.toml     ~/.dxsbash/custom-aliases.sh
+ ~/.dxsbash/user.fish       (symlink → theme)          ~/.dxsbash/custom-aliases.fish
+       │                         │                              │
+       └────── sourced by .bashrc / .zshrc / config.fish at startup ──────┘
+```
+
+Rules of the model:
+
+- `write_settings` always regenerates the whole `user.conf` and its fish
+  twin from the `CUR_*` values — both front ends, same keys. A new
+  setting = a `DEF_*` default + `load_settings` + `write_settings` entry.
+- Values are written in bash's language (`HISTSIZE=-1` = unlimited);
+  `.zshrc` translates what zsh spells differently (`SAVEHIST`, no -1).
+- Custom aliases are stored as `alias name='cmd'` lines; POSIX
+  single-quote escaping (`'\''`) differs from fish (`\'`), so the fish
+  file is regenerated from the POSIX one after every change and on
+  every GUI start (hand edits of the `.sh` file are picked up).
+- The GUI's theme picker renders each theme's *real* prompt
+  (`starship prompt` inside the user's DXSBash checkout) through
+  `tools/ansi2pango.awk` into Pango markup — no images, the user's own
+  fonts. zenity gotchas handled in `dxsbash-gui.sh`: option text needs a
+  UTF-8 locale (`ensure_utf8_locale`), `--text` is backslash-unescaped
+  and markup-parsed (`esc`), `--icon` takes an icon *name*, and in
+  bash ≥ 5.2 `&` in a `${var//pat/rep}` replacement must be quoted.
 
 ## Cross-shell parity rule
 
@@ -134,6 +191,7 @@ a `batcat` binary; `nala` exists only on Debian/Ubuntu; AUR helpers
 Local quick pass (what CI's lint job runs):
 
 ```bash
+bash dxsbash-gui.sh --selftest   # settings model, aliases in bash+fish, menu entry
 shellcheck -S warning ./*.sh
 bash -n setup.sh .bashrc .bash_aliases
 zsh  -n .zshrc
@@ -144,7 +202,7 @@ bash bench.sh --runs 3           # startup regression check
 
 CI (`.github/workflows/bashtest.yml`) runs three jobs on every push/PR:
 
-1. **lint** — shellcheck + syntax for all three shells
+1. **lint** — shellcheck + syntax for all three shells + `dxsbash-gui --selftest`
 2. **install-test** — full `./setup.sh --install --yes --shell bash`
    inside `debian:13`, `debian:12`, `ubuntu:24.04`, `archlinux:latest`
    and `fedora:latest` containers (with `DXSBASH_SKIP_FONT=1`),
@@ -158,8 +216,10 @@ CI (`.github/workflows/bashtest.yml`) runs three jobs on every push/PR:
 ```
 
 The package ships the repo to `/usr/share/dxsbash` plus a
-`/usr/bin/dxsbash-installer` bootstrap that copies it into the invoking
-user's `~/linuxtoolbox/dxsbash` and runs `setup.sh`. The .deb is a
+`/usr/bin/dxsbash-installer` bootstrap that clones the repo into the
+invoking user's `~/linuxtoolbox/dxsbash` (falling back to copying the
+packaged tree when offline — updates then need a later re-run) and runs
+`setup.sh`. The .deb is a
 distribution vehicle — per-user setup still happens through the normal
 installer, so multi-user machines work and nothing in `$HOME` is owned
 by the package manager.
@@ -170,9 +230,13 @@ by the package manager.
 2. Add a dated section to `CHANGELOG.md` (Keep-a-Changelog format).
 3. Update the version string in `README.md` (line 2) and the
    `version-tag` span in `index.html`.
-4. Document new commands in `commands.md` and, if user-visible, README.
-5. Run the local test pass above; push and let the CI matrix go green.
-6. Merge to `main`. `update-dxsbash` on user machines pulls the tagged
+4. Document new commands in `commands.md`, the three help files and,
+   if user-visible, README.
+5. If a theme in `starship-themes/` changed, regenerate the README
+   previews: `sudo tools/render-theme-previews.sh` (needs starship,
+   ImageMagick with Pango, a Nerd Font).
+6. Run the local test pass above; push and let the CI matrix go green.
+7. Merge to `main`. `update-dxsbash` on user machines pulls the tagged
    state of `main`.
 
 ## Coding conventions

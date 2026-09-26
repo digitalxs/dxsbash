@@ -238,7 +238,7 @@ done
 section "Helper commands"
 
 for cmd in update-dxsbash dxsbash-config dxsbash-repair dxsbash-uninstall \
-           dxsbash-doctor reset-shell-profile; do
+           dxsbash-doctor dxsbash-gui reset-shell-profile; do
     path="/usr/local/bin/$cmd"
     if [ -x "$path" ] || [ -L "$path" ]; then
         if [ -L "$path" ] && [ ! -e "$path" ]; then
