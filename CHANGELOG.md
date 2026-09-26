@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.2] - 2026-09-27
+
+### Fixed
+- `__dxs_env_check: command not found` at every bash prompt when
+  `~/.bashrc` and `~/linuxtoolbox/dxsbash` came from different versions
+  (installs made before 3.8 could link `~/.bashrc` into another clone).
+  `.bashrc` now loads its helpers from the checkout it belongs to, and
+  only adds the per-directory-environment hook when the helper exists.
+
 ## [3.9.1] - 2026-09-27
 
 ### Fixed

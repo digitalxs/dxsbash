@@ -46,10 +46,16 @@ if [ -f /etc/bashrc ]; then
     . /etc/bashrc
 fi
 
-# Source dxsbash utilities
-if [ -f "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh" ]; then
+# Source dxsbash utilities — from the checkout this .bashrc belongs to,
+# so the rc file and its helpers always come from the same version
+# (installs made before 3.8 could link ~/.bashrc into another clone)
+_dxs_rc_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+if [ -f "$_dxs_rc_dir/dxsbash-utils.sh" ]; then
+    source "$_dxs_rc_dir/dxsbash-utils.sh"
+elif [ -f "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh" ]; then
     source "$HOME/linuxtoolbox/dxsbash/dxsbash-utils.sh"
 fi
+unset _dxs_rc_dir
 
 # Enable bash programmable completion features
 if [ -f /usr/share/bash-completion/bash_completion ]; then
@@ -730,7 +736,11 @@ fi
 
 # Per-directory environment hook — registered after starship init so
 # its PROMPT_COMMAND rewrite cannot drop the check.
-PROMPT_COMMAND="__dxs_env_check${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+# Only if the helpers loaded: a missing function would print
+# "__dxs_env_check: command not found" at every prompt.
+if declare -F __dxs_env_check >/dev/null; then
+    PROMPT_COMMAND="__dxs_env_check${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+fi
 # Make it compatible with claude code
 export PATH="$HOME/.local/bin:$PATH"
 # To make administrative tool more accessible
