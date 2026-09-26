@@ -71,7 +71,10 @@ if notify-send --help 2>&1 | grep -q -- '--action'; then
         "$title" "$body" 2>/dev/null) || exit 0
     mark_notified
     if [ "$choice" = "update" ] || [ "$choice" = "default" ]; then
-        setsid bash "$DXSBASH_DIR/dxsbash-gui.sh" --update >/dev/null 2>&1 < /dev/null &
+        # Foreground on purpose: under the systemd oneshot service a
+        # background child would be killed with the unit's cgroup the
+        # moment this script exits (KillMode=control-group).
+        exec bash "$DXSBASH_DIR/dxsbash-gui.sh" --update </dev/null >/dev/null 2>&1
     fi
 else
     notify-send --app-name="DXSBash" --icon="$icon" "$title" \

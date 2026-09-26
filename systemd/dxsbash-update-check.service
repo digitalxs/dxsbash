@@ -7,5 +7,7 @@ After=graphical-session.target
 [Service]
 Type=oneshot
 ExecStart=/bin/bash %h/linuxtoolbox/dxsbash/update-notify.sh
-# The notification waits for a click; give up after a few hours
-TimeoutStartSec=6h
+# The notification waits for a click, and "Update now" keeps the
+# settings window inside this unit until it is closed (a background
+# child would be killed with the unit's cgroup) — so no short timeout
+TimeoutStartSec=12h
