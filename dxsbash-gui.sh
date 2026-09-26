@@ -160,6 +160,9 @@ remove_desktop() {
 # Tell the desktop about the change. All optional: KDE also rescans
 # on its own, this just makes the entry appear immediately.
 _refresh_menus() {
+    # --selftest: never rebuild real desktop caches (kbuildsycoca also
+    # wrote into the sandbox while it was being deleted)
+    [ -n "${DXS_SELFTEST:-}" ] && return 0
     command -v update-desktop-database >/dev/null 2>&1 && \
         update-desktop-database "$(dirname "$DESKTOP_FILE")" >/dev/null 2>&1
     # A stale user icon cache would hide the new icon from GTK

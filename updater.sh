@@ -589,6 +589,29 @@ post_update() {
     return 0
 }
 
+# Link DXSBash commands that are missing from /usr/local/bin (only the
+# missing ones, so an up-to-date run does not ask for sudo needlessly),
+# then the desktop integration. Covers installs updated by an updater
+# that predates a command.
+ensure_install_complete() {
+    local pair name src missing=0
+    for pair in dxsbash:dxsbash.sh dxsbash-gui:dxsbash-gui.sh dxsbash-config:dxsbash-config.sh \
+                update-dxsbash:updater.sh dxsbash-repair:repair.sh dxsbash-doctor:doctor.sh \
+                dxsbash-audit:secaudit.sh dxsbash-uninstall:uninstall.sh; do
+        name="${pair%%:*}"; src="${pair#*:}"
+        [[ -e "/usr/local/bin/${name}" || ! -f "${DXSBASH_DIR}/${src}" ]] && continue
+        missing=1
+        if [[ -n "${SUDO_CMD}" ]] && ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/${src}" "/usr/local/bin/${name}" 2>/dev/null; then
+            log SUCCESS "Installed missing command ${name}"
+            echo -e "${GREEN}  ✓ Installed missing command ${name}${RC}"
+        fi
+    done
+    if [[ ${missing} -eq 1 && -z "${SUDO_CMD}" ]]; then
+        log WARN "Some DXSBash commands are not linked; run dxsbash-repair with sudo rights"
+    fi
+    ensure_desktop_integration
+}
+
 # Desktop users who installed before the settings GUI existed: add the
 # menu entry, icon and daily update check (all per-user, no sudo), and
 # say if zenity — which the GUI needs — is missing.
@@ -627,6 +650,9 @@ perform_update() {
     log INFO "${status_line}"
     if [[ ${status_rc} -eq 0 ]]; then
         echo -e "${GREEN}${status_line}${RC}"
+        # Nothing to pull — but the last update may have been done by an
+        # older updater that did not know this release's new pieces
+        ensure_install_complete
         return 0
     elif [[ ${status_rc} -eq 1 ]]; then
         log WARN "Could not determine the remote state, proceeding with update anyway"

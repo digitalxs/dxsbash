@@ -45,12 +45,27 @@ rotate_logs() {
 # implementations in config.fish.
 #######################################################
 
-# Offline cheatsheet over the DXSBash command reference (commands.md),
-# rendered with bat when available.
-# Usage: cheat              # browse the whole reference
-#        cheat git         # only lines mentioning git
+# Cheatsheets: the offline DXSBash command reference (commands.md),
+# rendered with bat, falling back to cheat.sh online when the reference
+# has no match.
+# Usage: cheat              # browse the whole DXSBash reference
+#        cheat git         # reference lines mentioning git (else cheat.sh)
+#        cheat --web tar   # ask cheat.sh directly
 cheat() {
     local doc="$HOME/linuxtoolbox/dxsbash/commands.md"
+    if [ "${1:-}" = "--web" ] || { [ $# -gt 0 ] && ! grep -qi -- "$*" "$doc" 2>/dev/null; }; then
+        [ "${1:-}" = "--web" ] && shift
+        if [ $# -eq 0 ]; then
+            echo "Usage: cheat --web <command>" >&2
+            return 1
+        fi
+        if ! command -v curl >/dev/null 2>&1; then
+            echo "cheat: no local match and curl is not installed" >&2
+            return 1
+        fi
+        curl -fsS "https://cheat.sh/$1" || echo "cheat: cheat.sh unreachable" >&2
+        return
+    fi
     if [ ! -f "$doc" ]; then
         echo "cheat: $doc not found (is DXSBash installed?)" >&2
         return 1

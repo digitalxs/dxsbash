@@ -548,20 +548,8 @@ bk() {
     echo "Started '$*' in background (PID: $!)"
 }
 
-# Display a cheatsheet for a command
-cheat() {
-    if [ $# -eq 0 ]; then
-        echo "Usage: cheat <command>"
-        return 1
-    fi
-    
-    if ! command -v curl &> /dev/null; then
-        echo "Error: curl not found. Please install curl."
-        return 1
-    fi
-    
-    curl "cheat.sh/$1"
-}
+# cheat (offline DXSBash reference + cheat.sh fallback) is defined in
+# dxsbash-utils.sh so bash and zsh share one implementation
 
 # Countdown timer with validation
 countdown() {

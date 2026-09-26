@@ -102,7 +102,12 @@ backup_path() {
     local rel="${src#$HOME/}"
     local dest="$BACKUP_DIR/$rel"
 
-    run "mkdir -p \"$(dirname \"$dest\")\""
+    # dirname computed here: inside the run string the escaped quotes
+    # reached dirname literally, so nested parents (.config/...) were
+    # never created and those files silently missed the backup
+    local dest_dir
+    dest_dir="$(dirname "$dest")"
+    run "mkdir -p \"$dest_dir\""
     # Copy, following symlinks so we preserve the *contents* the user had
     run "cp -a --dereference \"$src\" \"$dest\" 2>/dev/null || cp -a \"$src\" \"$dest\""
 }
