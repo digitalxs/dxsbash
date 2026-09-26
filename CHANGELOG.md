@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.1] - 2026-09-27
+
+### Fixed
+- **Upgraders never got new commands** (`dxsbash-gui: command not
+  found`). bash keeps running the updater it loaded *before* the pull,
+  so each release's new install steps only ran one update later — or
+  never, for commands added since. The updater now hands everything
+  after the pull to the freshly pulled updater (`--post-update`).
+- Desktop users who installed before the settings GUI existed now get
+  the *DXSBash Settings* menu entry, icon and daily update check on
+  update, plus a warning if zenity is missing.
+- Until `/usr/local/bin/dxsbash-gui` is linked (it needs sudo), the
+  shells fall back to running it from the repo, so `dxsbash-gui` always
+  works.
+
+### Added
+- `DXSBASH_REPO_URL` lets the updater follow a fork or mirror.
+
 ## [3.9.0] - 2026-09-26
 
 ### Added

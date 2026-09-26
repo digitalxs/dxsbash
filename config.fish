@@ -900,6 +900,13 @@ if status is-interactive
         bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
     end
 
+    # dxsbash-gui lives in /usr/local/bin, which needs root to link;
+    # until dxsbash-repair (or the next update) has done that, run it
+    # from the repo
+    if not type -q dxsbash-gui; and test -f "$HOME/linuxtoolbox/dxsbash/dxsbash-gui.sh"
+        alias dxsbash-gui "bash $HOME/linuxtoolbox/dxsbash/dxsbash-gui.sh"
+    end
+
     # Custom aliases added via dxsbash-gui (fish twin generated from
     # custom-aliases.sh). Loaded last so they override DXSBash defaults
     # and tool inits (zoxide defines z/zi above); skipped if the user

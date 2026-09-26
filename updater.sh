@@ -43,8 +43,10 @@ LOG_FILE="${LOG_DIR}/updater-$(date +%Y%m%d).log"
 DETECTED_SHELL=""
 ERRORS=0
 SUDO_CMD=""
-REPO_URL="https://github.com/digitalxs/dxsbash.git"
+# DXSBASH_REPO_URL: forks, mirrors and tests
+REPO_URL="${DXSBASH_REPO_URL:-https://github.com/digitalxs/dxsbash.git}"
 UPDATE_CHANNEL=""   # stable | main — see resolve_channel
+POST_ARGS=()        # --post-update: previous version, backup path
 
 #=================================================================
 # Logging Functions
@@ -557,6 +559,55 @@ update_system_scripts() {
 }
 
 #=================================================================
+# After the pull (run by the NEW updater, see perform_update)
+#=================================================================
+post_update() {
+    local current_version="$1" backup_path="$2" new_version
+
+    update_shell_configs
+    update_system_scripts
+    ensure_desktop_integration
+    cleanup_old_backups
+
+    new_version=$(get_current_version)
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${RC}"
+    echo -e "${GREEN}║           DXSBash Update Completed Successfully        ║${RC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${RC}"
+    echo ""
+    echo -e "  ${CYAN}Previous version:${RC} ${current_version}"
+    echo -e "  ${CYAN}New version:${RC} ${new_version}"
+    echo -e "  ${CYAN}Backup location:${RC} ${backup_path}"
+    echo ""
+    echo -e "  ${YELLOW}Please restart your terminal or run:${RC}"
+    if [[ "${DETECTED_SHELL}" == "fish" ]]; then
+        echo -e "  ${WHITE}source ~/.config/fish/config.fish${RC}"
+    else
+        echo -e "  ${WHITE}source ~/.${DETECTED_SHELL}rc${RC}"
+    fi
+    echo ""
+    return 0
+}
+
+# Desktop users who installed before the settings GUI existed: add the
+# menu entry, icon and daily update check (all per-user, no sudo), and
+# say if zenity — which the GUI needs — is missing.
+ensure_desktop_integration() {
+    local entry="${XDG_DATA_HOME:-${HOME}/.local/share}/applications/dxsbash-settings.desktop"
+    [[ -f "${DXSBASH_DIR}/dxsbash-gui.sh" ]] || return 0
+    [[ -n "${XDG_CURRENT_DESKTOP:-}${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]] || return 0
+    if [[ ! -f "${entry}" ]]; then
+        if bash "${DXSBASH_DIR}/dxsbash-gui.sh" --install-desktop >/dev/null 2>&1; then
+            log SUCCESS "Added DXSBash Settings to the application menu (System)"
+        fi
+    fi
+    if ! command_exists zenity; then
+        log WARN "The settings window needs zenity: install it with your package manager (e.g. sudo apt install zenity)"
+    fi
+    return 0
+}
+
+#=================================================================
 # Main Update Process
 #=================================================================
 perform_update() {
@@ -595,34 +646,14 @@ perform_update() {
         return 1
     fi
     
-    # Update configurations
-    update_shell_configs
-    update_system_scripts
-    
-    # Clean up old backups
-    cleanup_old_backups
-    
-    # Show summary
-    local new_version
-    new_version=$(get_current_version)
-    
-    echo ""
-    echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${RC}"
-    echo -e "${GREEN}║           DXSBash Update Completed Successfully        ║${RC}"
-    echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${RC}"
-    echo ""
-    echo -e "  ${CYAN}Previous version:${RC} ${current_version}"
-    echo -e "  ${CYAN}New version:${RC} ${new_version}"
-    echo -e "  ${CYAN}Backup location:${RC} ${backup_path}"
-    echo ""
-    echo -e "  ${YELLOW}Please restart your terminal or run:${RC}"
-    if [[ "${DETECTED_SHELL}" == "fish" ]]; then
-        echo -e "  ${WHITE}source ~/.config/fish/config.fish${RC}"
-    else
-        echo -e "  ${WHITE}source ~/.${DETECTED_SHELL}rc${RC}"
+    # Hand over to the freshly pulled updater for everything after the
+    # pull. bash runs the script it loaded before the update, so without
+    # this a release's new install steps (new commands, links, menu
+    # entries) would only take effect one update later.
+    if [[ -f "${DXSBASH_DIR}/updater.sh" ]] && grep -q -- '--post-update' "${DXSBASH_DIR}/updater.sh"; then
+        exec bash "${DXSBASH_DIR}/updater.sh" --post-update "${current_version}" "${backup_path}"
     fi
-    echo ""
-    
+    post_update "${current_version}" "${backup_path}"
     return 0
 }
 
@@ -652,6 +683,9 @@ main() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --check)     mode="check" ;;
+            --post-update)
+                # internal: continue an update after the pull (see perform_update)
+                mode="post"; POST_ARGS=("${2:-unknown}" "${3:-}"); shift 2 || true ;;
             --channel)   UPDATE_CHANNEL="${2:-}"; shift ;;
             --channel=*) UPDATE_CHANNEL="${1#--channel=}" ;;
             -h|--help)   usage; exit 0 ;;
@@ -669,6 +703,14 @@ main() {
     fi
     resolve_channel
     [[ "${mode}" == "check" ]] && check_for_update
+    if [[ "${mode}" == "post" ]]; then
+        setup_logging
+        SUDO_CMD=$(get_sudo_command)
+        detect_current_shell
+        log INFO "Continuing update with the new updater"
+        post_update "${POST_ARGS[@]}"
+        exit $?
+    fi
 
     echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
     echo -e "${BLUE}║              DXSBash Updater $(date +%Y)                      ║${RC}"
