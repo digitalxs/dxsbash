@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.7] - 2026-09-27
+
+### Fixed
+- `dxsbash: command not found` (and the same for the other management
+  commands) on installs whose `/usr/local/bin` links were never created
+  or are not on PATH. bash, zsh and fish now run any DXSBash command
+  that is not linked straight from `~/linuxtoolbox/dxsbash` — `dxsbash`,
+  `dxsbash-gui`, `dxsbash-config`, `update-dxsbash`, `dxsbash-repair`,
+  `dxsbash-doctor`, `dxsbash-audit`, `dxsbash-uninstall` (previously only
+  `dxsbash-gui`). `dxsbash-repair` / `update-dxsbash` still create the
+  real links.
+
 ## [3.9.6] - 2026-09-27
 
 ### Added

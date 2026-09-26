@@ -914,11 +914,16 @@ if status is-interactive
         bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
     end
 
-    # dxsbash-gui lives in /usr/local/bin, which needs root to link;
-    # until dxsbash-repair (or the next update) has done that, run it
-    # from the repo
-    if not type -q dxsbash-gui; and test -f "$HOME/linuxtoolbox/dxsbash/dxsbash-gui.sh"
-        alias dxsbash-gui "bash $HOME/linuxtoolbox/dxsbash/dxsbash-gui.sh"
+    # DXSBash commands live in /usr/local/bin, which needs root to link.
+    # Any that are not linked (or not on PATH) run straight from the repo
+    # until dxsbash-repair / the next update-dxsbash has linked them.
+    for pair in dxsbash:dxsbash.sh dxsbash-gui:dxsbash-gui.sh dxsbash-config:dxsbash-config.sh \
+                update-dxsbash:updater.sh dxsbash-repair:repair.sh dxsbash-doctor:doctor.sh \
+                dxsbash-audit:secaudit.sh dxsbash-uninstall:uninstall.sh
+        set -l parts (string split -m1 ':' -- $pair)
+        if not type -q $parts[1]; and test -f "$HOME/linuxtoolbox/dxsbash/$parts[2]"
+            alias $parts[1] "bash $HOME/linuxtoolbox/dxsbash/$parts[2]"
+        end
     end
 
     # Custom aliases added via dxsbash-gui (fish twin generated from

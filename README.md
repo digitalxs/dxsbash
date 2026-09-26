@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.9.6
+v3.9.7
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -102,7 +102,7 @@ Build (needs only `dpkg-deb`, which Debian and Ubuntu always have):
 
 ```bash
 git clone https://github.com/digitalxs/dxsbash.git && cd dxsbash
-git checkout v3.9.6                    # optional: build a released version
+git checkout v3.9.7                    # optional: build a released version
 ./packaging/build-deb.sh               # → dist/dxsbash_<version>_all.deb
 ```
 
