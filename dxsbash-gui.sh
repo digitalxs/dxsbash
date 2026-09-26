@@ -950,6 +950,33 @@ selftest() {
     t "ini CRLF header reused"   '[ "$(grep -c Appearance "$tmp/crlf")" = 1 ] && grep -q "^ColorScheme=Z" "$tmp/crlf" && ! grep -q Breeze "$tmp/crlf"'
     t "ini group created"        '[ "$(sed -n "/^\[Appearance\]/,\$p" "$tmp/ini" | tail -1)" = ColorScheme=Y ] && grep -qx "Name=x" "$tmp/ini"'
 
+    # desktop detection (setup/updater install the GUI when this says so);
+    # a clean env, a fake sessions dir and a fake PATH keep the real
+    # machine out of it
+    _dd() { # $1 = env assignments (space separated), $2 = function
+        env -i PATH="$tmp/dbin" HOME="$tmp" DXS_SESSIONS_ROOT="$tmp/sess" $1 \
+            "$BASH" -c 'source "$1"; '"${2:-detect_desktop}" _ "$DXSBASH_DIR/settings-lib.sh"
+    }
+    mkdir -p "$tmp/dbin" "$tmp/sess/xsessions" "$tmp/sess/wayland-sessions"
+    t "no desktop -> none"        '[ -z "$(_dd "")" ]'
+    t "ssh -X display -> none"    '[ -z "$(_dd "SSH_CONNECTION=x DISPLAY=:10")" ]'
+    t "running KDE session"       '[ "$(_dd XDG_CURRENT_DESKTOP=KDE)" = kde ]'
+    t "running XFCE session"      '[ "$(_dd XDG_CURRENT_DESKTOP=XFCE)" = xfce ]'
+    : > "$tmp/sess/wayland-sessions/plasma.desktop"
+    t "Plasma installed (Wayland)" '[ "$(_dd "")" = kde ] && [ "$(_dd "SSH_CONNECTION=x")" = kde ]'
+    rm -f "$tmp/sess/wayland-sessions/plasma.desktop"; : > "$tmp/sess/xsessions/plasmax11.desktop"
+    t "Plasma installed (X11)"    '[ "$(_dd "")" = kde ]'
+    rm -f "$tmp/sess/xsessions/plasmax11.desktop"; : > "$tmp/sess/xsessions/xfce.desktop"
+    t "XFCE installed (session)"  '[ "$(_dd "SSH_CONNECTION=x")" = xfce ]'
+    rm -f "$tmp/sess/xsessions/xfce.desktop"; printf '#!/bin/sh\n' > "$tmp/dbin/xfce4-session"; chmod +x "$tmp/dbin/xfce4-session"
+    t "XFCE installed (program)"  '[ "$(_dd "")" = xfce ]'
+    rm -f "$tmp/dbin/xfce4-session"; : > "$tmp/sess/xsessions/gnome.desktop"
+    t "other desktop installed"   '[ "$(_dd "")" = other ]'
+    rm -f "$tmp/sess/xsessions/gnome.desktop"; : > "$tmp/sess/xsessions/xfce.desktop"
+    t "DXSBASH_DESKTOP=0 wins"    '! _dd "DXSBASH_DESKTOP=0" wants_desktop_gui && _dd "" wants_desktop_gui'
+    rm -f "$tmp/sess/xsessions/xfce.desktop"
+    t "DXSBASH_DESKTOP=1 forces"  '_dd "DXSBASH_DESKTOP=1" wants_desktop_gui && ! _dd "" wants_desktop_gui'
+
     # update notifier with a fake updater and a fake notify-send
     mkdir -p "$tmp/bin"
     printf '#!/bin/sh\necho "Update available: 3.8.0 -> 3.9.0 (stable channel)"; exit 10\n' > "$tmp/fake-updater"

@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.9.3
+v3.9.4
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -266,10 +266,13 @@ From one window you can:
 - Back up / restore settings to a file, run the health check and the
   startup speed test, reset to defaults.
 
-It is built on [zenity](https://gitlab.gnome.org/GNOME/zenity), which the
-installer adds automatically when it detects a graphical desktop (headless
-servers skip it). Settings are shared with `dxsbash-config`: change them in
-either tool.
+It is built on [zenity](https://gitlab.gnome.org/GNOME/zenity). The
+installer sets the settings window up (zenity, menu entry, update
+notifications) whenever **KDE Plasma or XFCE is installed** — even when you
+run `setup.sh` over SSH or from a text console — and for other desktops
+when it runs inside a graphical session. Headless servers skip it. Existing
+installs get it on their next `update-dxsbash`. Settings are shared with
+`dxsbash-config`: change them in either tool.
 
 ```bash
 dxsbash-gui --install-desktop   # add menu entry + daily update check later (e.g. desktop added after install)

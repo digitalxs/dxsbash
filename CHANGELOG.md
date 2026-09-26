@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.4] - 2026-09-27
+
+### Changed
+- **The settings GUI is installed whenever KDE Plasma or XFCE is
+  installed**, not only when setup runs inside a graphical session: KDE
+  (`plasmashell` or a Plasma session file) and XFCE (`xfce4-session` or
+  its session file) are detected even over SSH or from a text console.
+  setup prints *KDE Plasma detected* / *XFCE detected* and installs
+  zenity, the menu entry and the update notifications. `update-dxsbash`
+  uses the same detection, so existing KDE/XFCE installs get the GUI on
+  their next run. Other desktops keep the previous detection;
+  `DXSBASH_DESKTOP=1|0` still overrides.
+
 ## [3.9.3] - 2026-09-27
 
 ### Fixed

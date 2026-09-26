@@ -436,23 +436,25 @@ command_exists() {
 #=================================================================
 # Environment checking
 #=================================================================
-# Is this a graphical desktop machine? Enables the zenity dependency of
-# the settings GUI and its menu entry; headless servers skip both (no
-# GTK stack pulled in). Override with DXSBASH_DESKTOP=1 or =0.
+# Which desktop is installed (kde | xfce | other | empty), using the
+# shared detection in settings-lib.sh — in a subshell so the library's
+# globals stay out of setup's environment. KDE Plasma and XFCE are found
+# even when setup runs over SSH or from a text console.
+desktop_kind() {
+  local lib="${GITPATH:-$(dirname "$(realpath "$0")")}/settings-lib.sh"
+  [ -f "$lib" ] || return 0
+  bash -c 'source "$1" && detect_desktop' _ "$lib" 2>/dev/null
+}
+
+# Install the settings GUI (zenity, menu entry, update notifications)?
+# Headless servers get none of it (no GTK stack pulled in). Override
+# with DXSBASH_DESKTOP=1 or =0.
 has_desktop() {
   case "${DXSBASH_DESKTOP:-auto}" in
     1|yes|true) return 0 ;;
     0|no|false) return 1 ;;
   esac
-  # A local graphical session (not an ssh -X forwarded DISPLAY on a
-  # headless server)...
-  if [ -z "${SSH_CONNECTION:-}${SSH_CLIENT:-}" ] && \
-     [ -n "${XDG_CURRENT_DESKTOP:-}${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
-    return 0
-  fi
-  # ...or an installed desktop session, whoever runs the installer
-  compgen -G "/usr/share/xsessions/*.desktop" >/dev/null 2>&1 || \
-    compgen -G "/usr/share/wayland-sessions/*.desktop" >/dev/null 2>&1
+  [ -n "$(desktop_kind)" ]
 }
 
 checkEnv() {
@@ -1187,7 +1189,11 @@ installDesktopEntry() {
     echo ""
     return 0
   fi
-  echo -e "${CYAN}▶ Adding DXSBash Settings to the application menu...${RC}"
+  case "$(desktop_kind)" in
+    kde)  echo -e "${CYAN}▶ KDE Plasma detected — installing DXSBash Settings (System menu)...${RC}" ;;
+    xfce) echo -e "${CYAN}▶ XFCE detected — installing DXSBash Settings (System menu)...${RC}" ;;
+    *)    echo -e "${CYAN}▶ Adding DXSBash Settings to the application menu...${RC}" ;;
+  esac
   if as_user bash "$GITPATH/dxsbash-gui.sh" --install-desktop >/dev/null; then
     echo -e "${GREEN}  ✓ Menu entry installed (System → DXSBash Settings)${RC}"
     command_exists zenity || \

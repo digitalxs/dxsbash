@@ -618,7 +618,9 @@ ensure_install_complete() {
 ensure_desktop_integration() {
     local entry="${XDG_DATA_HOME:-${HOME}/.local/share}/applications/dxsbash-settings.desktop"
     [[ -f "${DXSBASH_DIR}/dxsbash-gui.sh" ]] || return 0
-    [[ -n "${XDG_CURRENT_DESKTOP:-}${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]] || return 0
+    # Same rule as setup.sh (KDE/XFCE installed, other desktops, or
+    # DXSBASH_DESKTOP) — in a subshell to keep the library's globals out
+    bash -c 'source "$1" && wants_desktop_gui' _ "${DXSBASH_DIR}/settings-lib.sh" 2>/dev/null || return 0
     if [[ ! -f "${entry}" ]]; then
         if bash "${DXSBASH_DIR}/dxsbash-gui.sh" --install-desktop >/dev/null 2>&1; then
             log SUCCESS "Added DXSBash Settings to the application menu (System)"
