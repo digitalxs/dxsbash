@@ -8,6 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-09-26
+
+### Added
+- **Update notifications.** On desktops a systemd user timer
+  (`dxsbash-update-check.timer`, installed with the menu entry) runs
+  `update-notify.sh` daily. When a release is out on your channel you
+  get one desktop notification per version; clicking it — or **Update
+  now** — opens the Settings update screen. Toggle it in *Startup &
+  behavior* (`DXSBASH_UPDATE_NOTIFY`). A version is only marked as
+  announced once a notification was actually shown.
+- **Update channels.** `stable` (default) follows tagged releases
+  (`vX.Y.Z`, pre-releases skipped); `main` follows every push. Set it in
+  the GUI (*Update channel*), `dxsbash-config` (*Updates & terminal
+  colors*) or once with `update-dxsbash --channel main`. setup.sh applies
+  the same rule to fresh installs and re-runs.
+- **Terminal colors that match the prompt theme.** Four Konsole color
+  schemes (DXSBash, Tokyo Night, Gruvbox, Catppuccin) ship in
+  `assets/konsole/`; applying a theme switches the DXSBash Konsole/Yakuake
+  profile to the matching one (`DXSBASH_TERM_COLORS`, on by default).
+  Fresh installs get the DXSBash scheme instead of Breeze.
+- **Your own Starship themes.** Any `*.toml` in `~/.dxsbash/themes/`
+  appears in both theme pickers with a live preview; the GUI's **Add your
+  own…** button imports a file after checking that Starship can parse it.
+  User themes are kept across updates and travel with `dxsbash export`.
+
+### Fixed
+- `update-dxsbash` read an HTTP error page (e.g. `404: Not Found`) as the
+  latest version number (`curl` without `-f`); versions are now validated.
+- Scripts that the installer, updater and repair `chmod +x` were stored
+  without the executable bit in git, so every update left the checkout
+  "modified" — which blocked later fast-forwards. They are now executable
+  in the repository.
+- In the GUI, "Prompt engine switched" replaced the note about a backed-up
+  `starship.toml` instead of adding to it.
+
 ## [3.8.0] - 2026-09-26
 
 ### Added

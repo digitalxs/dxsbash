@@ -164,7 +164,7 @@ MAINTENANCE COMMANDS
 ===================
 
 install_zshrc_support - Install required dependencies
-update-dxsbash           - Update dxsbash to latest version
+update-dxsbash           - Update dxsbash (--channel stable|main)
 dxsbash-gui         - Graphical settings (themes, aliases, updates)
 dxsbash export|import - Backup/restore personal settings
 dxsbash bench       - Benchmark shell startup time

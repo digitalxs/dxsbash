@@ -149,6 +149,38 @@ display_banner() {
 # target directory, we `git pull` instead of `rm -rf` + clone, which
 # would otherwise delete the running script.
 #=================================================================
+# Update channel for this install: DXSBASH_UPDATE_CHANNEL, else the
+# user's existing setting (re-install), else "stable".
+update_channel() {
+  local ch="${DXSBASH_UPDATE_CHANNEL:-}" conf="$USER_HOME/.dxsbash/user.conf"
+  if [ -z "$ch" ] && [ -f "$conf" ]; then
+    ch=$(sed -n 's/^export DXSBASH_UPDATE_CHANNEL="\{0,1\}\([a-z]*\)"\{0,1\}$/\1/p' "$conf" | head -1)
+  fi
+  case "$ch" in main) echo main ;; *) echo stable ;; esac
+}
+
+# Bring the managed clone to its channel: the newest release tag
+# (vX.Y.Z) for "stable", the tip of main for "main". Same rules as
+# update-dxsbash, so fresh installs and updates agree.
+sync_to_channel() {
+  local target="$1" tag
+  if [ "$(update_channel)" = "main" ]; then
+    as_user git -C "$target" pull -q --ff-only origin main
+    return
+  fi
+  tag=$(as_user git -C "$target" ls-remote --tags --refs origin 'v*' 2>/dev/null \
+          | awk '{ sub("refs/tags/", "", $2); print $2 }' \
+          | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+  if [ -z "$tag" ]; then
+    echo -e "${YELLOW}  ⚠ No release tag found — using the main branch${RC}"
+    as_user git -C "$target" pull -q --ff-only origin main
+    return
+  fi
+  as_user git -C "$target" fetch -q --force origin "refs/tags/$tag:refs/tags/$tag" && \
+    as_user git -C "$target" checkout -q -B main "$tag" && \
+    echo -e "${GREEN}  ✓ Using release $tag (stable channel)${RC}"
+}
+
 initialize() {
   echo -e "${CYAN}▶ Initializing setup...${RC}"
 
@@ -174,10 +206,10 @@ initialize() {
   if [ -d "$target" ] && [ "$script_dir" = "$(realpath "$target" 2>/dev/null || echo /nonexistent)" ]; then
     echo -e "${YELLOW}  Running from $target — pulling updates in place${RC}"
     if [ "$DRY_RUN" -eq 0 ]; then
-      if ( cd "$target" && as_user git pull --ff-only origin main ); then
+      if sync_to_channel "$target"; then
         echo -e "${GREEN}  ✓ Repository updated${RC}"
       else
-        echo -e "${YELLOW}  ⚠ git pull failed; continuing with current checkout${RC}"
+        echo -e "${YELLOW}  ⚠ Could not update the checkout; continuing with it as-is${RC}"
       fi
     fi
   elif [ -d "$target" ]; then
@@ -188,6 +220,7 @@ initialize() {
         echo -e "${RED}  ✗ Failed to clone repository${RC}"
         exit 1
       fi
+      sync_to_channel "$target" || echo -e "${YELLOW}  ⚠ Staying on the main branch${RC}"
     fi
     echo -e "${GREEN}  ✓ Repository ready${RC}"
   else
@@ -197,6 +230,7 @@ initialize() {
         echo -e "${RED}  ✗ Failed to clone repository. Check your internet connection.${RC}"
         exit 1
       fi
+      sync_to_channel "$target" || echo -e "${YELLOW}  ⚠ Staying on the main branch${RC}"
     fi
     echo -e "${GREEN}  ✓ Repository cloned successfully${RC}"
   fi
@@ -1269,6 +1303,12 @@ EOL
     # Set correct permissions (only relevant when running under sudo)
     if [ "$(id -u)" -eq 0 ]; then
       chown "$REAL_USER:$REAL_GROUP" "$PROFILE_PATH"
+    fi
+
+    # Color scheme matching the prompt theme (DXSBASH_TERM_COLORS);
+    # keeps Breeze if the user turned the feature off
+    if [ -f "$GITPATH/dxsbash-gui.sh" ]; then
+      as_user bash "$GITPATH/dxsbash-gui.sh" --apply-colors >/dev/null 2>&1 || true
     fi
 
     # Update konsolerc to use this profile as the default

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check for DXSBash updates and notify
+Documentation=https://dxsbash.digitalxs.ca
+# Notifications need the desktop session (D-Bus, display)
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/linuxtoolbox/dxsbash/update-notify.sh
+# The notification waits for a click; give up after a few hours
+TimeoutStartSec=6h

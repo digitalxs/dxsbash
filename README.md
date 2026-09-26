@@ -1,5 +1,5 @@
 # DXSBash - Excessive Shell Environment For Debian 13
-v3.8.0
+v3.9.0
 <div align="center">
 <img src="https://www.debian.org/logos/openlogo-nd-100.png" alt="Debian Logo" width="80">
     <a href="https://digitalxs.ca">
@@ -172,6 +172,28 @@ Or click **Check for updates** in the DXSBash Settings window. Your chosen
 prompt theme (or hand-written `starship.toml`), preferences and custom
 aliases are always kept across updates.
 
+### Update channels
+
+| Channel | You get | Choose it with |
+|:--------|:--------|:---------------|
+| `stable` (default) | tagged releases (`vX.Y.Z`) only | Settings → *Update channel*, or `dxsbash-config` → *Updates* |
+| `main` | every change as soon as it is pushed — newest, least tested | same place |
+
+```bash
+update-dxsbash --channel main      # one-off update from main
+update-dxsbash --check --channel stable
+```
+
+Fresh installs follow the channel too (`DXSBASH_UPDATE_CHANNEL=main ./setup.sh`
+to install from main).
+
+### Update notifications
+
+On desktops, a daily check (a systemd user timer, installed with the menu
+entry) shows a notification when a new release is out on your channel —
+once per version. Click it (or **Update now**) to open the update screen.
+Turn it off in Settings → *Startup & behavior* → *Notify me about updates*.
+
 Only check whether an update is available (useful for scripts and cron —
 exit code 10 means an update exists):
 
@@ -230,6 +252,10 @@ From one window you can:
   password dialog. Right-click the menu entry for a direct shortcut.
 - **Pick a prompt theme visually** — every theme is shown as a live
   preview of *your* prompt (your fonts, your repo), then applied in one click.
+  **Add your own…** imports any Starship `.toml` into the picker, and
+  Konsole/Yakuake switch to a **matching color scheme**.
+- **Choose the update channel** (stable releases or main) and get a
+  notification when an update is out.
 - **Edit custom aliases** — add, edit and delete your own commands; they
   work in bash, zsh and fish (see below).
 - Switch the prompt engine (Starship / built-in), toggle system info at
@@ -244,7 +270,7 @@ servers skip it). Settings are shared with `dxsbash-config`: change them in
 either tool.
 
 ```bash
-dxsbash-gui --install-desktop   # add the menu entry later (e.g. desktop added after install)
+dxsbash-gui --install-desktop   # add menu entry + daily update check later (e.g. desktop added after install)
 dxsbash-gui --themes            # open the theme picker directly
 dxsbash-gui --aliases           # open the alias editor directly
 ```
@@ -278,6 +304,18 @@ Custom aliases are included in `dxsbash export` backups.
 
 The icons need a Nerd Font in your terminal (the installer sets up
 FiraCode Nerd Font); *Bracketed Segments* works with any font.
+
+**Your own themes:** drop any Starship config (`*.toml`) into
+`~/.dxsbash/themes/` — or use **Add your own…** in the theme picker, which
+also checks that Starship can read it. It then appears in both pickers
+with a live preview, is kept across updates, and travels with
+`dxsbash export`.
+
+**Matching terminal colors:** on KDE, Konsole and Yakuake switch to a color
+scheme made for the theme (DXSBash, Tokyo Night, Gruvbox, Catppuccin) when
+you apply it; new terminal windows use it. Your own themes leave the colors
+as they are. Turn it off in *Startup & behavior* → *Match terminal colors
+to theme*.
 
 ## Portable settings (export / import)
 

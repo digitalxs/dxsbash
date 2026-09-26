@@ -11,7 +11,12 @@
 #   update-dxsbash --check     only check whether an update exists
 #                              (exit 0: up to date, 10: update available,
 #                               1: could not check)
+#   update-dxsbash --channel stable|main   use this channel once
 #   update-dxsbash --help      show help
+#
+# Channels (DXSBASH_UPDATE_CHANNEL in ~/.dxsbash/user.conf):
+#   stable (default)  the newest release tag vX.Y.Z (pre-releases skipped)
+#   main              the tip of the main branch — every change, untested
 #=================================================================
 
 set -euo pipefail
@@ -38,6 +43,8 @@ LOG_FILE="${LOG_DIR}/updater-$(date +%Y%m%d).log"
 DETECTED_SHELL=""
 ERRORS=0
 SUDO_CMD=""
+REPO_URL="https://github.com/digitalxs/dxsbash.git"
+UPDATE_CHANNEL=""   # stable | main — see resolve_channel
 
 #=================================================================
 # Logging Functions
@@ -116,11 +123,41 @@ get_current_version() {
     fi
 }
 
+# Channel precedence: --channel flag, then ~/.dxsbash/user.conf (the
+# live setting), then the environment, then "stable".
+resolve_channel() {
+    local conf="${HOME}/.dxsbash/user.conf"
+    if [[ -z "${UPDATE_CHANNEL}" && -f "${conf}" ]]; then
+        UPDATE_CHANNEL=$(sed -n 's/^export DXSBASH_UPDATE_CHANNEL="\{0,1\}\([a-z]*\)"\{0,1\}$/\1/p' "${conf}" | head -1)
+    fi
+    [[ -n "${UPDATE_CHANNEL}" ]] || UPDATE_CHANNEL="${DXSBASH_UPDATE_CHANNEL:-stable}"
+    case "${UPDATE_CHANNEL}" in
+        stable|main) ;;
+        *) UPDATE_CHANNEL="stable" ;;
+    esac
+}
+
+# Newest release tag (vX.Y.Z; -beta/-rc pre-releases skipped), or empty
+latest_stable_tag() {
+    { timeout 30 git ls-remote --tags --refs "${REPO_URL}" 'v*' 2>/dev/null || true; } \
+        | awk '{ sub("refs/tags/", "", $2); print $2 }' \
+        | { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } \
+        | sort -V | tail -n 1
+}
+
 get_remote_version() {
-    local remote_version
-    remote_version=$(curl -sL https://raw.githubusercontent.com/digitalxs/dxsbash/main/version.txt 2>/dev/null || echo "")
-    
-    if [[ -n "${remote_version}" ]]; then
+    local remote_version="" tag
+    if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+        # -f: an HTTP error page must not be read as a version number
+        remote_version=$(curl -fsSL --max-time 20 \
+            https://raw.githubusercontent.com/digitalxs/dxsbash/main/version.txt 2>/dev/null \
+            | tr -d '[:space:]' || true)
+    else
+        tag=$(latest_stable_tag)
+        remote_version="${tag#v}"
+    fi
+
+    if [[ "${remote_version}" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
         echo "${remote_version}"
     else
         echo "unknown"
@@ -272,14 +309,30 @@ update_repository() {
         git stash push -m "dxsbash-updater-$(date +%Y%m%d-%H%M%S)" >/dev/null 2>&1
     fi
     
-    # Fetch and pull updates
-    if git fetch origin >/dev/null 2>&1 && git pull origin main >/dev/null 2>&1; then
-        log SUCCESS "Repository updated successfully"
-        return 0
-    else
+    if [[ "${UPDATE_CHANNEL}" == "main" ]]; then
+        if git fetch origin >/dev/null 2>&1 && git pull origin main >/dev/null 2>&1; then
+            log SUCCESS "Repository updated to the tip of main"
+            return 0
+        fi
         log ERROR "Failed to update repository"
         return 1
     fi
+
+    # stable: fast-forward the local main branch to the newest release tag
+    local tag
+    tag=$(latest_stable_tag)
+    if [[ -z "${tag}" ]]; then
+        log ERROR "No release tag found on ${REPO_URL}"
+        return 1
+    fi
+    if git fetch --force origin "refs/tags/${tag}:refs/tags/${tag}" >/dev/null 2>&1 && \
+       git checkout -q -B main >/dev/null 2>&1 && \
+       git merge --ff-only -q "${tag}" >/dev/null 2>&1; then
+        log SUCCESS "Repository updated to release ${tag}"
+        return 0
+    fi
+    log ERROR "Could not fast-forward to ${tag} (local changes or history?). Try: update-dxsbash --channel main"
+    return 1
 }
 
 update_file_link() {
@@ -377,6 +430,7 @@ update_system_scripts() {
         "gui-askpass.sh"
         "export-import.sh"
         "bench.sh"
+        "update-notify.sh"
     )
 
     for script in "${scripts[@]}"; do
@@ -432,6 +486,7 @@ perform_update() {
     current_version=$(get_current_version)
     remote_version=$(get_remote_version)
     
+    log INFO "Update channel: ${UPDATE_CHANNEL}"
     log INFO "Current version: ${current_version}"
     log INFO "Remote version: ${remote_version}"
     
@@ -502,7 +557,7 @@ perform_update() {
 # Check-only mode (for scripts, cron jobs and prompt integrations)
 #=================================================================
 usage() {
-    sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 check_for_update() {
@@ -515,21 +570,21 @@ check_for_update() {
         exit 1
     fi
     if [[ "${current}" == "${remote}" ]]; then
-        echo "DXSBash is up to date (version ${current})."
+        echo "DXSBash is up to date (version ${current}, ${UPDATE_CHANNEL} channel)."
         exit 0
     fi
     if [[ "${current}" == "unknown" ]]; then
-        echo "Update available: ${current} -> ${remote}"
+        echo "Update available: ${current} -> ${remote} (${UPDATE_CHANNEL} channel)"
         exit 10
     fi
 
     local cmp=0
     version_compare "${remote}" "${current}" || cmp=$?
     if [[ ${cmp} -eq 0 ]]; then
-        echo "Update available: ${current} -> ${remote}"
+        echo "Update available: ${current} -> ${remote} (${UPDATE_CHANNEL} channel)"
         exit 10
     fi
-    echo "Local version (${current}) is ahead of remote (${remote})."
+    echo "DXSBash ${current} is newer than the latest ${UPDATE_CHANNEL} release (${remote}) — nothing to update."
     exit 0
 }
 
@@ -537,16 +592,27 @@ check_for_update() {
 # Main Entry Point
 #=================================================================
 main() {
-    case "${1:-}" in
-        --check)   check_for_update ;;
-        -h|--help) usage; exit 0 ;;
-        "")        ;;
-        *)
-            echo "Unknown option: $1" >&2
-            usage >&2
-            exit 2
-            ;;
-    esac
+    local mode="update"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --check)     mode="check" ;;
+            --channel)   UPDATE_CHANNEL="${2:-}"; shift ;;
+            --channel=*) UPDATE_CHANNEL="${1#--channel=}" ;;
+            -h|--help)   usage; exit 0 ;;
+            *)
+                echo "Unknown option: $1" >&2
+                usage >&2
+                exit 2
+                ;;
+        esac
+        shift
+    done
+    if [[ -n "${UPDATE_CHANNEL}" && "${UPDATE_CHANNEL}" != "stable" && "${UPDATE_CHANNEL}" != "main" ]]; then
+        echo "Unknown channel: ${UPDATE_CHANNEL} (use stable or main)" >&2
+        exit 2
+    fi
+    resolve_channel
+    [[ "${mode}" == "check" ]] && check_for_update
 
     echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${RC}"
     echo -e "${BLUE}║              DXSBash Updater $(date +%Y)                      ║${RC}"

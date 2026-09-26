@@ -72,7 +72,15 @@ do_export() {
     # Starship config: record whether it is a preset symlink (portable —
     # re-linked on import) or a custom file (copied verbatim).
     if [ -L "$STARSHIP_CONFIG" ]; then
-        basename "$(readlink "$STARSHIP_CONFIG")" > "$STAGE/payload/starship-theme.txt"
+        # A theme from ~/.dxsbash/themes (exported with ~/.dxsbash) is
+        # recorded as user/<file>; built-in presets by file name
+        local target
+        target="$(readlink "$STARSHIP_CONFIG")"
+        if [ "$(dirname "$target")" = "$CONF_DIR/themes" ]; then
+            echo "user/$(basename "$target")" > "$STAGE/payload/starship-theme.txt"
+        else
+            basename "$target" > "$STAGE/payload/starship-theme.txt"
+        fi
     elif [ -f "$STARSHIP_CONFIG" ]; then
         cp "$STARSHIP_CONFIG" "$STAGE/payload/starship.toml"
     fi
@@ -153,6 +161,8 @@ do_import() {
         theme=$(cat "$STAGE/starship-theme.txt")
         if [ "$theme" = "starship.toml" ]; then
             preset="$DXSBASH_DIR/starship.toml"
+        elif [[ "$theme" == user/* ]]; then
+            preset="$CONF_DIR/themes/${theme#user/}"
         else
             preset="$DXSBASH_DIR/starship-themes/$theme"
         fi

@@ -28,6 +28,12 @@ ALIAS_FILE="${ALIAS_FILE:-$CONF_DIR/custom-aliases.sh}"
 ALIAS_FISH_FILE="${ALIAS_FISH_FILE:-$CONF_DIR/custom-aliases.fish}"
 STARSHIP_LINK="${STARSHIP_LINK:-$HOME/.config/starship.toml}"
 STARSHIP_THEMES_DIR="${STARSHIP_THEMES_DIR:-$DXSBASH_DIR/starship-themes}"
+# The user's own Starship themes: any *.toml here shows up in the pickers
+USER_THEMES_DIR="${USER_THEMES_DIR:-$CONF_DIR/themes}"
+# Konsole profile written by setup.sh (Yakuake uses the same profile)
+KONSOLE_DIR="${KONSOLE_DIR:-$HOME/.local/share/konsole}"
+KONSOLE_PROFILE="${KONSOLE_PROFILE:-$KONSOLE_DIR/DXSBash.profile}"
+KONSOLE_SCHEMES_SRC="${KONSOLE_SCHEMES_SRC:-$DXSBASH_DIR/assets/konsole}"
 
 # ── Starship theme registry ───────────────────────────────────────
 # Display name | filename in starship-themes/ | one-line description
@@ -52,6 +58,9 @@ DEF_PROMPT_STYLE="starship"
 DEF_STARSHIP_THEME="dxs-starship.toml"
 DEF_SECSUMMARY="false"
 DEF_SSH_LITE="true"
+DEF_UPDATE_CHANNEL="stable"    # stable = tagged releases, main = every push
+DEF_UPDATE_NOTIFY="true"       # desktop notification when an update exists
+DEF_TERM_COLORS="true"         # match Konsole/Yakuake colors to the theme
 
 # ── Current (working) values ──────────────────────────────────────
 CUR_EDITOR=""
@@ -62,6 +71,9 @@ CUR_PROMPT_STYLE=""
 CUR_STARSHIP_THEME=""
 CUR_SECSUMMARY=""
 CUR_SSH_LITE=""
+CUR_UPDATE_CHANNEL=""
+CUR_UPDATE_NOTIFY=""
+CUR_TERM_COLORS=""
 
 #=================================================================
 # Settings files
@@ -89,18 +101,26 @@ load_settings() {
     CUR_STARSHIP_THEME=$( _read_conf "DXSBASH_STARSHIP_THEME" "$DEF_STARSHIP_THEME")
     CUR_SECSUMMARY=$(     _read_conf "DXSBASH_SECSUMMARY"     "$DEF_SECSUMMARY")
     CUR_SSH_LITE=$(       _read_conf "DXSBASH_SSH_LITE"       "$DEF_SSH_LITE")
+    CUR_UPDATE_CHANNEL=$( _read_conf "DXSBASH_UPDATE_CHANNEL" "$DEF_UPDATE_CHANNEL")
+    CUR_UPDATE_NOTIFY=$(  _read_conf "DXSBASH_UPDATE_NOTIFY"  "$DEF_UPDATE_NOTIFY")
+    CUR_TERM_COLORS=$(    _read_conf "DXSBASH_TERM_COLORS"    "$DEF_TERM_COLORS")
+    case "$CUR_UPDATE_CHANNEL" in stable|main) ;; *) CUR_UPDATE_CHANNEL="$DEF_UPDATE_CHANNEL" ;; esac
 
-    # If the starship symlink points at a known preset, trust the
+    # If the starship symlink points at a known theme, trust the
     # filesystem over the conf file — users may have run setup.sh or
     # hand-edited the symlink since the conf was written. setup.sh
     # links the repo-root starship.toml, which is the DXS preset.
     if [ -L "$STARSHIP_LINK" ]; then
-        local fname
-        fname="$(readlink "$STARSHIP_LINK")"
-        fname="${fname##*/}"
-        [ "$fname" = "starship.toml" ] && fname="dxs-starship.toml"
-        if theme_known "$fname"; then
-            CUR_STARSHIP_THEME="$fname"
+        local target id
+        target="$(readlink "$STARSHIP_LINK")"
+        if [ "$(dirname "$target")" = "$USER_THEMES_DIR" ]; then
+            id="user/${target##*/}"
+        else
+            id="${target##*/}"
+            [ "$id" = "starship.toml" ] && id="dxs-starship.toml"
+        fi
+        if theme_known "$id"; then
+            CUR_STARSHIP_THEME="$id"
         fi
     fi
 }
@@ -117,7 +137,8 @@ setting_value_safe() {
 write_settings() {
     local writer="${1:-dxsbash}" stamp v
     for v in "$CUR_EDITOR" "$CUR_HISTSIZE" "$CUR_HISTFILESIZE" "$CUR_FASTFETCH" \
-             "$CUR_PROMPT_STYLE" "$CUR_STARSHIP_THEME" "$CUR_SECSUMMARY" "$CUR_SSH_LITE"; do
+             "$CUR_PROMPT_STYLE" "$CUR_STARSHIP_THEME" "$CUR_SECSUMMARY" "$CUR_SSH_LITE" \
+             "$CUR_UPDATE_CHANNEL" "$CUR_UPDATE_NOTIFY" "$CUR_TERM_COLORS"; do
         setting_value_safe "$v" || return 1
     done
     stamp="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -137,6 +158,9 @@ export DXSBASH_PROMPT_STYLE="${CUR_PROMPT_STYLE}"
 export DXSBASH_STARSHIP_THEME="${CUR_STARSHIP_THEME}"
 export DXSBASH_SECSUMMARY="${CUR_SECSUMMARY}"
 export DXSBASH_SSH_LITE="${CUR_SSH_LITE}"
+export DXSBASH_UPDATE_CHANNEL="${CUR_UPDATE_CHANNEL}"
+export DXSBASH_UPDATE_NOTIFY="${CUR_UPDATE_NOTIFY}"
+export DXSBASH_TERM_COLORS="${CUR_TERM_COLORS}"
 EOF
 
     # Fish cannot source POSIX files — write a fish-syntax twin so the
@@ -153,6 +177,9 @@ set -gx DXSBASH_PROMPT_STYLE "${CUR_PROMPT_STYLE}"
 set -gx DXSBASH_STARSHIP_THEME "${CUR_STARSHIP_THEME}"
 set -gx DXSBASH_SECSUMMARY "${CUR_SECSUMMARY}"
 set -gx DXSBASH_SSH_LITE "${CUR_SSH_LITE}"
+set -gx DXSBASH_UPDATE_CHANNEL "${CUR_UPDATE_CHANNEL}"
+set -gx DXSBASH_UPDATE_NOTIFY "${CUR_UPDATE_NOTIFY}"
+set -gx DXSBASH_TERM_COLORS "${CUR_TERM_COLORS}"
 EOF
 }
 
@@ -165,6 +192,9 @@ reset_settings_to_defaults() {
     CUR_STARSHIP_THEME="$DEF_STARSHIP_THEME"
     CUR_SECSUMMARY="$DEF_SECSUMMARY"
     CUR_SSH_LITE="$DEF_SSH_LITE"
+    CUR_UPDATE_CHANNEL="$DEF_UPDATE_CHANNEL"
+    CUR_UPDATE_NOTIFY="$DEF_UPDATE_NOTIFY"
+    CUR_TERM_COLORS="$DEF_TERM_COLORS"
 }
 
 # Start refreshing the security-summary cache in the background, so the
@@ -188,23 +218,76 @@ theme_field() { # $1 = registry entry, $2 = 1 name | 2 file | 3 description
     esac
 }
 
+# All pickable themes as registry entries (name|id|description): the
+# built-in presets whose files exist, then the user's own themes from
+# ~/.dxsbash/themes (id "user/<file>").
+theme_entries() {
+    local entry f base
+    for entry in "${STARSHIP_THEMES[@]}"; do
+        [ -f "$STARSHIP_THEMES_DIR/$(theme_field "$entry" 2)" ] && printf '%s\n' "$entry"
+    done
+    [ -d "$USER_THEMES_DIR" ] || return 0
+    for f in "$USER_THEMES_DIR"/*.toml; do
+        [ -f "$f" ] || continue
+        base="${f##*/}"
+        printf '%s|user/%s|Your own theme (~/.dxsbash/themes/%s)\n' "${base%.toml} (yours)" "$base" "$base"
+    done
+}
+
+# File behind a theme id
+theme_path() {
+    case "$1" in
+        user/*) printf '%s' "$USER_THEMES_DIR/${1#user/}" ;;
+        *)      printf '%s' "$STARSHIP_THEMES_DIR/$1" ;;
+    esac
+}
+
 theme_known() {
     local entry
-    for entry in "${STARSHIP_THEMES[@]}"; do
+    while IFS= read -r entry; do
         [ "$(theme_field "$entry" 2)" = "$1" ] && return 0
-    done
+    done < <(theme_entries)
     return 1
 }
 
 starship_theme_display_name() {
     local entry
-    for entry in "${STARSHIP_THEMES[@]}"; do
+    while IFS= read -r entry; do
         if [ "$(theme_field "$entry" 2)" = "$1" ]; then
             theme_field "$entry" 1
             return
         fi
-    done
+    done < <(theme_entries)
     echo "unknown ($1)"
+}
+
+# Copy a Starship config into ~/.dxsbash/themes so it appears in the
+# pickers, and print its theme id. Refuses (reason on stderr) files that
+# are not *.toml, have unsafe names, are over 256 KB or — when starship
+# is installed — cannot be parsed by starship.
+import_user_theme() {
+    local src="$1" base err
+    base="${src##*/}"
+    if [ ! -f "$src" ] || [ ! -r "$src" ]; then
+        echo "cannot read $src" >&2; return 1
+    fi
+    if [[ ! "$base" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.toml$ ]]; then
+        echo "use a .toml file named with letters, digits, . _ - only" >&2; return 1
+    fi
+    if [ "$(wc -c < "$src")" -gt 262144 ]; then
+        echo "file is larger than 256 KB" >&2; return 1
+    fi
+    if command -v starship >/dev/null 2>&1; then
+        # starship exits 0 on a broken config but always logs this line
+        err=$(STARSHIP_CONFIG="$src" timeout 5 starship prompt 2>&1 >/dev/null)
+        if printf '%s' "$err" | grep -q 'Unable to parse the config file'; then
+            echo "starship cannot parse it: $(printf '%s' "$err" | sed -E 's/\x1b\[[0-9;]*m//g' | grep -m1 -o 'TOML parse error.*')" >&2
+            return 1
+        fi
+    fi
+    mkdir -p "$USER_THEMES_DIR"
+    cp "$src" "$USER_THEMES_DIR/$base" || return 1
+    printf 'user/%s' "$base"
 }
 
 # Point ~/.config/starship.toml at a preset. Returns 1 if the preset
@@ -213,7 +296,8 @@ starship_theme_display_name() {
 # deleted, and STARSHIP_BACKUP names the copy (empty if none was made).
 STARSHIP_BACKUP=""
 link_starship_theme() {
-    local src="$STARSHIP_THEMES_DIR/$1"
+    local src
+    src="$(theme_path "$1")"
     STARSHIP_BACKUP=""
     [ -e "$src" ] || return 1
     mkdir -p "$(dirname "$STARSHIP_LINK")"
@@ -223,6 +307,59 @@ link_starship_theme() {
     fi
     rm -f "$STARSHIP_LINK"
     ln -s "$src" "$STARSHIP_LINK"
+}
+
+#=================================================================
+# Terminal colors (Konsole / Yakuake)
+#
+# Each built-in theme has a matching Konsole color scheme shipped in
+# assets/konsole/. Applying one sets ColorScheme= in the DXSBash
+# Konsole profile (created by setup.sh; Yakuake shares it). Konsole
+# reads profiles when it starts, so new windows pick the change up.
+#=================================================================
+konsole_scheme_for_theme() {
+    case "$1" in
+        tokyo-night.toml)          echo "DXSBash-TokyoNight" ;;
+        gruvbox-rainbow.toml)      echo "DXSBash-Gruvbox" ;;
+        catppuccin-powerline.toml|pastel-powerline.toml)
+                                   echo "DXSBash-Catppuccin" ;;
+        dxs-starship.toml|nerd-font-symbols.toml|bracketed-segments.toml)
+                                   echo "DXSBash" ;;
+        *)                         echo "" ;;   # user themes: colors untouched
+    esac
+}
+
+# Set key=value inside [group] of an INI file, creating either as needed
+_ini_set() { # file group key value
+    local file="$1" tmp="$1.tmp.$$"
+    awk -v g="[$2]" -v k="$3" -v v="$4" '
+        /^\[/ { if (ing && !done) { print k "=" v; done = 1 } ing = ($0 == g) }
+        ing && index($0, k "=") == 1 { if (!done) { print k "=" v; done = 1 } next }
+        { print }
+        END {
+            if (!done) {
+                if (!ing) { if (NR > 0) print ""; print g }
+                print k "=" v
+            }
+        }' "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
+# Apply the Konsole scheme matching theme id $1 (default: the current
+# theme) and print the scheme name. Returns 1 when there is nothing to
+# do: feature off, no DXSBash Konsole profile, or no matching scheme.
+apply_terminal_colors() {
+    local id="${1:-$CUR_STARSHIP_THEME}" scheme f
+    [ "${CUR_TERM_COLORS:-$DEF_TERM_COLORS}" = "true" ] || return 1
+    [ -f "$KONSOLE_PROFILE" ] || return 1
+    scheme="$(konsole_scheme_for_theme "$id")"
+    [ -n "$scheme" ] || return 1
+    [ -f "$KONSOLE_SCHEMES_SRC/$scheme.colorscheme" ] || return 1
+    mkdir -p "$KONSOLE_DIR"
+    for f in "$KONSOLE_SCHEMES_SRC"/*.colorscheme; do
+        cp "$f" "$KONSOLE_DIR/"
+    done
+    _ini_set "$KONSOLE_PROFILE" Appearance ColorScheme "$scheme" || return 1
+    echo "$scheme"
 }
 
 #=================================================================

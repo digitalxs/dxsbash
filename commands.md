@@ -403,9 +403,10 @@
 | `envallow` | Trust and load the `.dxsbash-env` file in the current directory (per-directory environments) |
 | `envdeny` | Withdraw trust for the current directory's `.dxsbash-env` |
 | `install_bashrc_support` | Install required dependencies for bashrc |
-| `update-dxsbash` | Update dxsbash to latest version |
+| `update-dxsbash` | Update dxsbash to the latest release on your channel (`--check`, `--channel stable\|main`) |
 | `dxsbash-config` | Interactive settings menu (editor, history, prompt, theme, fastfetch, SSH-lite) |
-| `dxsbash-gui` / `dxsbash gui` | Graphical settings window: updates, visual theme picker, custom aliases editor, startup options (menu: System → DXSBash Settings) |
+| `dxsbash-gui` / `dxsbash gui` | Graphical settings window: updates & channel, visual theme picker (+ your own themes, matching Konsole colors), custom aliases editor, startup options (menu: System → DXSBash Settings) |
+| `dxsbash-gui --apply-colors` | Re-apply the Konsole/Yakuake color scheme for the current theme |
 | `dxsbash-repair` | Re-link symlinks and helper commands without changing settings |
 | `dxsbash-doctor` | Run diagnostics on the DXSBash install |
 | `dxsbash-uninstall` | Remove DXSBash and restore system defaults |
