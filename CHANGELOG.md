@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.5] - 2026-09-27
+
+### Fixed
+- **`update-dxsbash` could run a frozen 3.1-era copy of the updater.**
+  Installs from around 3.1 linked `/usr/local/bin/update-dxsbash` (and
+  `~/update-dxsbash.sh`) to a *copy* of `updater.sh` in `~/linuxtoolbox`
+  that updates never refreshed — so every update ran old code (seen as
+  `WHITE: unbound variable` at the end, and log text inside the
+  "Backup location"). Every `update-dxsbash` run and `dxsbash-repair` now
+  re-point DXSBash commands that lead to a copy or another checkout, fix
+  `~/update-dxsbash.sh` and remove the stale copies; `dxsbash-doctor`
+  warns about such commands.
+- `setup.sh` installed `reset-shell-profile` the same way (a copy in
+  `~/linuxtoolbox`); it now links the repo's script like every other
+  command.
+
 ## [3.9.4] - 2026-09-27
 
 ### Changed

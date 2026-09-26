@@ -243,6 +243,9 @@ for cmd in update-dxsbash dxsbash-config dxsbash-repair dxsbash-uninstall \
     if [ -x "$path" ] || [ -L "$path" ]; then
         if [ -L "$path" ] && [ ! -e "$path" ]; then
             fail "$cmd symlink is broken" "$path → $(readlink "$path")"
+        elif case "$(readlink -f "$path")" in "$(readlink -f "$DXSBASH_DIR")"/*) false ;; *) true ;; esac; then
+            # Works, but runs a stale copy or another checkout
+            warn "$cmd does not point into $DXSBASH_DIR" "$path → $(readlink -f "$path") — run dxsbash-repair"
         else
             pass "$cmd installed" "$path"
         fi
