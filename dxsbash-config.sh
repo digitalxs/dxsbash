@@ -59,7 +59,11 @@ load_config() {
 # Write current CUR_* values to the conf file
 #=================================================================
 save_config() {
-    write_settings "dxsbash-config"
+    if ! write_settings "dxsbash-config"; then
+        echo -e "${RED}  ✗ Not saved: a value contains \", \$, \` or a backslash.${RC}"
+        sleep 2
+        return 1
+    fi
     echo ""
     echo -e "${GREEN}  ✓ Saved to ${WHITE}$CONF_FILE${RC}"
     echo -e "${GREEN}  ✓ Fish settings written to ${WHITE}$CONF_FISH_FILE${RC}"
@@ -131,6 +135,8 @@ apply_starship_theme() {
         return 1
     fi
     echo -e "${GREEN}  ✓ Linked $STARSHIP_LINK → $STARSHIP_THEMES_DIR/$1${RC}"
+    [ -n "$STARSHIP_BACKUP" ] && \
+        echo -e "${YELLOW}  Your own starship.toml was kept as ${WHITE}$STARSHIP_BACKUP${RC}"
     return 0
 }
 
@@ -176,6 +182,8 @@ configure_editor() {
                 echo -e "${YELLOW}  No input — keeping $CUR_EDITOR${RC}"
             elif ! command -v "$custom_ed" &>/dev/null && [ ! -x "$custom_ed" ]; then
                 echo -e "${RED}  '$custom_ed' not found or not executable.${RC}"
+            elif ! setting_value_safe "$custom_ed"; then
+                echo -e "${RED}  Paths containing \", \$, \` or a backslash are not supported.${RC}"
             else
                 CUR_EDITOR="$custom_ed"
                 save_config

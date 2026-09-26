@@ -202,6 +202,14 @@ initialize() {
   fi
 
   cd "$target" 2>/dev/null || true
+  # Link everything from the managed clone (the one update-dxsbash
+  # pulls), never from wherever setup.sh was launched: with the manual
+  # "git clone … && cd dxsbash && ./setup.sh" install, ~/.bashrc & co.
+  # used to point into that throwaway checkout and broke when it was
+  # deleted — and never received updates.
+  if [ -f "$target/setup.sh" ]; then
+    GITPATH="$target"
+  fi
   echo -e "${GREEN}▶ Initialization complete${RC}"
   echo ""
 }
@@ -430,7 +438,13 @@ has_desktop() {
     1|yes|true) return 0 ;;
     0|no|false) return 1 ;;
   esac
-  [ -n "${XDG_CURRENT_DESKTOP:-}${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && return 0
+  # A local graphical session (not an ssh -X forwarded DISPLAY on a
+  # headless server)...
+  if [ -z "${SSH_CONNECTION:-}${SSH_CLIENT:-}" ] && \
+     [ -n "${XDG_CURRENT_DESKTOP:-}${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+    return 0
+  fi
+  # ...or an installed desktop session, whoever runs the installer
   compgen -G "/usr/share/xsessions/*.desktop" >/dev/null 2>&1 || \
     compgen -G "/usr/share/wayland-sessions/*.desktop" >/dev/null 2>&1
 }

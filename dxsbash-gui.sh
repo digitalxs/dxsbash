@@ -54,11 +54,22 @@ GUI_LOG="$CONF_DIR/logs/gui.log"
 # repair.sh and uninstall.sh so the logic lives in one place
 #=================================================================
 
-# Escape a path for use inside a double-quoted desktop-entry Exec
-# argument (spec: \ " ` $ must be backslash-escaped)
+# Escape a path for a double-quoted desktop-entry Exec argument. The
+# spec applies two levels: Exec quoting (\ " ` $ get a backslash), then
+# the key's string escaping (every backslash doubled again); % starts a
+# field code, so a literal one is %%.
 _desktop_exec_escape() {
     local s="$1"
-    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"; s="${s//\`/\\\`}"; s="${s//\$/\\\$}"
+    s="${s//\\/"\\\\"}"; s="${s//\"/"\\\""}"; s="${s//\`/"\\\`"}"; s="${s//\$/"\\\$"}"
+    s="${s//\\/"\\\\"}"
+    s="${s//%/"%%"}"
+    printf '%s' "$s"
+}
+
+# Desktop-entry string escaping only (TryExec is a path, not a command line)
+_desktop_string_escape() {
+    local s="$1"
+    s="${s//\\/"\\\\"}"
     printf '%s' "$s"
 }
 
@@ -82,14 +93,15 @@ install_desktop() {
     mkdir -p "$(dirname "$DESKTOP_FILE")"
     chmod +x "$SELF" 2>/dev/null || true
 
-    local exec_path line
+    local exec_path try_path line
     exec_path="$(_desktop_exec_escape "$SELF")"
+    try_path="$(_desktop_string_escape "$SELF")"
     # Build line by line with bash substitution — no sed, so paths
     # containing sed metacharacters (& | /) need no special handling
     while IFS= read -r line || [ -n "$line" ]; do
         # Quoted replacements: see esc() about & in bash >= 5.2
         line="${line//\"@GUI@\"/"\"$exec_path\""}"
-        line="${line//@GUI@/"$SELF"}"
+        line="${line//@GUI@/"$try_path"}"
         printf '%s\n' "$line"
     done < "$tpl" > "$DESKTOP_FILE.tmp" && mv "$DESKTOP_FILE.tmp" "$DESKTOP_FILE"
     chmod 644 "$DESKTOP_FILE"
@@ -168,6 +180,21 @@ require_zenity() {
     exit 1
 }
 
+# List cells are plain argv words and zenity parses argv with GOption:
+# a cell starting with "-" (an alias command like "-la", history "-1")
+# is read as an unknown option and the dialog refuses to open. "--"
+# does not help (zenity keeps it as a cell). Pass user-derived cells
+# through cell(), which prefixes an invisible zero-width space.
+cell() {
+    case "$1" in
+        -*) printf '\u200b%s' "$1" ;;
+        *)  printf '%s' "$1" ;;
+    esac
+}
+
+# History sizes for display: -1 means unlimited
+hist_label() { [[ "$1" == -* ]] && echo "unlimited" || echo "$1"; }
+#
 # Common options. zenity 4 treats --window-icon as deprecated (the
 # window icon comes from the desktop entry via StartupWMClass), so it
 # is only passed to zenity 3. Diagnostics go to $GUI_LOG.
@@ -207,6 +234,19 @@ esc() {
 info()  { Z --info  "$(_icon_opt)" --width=440 --text="$1"; }
 error() { Z --error --width=440 --text="$1"; }
 ask()   { Z --question "$(_icon_opt)" --width=440 --text="$1" "${@:2}"; }
+
+# write_settings refuses unsafe values (quotes, $, `, \) — say so
+save_settings() {
+    write_settings "dxsbash-gui" && return 0
+    error "<b>Settings not saved.</b>\nA value contains a character that is not allowed (\" \$ \` or a backslash)."
+    return 1
+}
+
+# Mention the backup a theme change made of a hand-written starship.toml
+backup_note() {
+    [ -n "${STARSHIP_BACKUP:-}" ] || return 0
+    printf '%s' "\n\nYour own starship.toml was kept as\n<tt>$(esc "$STARSHIP_BACKUP")</tt>"
+}
 
 applied() {
     info "$1\n\n<small>Takes effect in new terminal windows\n(or run <tt>source ~/.bashrc</tt> in an open one).</small>"
@@ -341,13 +381,14 @@ ui_themes() {
         return
     fi
     CUR_STARSHIP_THEME="$sel"
-    local note=""
+    local note
+    note="$(backup_note)"
     # Picking a Starship theme implies wanting the Starship prompt
     if [ "$CUR_PROMPT_STYLE" != "starship" ]; then
         CUR_PROMPT_STYLE="starship"
         note="\nPrompt engine switched to Starship."
     fi
-    write_settings "dxsbash-gui"
+    save_settings || return
     if [ "$have_starship" -eq 0 ]; then
         note="$note\n\n<b>Note:</b> Starship is not installed — the theme applies once it is (run dxsbash-repair --deps)."
         applied "Prompt theme set to <b>$(esc "$(starship_theme_display_name "$sel")")</b>.$note"
@@ -369,7 +410,7 @@ ui_prompt_engine() {
         "$c" "Built-in" "Classic DXSBash prompt — no Starship needed" "custom") || return
     [ -n "$sel" ] || return
     CUR_PROMPT_STYLE="$sel"
-    write_settings "dxsbash-gui"
+    save_settings || return
     applied "Prompt engine set to <b>$([ "$sel" = starship ] && echo Starship || echo Built-in)</b>."
 }
 
@@ -394,7 +435,7 @@ ui_options() {
     [[ " $out " == *" fastfetch "* ]]  && CUR_FASTFETCH=true
     [[ " $out " == *" secsummary "* ]] && CUR_SECSUMMARY=true
     [[ " $out " == *" sshlite "* ]]    && CUR_SSH_LITE=true
-    write_settings "dxsbash-gui"
+    save_settings || return
     [ "$was_ss" != "true" ] && [ "$CUR_SECSUMMARY" = "true" ] && prime_secsummary_cache
     applied "Options saved.\n\nSystem info: <b>$(onoff "$CUR_FASTFETCH")</b>   Security summary: <b>$(onoff "$CUR_SECSUMMARY")</b>   SSH-lite: <b>$(onoff "$CUR_SSH_LITE")</b>"
 }
@@ -416,19 +457,19 @@ ui_editor() {
         --column="" --column="Editor" "${rows[@]}") || return
     [ -n "$sel" ] || return
     CUR_EDITOR="$sel"
-    write_settings "dxsbash-gui"
+    save_settings || return
     applied "Default editor set to <b>$(esc "$sel")</b>."
 }
 
 ui_history() {
     local presets sel h1 h2
     presets=$(Z --list --radiolist --width=520 --height=340 \
-        --text="<b>Shell history size</b> (bash and zsh)\nCurrent: $CUR_HISTSIZE in memory / $CUR_HISTFILESIZE on disk" \
+        --text="<b>Shell history size</b> (bash and zsh)\nCurrent: $(hist_label "$CUR_HISTSIZE") in memory / $(hist_label "$CUR_HISTFILESIZE") on disk" \
         --column="" --column="Preset" --column="In memory" --column="On disk" \
         FALSE "Small" 500 5000 \
         FALSE "Medium" 1000 10000 \
         FALSE "Large" 5000 50000 \
-        FALSE "Unlimited" "-1" "-1" \
+        FALSE "Unlimited" "unlimited" "unlimited" \
         FALSE "Custom…" "" "") || return
     sel="$presets"
     case "$sel" in
@@ -450,8 +491,8 @@ ui_history() {
         *) return ;;
     esac
     CUR_HISTSIZE="$h1"; CUR_HISTFILESIZE="$h2"
-    write_settings "dxsbash-gui"
-    applied "History size set to <b>$h1</b> in memory / <b>$h2</b> on disk."
+    save_settings || return
+    applied "History size set to <b>$(hist_label "$h1")</b> in memory / <b>$(hist_label "$h2")</b> on disk."
 }
 
 # Which shells have DXSBash configuration linked for this user
@@ -553,7 +594,7 @@ ui_aliases() {
         local -a rows=("__add__" "➕  Add a new alias…" "")
         local name cmd
         while IFS=$'\t' read -r name cmd; do
-            rows+=("$name" "$name" "$cmd")
+            rows+=("$name" "$name" "$(cell "$cmd")")
         done < <(alias_list)
 
         local pick
@@ -646,8 +687,8 @@ ui_reset() {
         --ok-label="Reset" --cancel-label="Cancel" || return
     reset_settings_to_defaults
     link_starship_theme "$DEF_STARSHIP_THEME" || true
-    write_settings "dxsbash-gui"
-    applied "All settings reset to defaults."
+    save_settings || return
+    applied "All settings reset to defaults.$(backup_note)"
 }
 
 ui_about() {
@@ -675,8 +716,8 @@ main_menu() {
             engine  "💻  Prompt engine"              "$engine" \
             aliases "🔖  Custom aliases"             "$(alias_count) defined" \
             options "🧩  Startup & behavior"          "$opts" \
-            editor  "📝  Default text editor"        "$CUR_EDITOR" \
-            history "🕘  Shell history size"         "$CUR_HISTSIZE / $CUR_HISTFILESIZE" \
+            editor  "📝  Default text editor"        "$(cell "$CUR_EDITOR")" \
+            history "🕘  Shell history size"         "$(hist_label "$CUR_HISTSIZE") / $(hist_label "$CUR_HISTFILESIZE")" \
             shell   "🐚  Default login shell"        "$(current_login_shell)" \
             export  "💾  Back up settings"           "export to a file" \
             import  "📂  Restore settings"           "import a backup" \
@@ -757,6 +798,9 @@ selftest() {
     t "hand-written alias read"  'echo "alias hw=\"ls -l\"" >> "$ALIAS_FILE" && [ "$(alias_get hw)" = "ls -l" ]'
 
     t "markup escaping"          '[ "$(esc "a<b>&c")" = "a&lt;b&gt;&amp;c" ]'
+    t "dash-leading list cells"  '[ "$(cell -la)" = "$(printf "\u200b-la")" ] && [ "$(cell ls)" = ls ]'
+    t "unlimited history label"  '[ "$(hist_label -1)" = unlimited ] && [ "$(hist_label 500)" = 500 ]'
+    t "canonical alias parsing"  'printf "%s\n" "alias cc='"'"'ls'"'"'  # note" "alias dq=\"echo \\\$HOME\"" >> "$ALIAS_FILE" && [ "$(alias_get cc)" = ls ] && [ "$(alias_get dq)" = "echo \$HOME" ]'
     install_desktop >/dev/null
     t "desktop entry installed"  '[ -f "$DESKTOP_FILE" ]'
     t "icon set installed"       '[ -f "$ICON_HICOLOR/scalable/apps/dxsbash.svg" ] && [ -f "$ICON_HICOLOR/48x48/apps/dxsbash.png" ] && [ -f "$ICON_HICOLOR/256x256/apps/dxsbash.png" ]'
@@ -792,8 +836,9 @@ esac
 mkdir -p "$(dirname "$GUI_LOG")" 2>/dev/null && : >"$GUI_LOG" 2>/dev/null || GUI_LOG=/dev/null
 require_zenity
 load_settings
-# Keep the fish copy of custom aliases in step with hand edits
-[ -f "$ALIAS_FILE" ] && alias_sync_fish
+# Keep the fish copy of custom aliases in step with hand edits (and
+# remove it if custom-aliases.sh was deleted)
+alias_sync_fish
 
 case "${1:-}" in
     --update)  ui_update ;;

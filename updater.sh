@@ -414,7 +414,8 @@ update_system_scripts() {
     # Refresh the "DXSBash Settings" menu entry if the user has one, so
     # new desktop actions/icons from this release show up
     local entry="${XDG_DATA_HOME:-${HOME}/.local/share}/applications/dxsbash-settings.desktop"
-    if [[ -f "${entry}" && -f "${DXSBASH_DIR}/dxsbash-gui.sh" ]]; then
+    # -O: never rewrite it as another user (e.g. sudo -E update-dxsbash)
+    if [[ -f "${entry}" && -O "${entry}" && -f "${DXSBASH_DIR}/dxsbash-gui.sh" ]]; then
         bash "${DXSBASH_DIR}/dxsbash-gui.sh" --install-desktop >/dev/null 2>&1 && \
             log SUCCESS "Refreshed DXSBash Settings menu entry"
     fi

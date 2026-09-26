@@ -137,6 +137,12 @@ do_import() {
         mkdir -p "$CONF_DIR"
         cp -a "$STAGE/.dxsbash/." "$CONF_DIR/"
         echo -e "${GREEN}✓ Restored ~/.dxsbash settings${RC} (per-machine env trust not transferred)"
+        # Regenerate the fish copy of custom aliases from the restored
+        # custom-aliases.sh (a backup may carry a stale or no .fish twin)
+        if [ -f "$DXSBASH_DIR/settings-lib.sh" ]; then
+            ( # shellcheck source=settings-lib.sh
+              source "$DXSBASH_DIR/settings-lib.sh" && alias_sync_fish ) || true
+        fi
     fi
 
     # Starship: prefer re-linking the named preset from this machine's

@@ -224,15 +224,18 @@ remove_path "$HOME/.local/share/konsole/DXSBash.profile"
 remove_path "$HOME/update-dxsbash.sh"
 remove_path "$HOME/.dxsbash"
 
-# "DXSBash Settings" menu entry and its icons (installed by dxsbash-gui)
-DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-remove_path "$DATA_HOME/applications/dxsbash-settings.desktop"
-for icon in "$DATA_HOME"/icons/hicolor/*/apps/dxsbash.png \
-            "$DATA_HOME"/icons/hicolor/scalable/apps/dxsbash.svg; do
-    remove_path "$icon"
+# "DXSBash Settings" menu entry and its icons (installed by dxsbash-gui).
+# Check both locations: setup.sh run through sudo installs into
+# ~/.local/share even when the user has a custom XDG_DATA_HOME.
+for DATA_HOME in "$HOME/.local/share" ${XDG_DATA_HOME:+"$XDG_DATA_HOME"}; do
+    remove_path "$DATA_HOME/applications/dxsbash-settings.desktop"
+    for icon in "$DATA_HOME"/icons/hicolor/*/apps/dxsbash.png \
+                "$DATA_HOME"/icons/hicolor/scalable/apps/dxsbash.svg; do
+        remove_path "$icon"   # an unmatched glob is a no-op in remove_path
+    done
+    command -v update-desktop-database >/dev/null 2>&1 && [ -d "$DATA_HOME/applications" ] && \
+        run "update-desktop-database \"$DATA_HOME/applications\" >/dev/null 2>&1 || true"
 done
-command -v update-desktop-database >/dev/null 2>&1 && \
-    run "update-desktop-database \"$DATA_HOME/applications\" >/dev/null 2>&1 || true"
 
 # Clean Konsole / Yakuake references
 for rcfile in "$HOME/.config/konsolerc" "$HOME/.config/yakuakerc"; do

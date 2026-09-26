@@ -220,10 +220,17 @@ echo ""
 
 # Desktop menu entry: refresh it if the user has one (paths or actions
 # may have changed), never create one on a machine that had none
+# (owned by this user only: a sudo'd run must not leave root-owned files
+# in the user's ~/.local/share)
 DESKTOP_ENTRY="${XDG_DATA_HOME:-$HOME/.local/share}/applications/dxsbash-settings.desktop"
-if [ -f "$DESKTOP_ENTRY" ] && [ -f "$DXSBASH_DIR/dxsbash-gui.sh" ]; then
-    run "bash \"$DXSBASH_DIR/dxsbash-gui.sh\" --install-desktop >/dev/null"
-    echo -e "  ${GREEN}refreshed${RC}  menu entry (DXSBash Settings)"
+if [ -f "$DESKTOP_ENTRY" ] && [ -O "$DESKTOP_ENTRY" ] && [ -f "$DXSBASH_DIR/dxsbash-gui.sh" ]; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+        echo -e "  ${YELLOW}[dry-run]${RC} refresh menu entry (DXSBash Settings)"
+    elif bash "$DXSBASH_DIR/dxsbash-gui.sh" --install-desktop >/dev/null 2>&1; then
+        echo -e "  ${GREEN}refreshed${RC}  menu entry (DXSBash Settings)"
+    else
+        echo -e "  ${YELLOW}warn${RC}       could not refresh the menu entry (run: dxsbash-gui --install-desktop)"
+    fi
 fi
 echo ""
 

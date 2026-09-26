@@ -714,10 +714,6 @@ fi
 # shellcheck source=/dev/null
 [ -f "$HOME/.dxsbash/user.conf" ] && source "$HOME/.dxsbash/user.conf"
 
-# Custom aliases added via dxsbash-gui — loaded last so they can
-# override any DXSBash default alias
-# shellcheck source=/dev/null
-[ -f "$HOME/.dxsbash/custom-aliases.sh" ] && source "$HOME/.dxsbash/custom-aliases.sh"
 
 # Use starship prompt if available (overrides custom prompt)
 # Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
@@ -752,3 +748,10 @@ fi
 if [ "${DXSBASH_SECSUMMARY:-false}" = "true" ] && [ -f "$HOME/linuxtoolbox/dxsbash/secsummary.sh" ]; then
     bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
 fi
+
+# Custom aliases added via dxsbash-gui. Loaded at the very end: they
+# override any DXSBash default (and tool inits such as zoxide), and are
+# not yet active while the init code above runs — an alias shadowing a
+# common command (echo, print…) must not leak into eval'd init scripts.
+# shellcheck source=/dev/null
+[ -f "$HOME/.dxsbash/custom-aliases.sh" ] && source "$HOME/.dxsbash/custom-aliases.sh"

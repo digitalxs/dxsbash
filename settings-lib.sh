@@ -105,10 +105,21 @@ load_settings() {
     fi
 }
 
+# Values are written inside double quotes (sh and fish): refuse the
+# characters that would end the string or expand ("  $  `  \)
+setting_value_safe() {
+    [[ "$1" != *[\"\$\`\\]* ]]
+}
+
 # Regenerate user.conf and its fish twin from the CUR_* values.
-# $1 = name of the tool writing the file (shown in the header)
+# $1 = name of the tool writing the file (shown in the header).
+# Returns 1 and writes nothing if a value is unsafe (see above).
 write_settings() {
-    local writer="${1:-dxsbash}" stamp
+    local writer="${1:-dxsbash}" stamp v
+    for v in "$CUR_EDITOR" "$CUR_HISTSIZE" "$CUR_HISTFILESIZE" "$CUR_FASTFETCH" \
+             "$CUR_PROMPT_STYLE" "$CUR_STARSHIP_THEME" "$CUR_SECSUMMARY" "$CUR_SSH_LITE"; do
+        setting_value_safe "$v" || return 1
+    done
     stamp="$(date '+%Y-%m-%d %H:%M:%S')"
     mkdir -p "$CONF_DIR"
     cat > "$CONF_FILE" <<EOF
@@ -197,11 +208,19 @@ starship_theme_display_name() {
 }
 
 # Point ~/.config/starship.toml at a preset. Returns 1 if the preset
-# file does not exist (nothing is changed in that case).
+# file does not exist (nothing is changed in that case). A hand-written
+# starship.toml (a regular file) is user data: it is moved aside, never
+# deleted, and STARSHIP_BACKUP names the copy (empty if none was made).
+STARSHIP_BACKUP=""
 link_starship_theme() {
     local src="$STARSHIP_THEMES_DIR/$1"
+    STARSHIP_BACKUP=""
     [ -e "$src" ] || return 1
     mkdir -p "$(dirname "$STARSHIP_LINK")"
+    if [ -f "$STARSHIP_LINK" ] && [ ! -L "$STARSHIP_LINK" ]; then
+        STARSHIP_BACKUP="$STARSHIP_LINK.backup-$(date +%Y%m%d-%H%M%S)"
+        mv "$STARSHIP_LINK" "$STARSHIP_BACKUP" || { STARSHIP_BACKUP=""; return 1; }
+    fi
     rm -f "$STARSHIP_LINK"
     ln -s "$src" "$STARSHIP_LINK"
 }
@@ -240,22 +259,19 @@ alias_file_init() {
 EOF
 }
 
-# Print "name<TAB>command" for every alias, command unescaped
+# Print "name<TAB>command" for every alias, command unescaped.
+# bash itself parses the file — so hand-written quoting ("...", the
+# '"'"' idiom, trailing comments) decodes exactly as the shell sees it —
+# and prints each alias in canonical form: alias name='..'\''..'
 alias_list() {
     [ -f "$ALIAS_FILE" ] || return 0
     local line name body
     while IFS= read -r line; do
-        [[ "$line" =~ ^alias\ ([A-Za-z_][A-Za-z0-9_.-]*)=(.*)$ ]] || continue
+        [[ "$line" =~ ^alias\ ([A-Za-z_][A-Za-z0-9_.-]*)=\'(.*)\'$ ]] || continue
         name="${BASH_REMATCH[1]}"
         body="${BASH_REMATCH[2]}"
-        if [[ "$body" == \'*\' ]]; then
-            body="${body:1:${#body}-2}"
-            body="${body//\'\\\'\'/\'}"
-        elif [[ "$body" == \"*\" ]]; then
-            body="${body:1:${#body}-2}"
-        fi
-        printf '%s\t%s\n' "$name" "$body"
-    done < "$ALIAS_FILE"
+        printf '%s\t%s\n' "$name" "${body//\'\\\'\'/\'}"
+    done < <(bash --norc --noprofile -c 'source "$1" >/dev/null 2>&1; alias -p' _ "$ALIAS_FILE")
 }
 
 alias_get() {
@@ -288,6 +304,10 @@ alias_set() {
 
 # Regenerate custom-aliases.fish from custom-aliases.sh
 alias_sync_fish() {
+    if [ ! -f "$ALIAS_FILE" ]; then
+        rm -f "$ALIAS_FISH_FILE"
+        return 0
+    fi
     mkdir -p "$CONF_DIR"
     local name cmd esc
     {

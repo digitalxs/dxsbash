@@ -859,12 +859,15 @@ fi
 
 # Load user configuration overrides (editor, history, prompt style, fastfetch, etc.)
 # shellcheck source=/dev/null
-[ -f "$HOME/.dxsbash/user.conf" ] && source "$HOME/.dxsbash/user.conf"
+# (history lines are skipped here and applied below: see the note there)
+[ -f "$HOME/.dxsbash/user.conf" ] && \
+    source <(grep -vE '^export HIST(FILE)?SIZE=' "$HOME/.dxsbash/user.conf")
 
 # user.conf speaks bash: -1 means unlimited and HISTFILESIZE is the
-# on-disk size. zsh has neither — it clamps a negative HISTSIZE to 1
-# the moment it is assigned (silently losing history) and calls the
-# on-disk size SAVEHIST — so translate from the raw file values.
+# on-disk size. zsh has neither — it clamps a negative HISTSIZE to 1 the
+# moment it is assigned, discarding the session's history even during a
+# later `source ~/.zshrc` — and calls the on-disk size SAVEHIST. So those
+# two lines are not sourced above but translated here from the file.
 if [[ -f "$HOME/.dxsbash/user.conf" ]]; then
     _dxs_hs="" _dxs_hfs=""
     while IFS= read -r _dxs_l; do
@@ -873,7 +876,11 @@ if [[ -f "$HOME/.dxsbash/user.conf" ]]; then
             "export HISTFILESIZE="*) _dxs_hfs="${_dxs_l#export HISTFILESIZE=}" ;;
         esac
     done < "$HOME/.dxsbash/user.conf"
-    [[ "$_dxs_hs" == -* ]] && HISTSIZE=999999999
+    if [[ "$_dxs_hs" == -* ]]; then
+        HISTSIZE=999999999
+    elif [[ "$_dxs_hs" == <-> ]]; then
+        HISTSIZE=$_dxs_hs
+    fi
     if [[ "$_dxs_hfs" == -* ]]; then
         SAVEHIST=999999999
     elif [[ "$_dxs_hfs" == <-> ]]; then
@@ -882,10 +889,6 @@ if [[ -f "$HOME/.dxsbash/user.conf" ]]; then
     unset _dxs_l _dxs_hs _dxs_hfs
 fi
 
-# Custom aliases added via dxsbash-gui — loaded last so they can
-# override any DXSBash default alias
-# shellcheck source=/dev/null
-[ -f "$HOME/.dxsbash/custom-aliases.sh" ] && source "$HOME/.dxsbash/custom-aliases.sh"
 
 # Initialize Starship or use custom prompt
 # Set DXSBASH_PROMPT_STYLE="custom" via dxsbash-config to use the built-in prompt
@@ -912,3 +915,10 @@ fi
 if [ "${DXSBASH_SECSUMMARY:-false}" = "true" ] && [ -f "$HOME/linuxtoolbox/dxsbash/secsummary.sh" ]; then
     bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
 fi
+
+# Custom aliases added via dxsbash-gui. Loaded at the very end: they
+# override any DXSBash default (and tool inits such as zoxide), and are
+# not yet active while the init code above runs — an alias shadowing a
+# common command (echo, print…) must not leak into eval'd init scripts.
+# shellcheck source=/dev/null
+[ -f "$HOME/.dxsbash/custom-aliases.sh" ] && source "$HOME/.dxsbash/custom-aliases.sh"
