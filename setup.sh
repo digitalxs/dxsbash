@@ -1064,51 +1064,21 @@ setDefaultShell() {
 installResetScript() {
   echo -e "${CYAN}▶ Installing reset-shell-profile script...${RC}"
 
-  # Copy the reset script to the linuxtoolbox directory
-  if [ -f "$GITPATH/reset-bash-profile.sh" ]; then
-    cp "$GITPATH/reset-bash-profile.sh" "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
-    chmod +x "$LINUXTOOLBOXDIR/reset-bash-profile.sh"
-    echo -e "${GREEN}  ✓ Installed bash reset script${RC}"
-
-    # Copy for other shells if available
-    if [ -f "$GITPATH/reset-zsh-profile.sh" ]; then
-      cp "$GITPATH/reset-zsh-profile.sh" "$LINUXTOOLBOXDIR/reset-zsh-profile.sh"
-      chmod +x "$LINUXTOOLBOXDIR/reset-zsh-profile.sh"
-      echo -e "${GREEN}  ✓ Installed zsh reset script${RC}"
-    fi
-
-    if [ -f "$GITPATH/reset-fish-profile.sh" ]; then
-      cp "$GITPATH/reset-fish-profile.sh" "$LINUXTOOLBOXDIR/reset-fish-profile.sh"
-      chmod +x "$LINUXTOOLBOXDIR/reset-fish-profile.sh"
-      echo -e "${GREEN}  ✓ Installed fish reset script${RC}"
-    fi
-
-    # Create a symbolic link for the appropriate reset script based on selected shell
-    case "$SELECTED_SHELL" in
-      bash)
-        ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-        ;;
-      zsh)
-        if [ -f "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" ]; then
-          ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-zsh-profile.sh" /usr/local/bin/reset-shell-profile
-        else
-          ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-        fi
-        ;;
-      fish)
-        if [ -f "$LINUXTOOLBOXDIR/reset-fish-profile.sh" ]; then
-          ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-fish-profile.sh" /usr/local/bin/reset-shell-profile
-        else
-          ${SUDO_CMD} ln -sf "$LINUXTOOLBOXDIR/reset-bash-profile.sh" /usr/local/bin/reset-shell-profile
-        fi
-        ;;
-    esac
-
+  # Link the repo's script for the selected shell (like every other
+  # command) — earlier versions linked a copy in ~/linuxtoolbox that
+  # updates never refreshed
+  local src="$GITPATH/reset-${SELECTED_SHELL:-bash}-profile.sh"
+  [ -f "$src" ] || src="$GITPATH/reset-bash-profile.sh"
+  if [ -f "$src" ]; then
+    chmod +x "$GITPATH"/reset-*-profile.sh 2>/dev/null
+    ${SUDO_CMD} ln -sf "$src" /usr/local/bin/reset-shell-profile
+    # Remove the stale copies older installs left in ~/linuxtoolbox
+    rm -f "$LINUXTOOLBOXDIR"/reset-bash-profile.sh "$LINUXTOOLBOXDIR"/reset-zsh-profile.sh \
+          "$LINUXTOOLBOXDIR"/reset-fish-profile.sh
     echo -e "${GREEN}  ✓ Reset script installed successfully${RC}"
     echo -e "    You can run it with: ${WHITE}sudo reset-shell-profile [username]${RC}"
   else
     echo -e "${RED}  ✗ Reset script not found in $GITPATH${RC}"
-    echo -e "${YELLOW}  You will need to manually copy it later${RC}"
   fi
   echo ""
 }

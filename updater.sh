@@ -594,22 +594,44 @@ post_update() {
 # then the desktop integration. Covers installs updated by an updater
 # that predates a command.
 ensure_install_complete() {
-    local pair name src missing=0
+    local pair name src want have missing=0
     for pair in dxsbash:dxsbash.sh dxsbash-gui:dxsbash-gui.sh dxsbash-config:dxsbash-config.sh \
                 update-dxsbash:updater.sh dxsbash-repair:repair.sh dxsbash-doctor:doctor.sh \
                 dxsbash-audit:secaudit.sh dxsbash-uninstall:uninstall.sh; do
         name="${pair%%:*}"; src="${pair#*:}"
-        [[ -e "/usr/local/bin/${name}" || ! -f "${DXSBASH_DIR}/${src}" ]] && continue
+        [[ -f "${DXSBASH_DIR}/${src}" ]] || continue
+        # Missing, or stale: a copy / link into another checkout (3.1-era
+        # installs linked update-dxsbash to a frozen copy in ~/linuxtoolbox)
+        want="$(readlink -f "${DXSBASH_DIR}/${src}")"
+        have="$(readlink -f "/usr/local/bin/${name}" 2>/dev/null || true)"
+        [[ -e "/usr/local/bin/${name}" && "${have}" == "${want}" ]] && continue
         missing=1
         if [[ -n "${SUDO_CMD}" ]] && ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/${src}" "/usr/local/bin/${name}" 2>/dev/null; then
-            log SUCCESS "Installed missing command ${name}"
-            echo -e "${GREEN}  ✓ Installed missing command ${name}${RC}"
+            if [[ -e "/usr/local/bin/${name}" && -n "${have}" && "${have}" != "${want}" ]]; then
+                log SUCCESS "Re-pointed ${name} (was ${have})"
+            else
+                log SUCCESS "Installed missing command ${name}"
+            fi
         fi
     done
+    cleanup_legacy_copies
     if [[ ${missing} -eq 1 && -z "${SUDO_CMD}" ]]; then
         log WARN "Some DXSBash commands are not linked; run dxsbash-repair with sudo rights"
     fi
     ensure_desktop_integration
+}
+
+# 3.1-era installs copied updater.sh into ~/linuxtoolbox and pointed
+# ~/update-dxsbash.sh at that copy, which then never updated. Point the
+# shortcut at the repo and drop the frozen copy (only a regular file).
+cleanup_legacy_copies() {
+    local lt="${HOME}/linuxtoolbox"
+    if [[ -L "${HOME}/update-dxsbash.sh" && "$(readlink -f "${HOME}/update-dxsbash.sh")" != "$(readlink -f "${DXSBASH_DIR}/updater.sh")" ]]; then
+        ln -sf "${DXSBASH_DIR}/updater.sh" "${HOME}/update-dxsbash.sh" && log SUCCESS "Re-pointed ~/update-dxsbash.sh"
+    fi
+    if [[ -f "${lt}/updater.sh" && ! -L "${lt}/updater.sh" && -f "${DXSBASH_DIR}/updater.sh" ]]; then
+        rm -f "${lt}/updater.sh" && log SUCCESS "Removed stale updater copy ${lt}/updater.sh"
+    fi
 }
 
 # Desktop users who installed before the settings GUI existed: add the

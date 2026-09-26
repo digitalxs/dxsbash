@@ -208,6 +208,23 @@ relink_system "$DXSBASH_DIR/repair.sh"           /usr/local/bin/dxsbash-repair  
 relink_system "$DXSBASH_DIR/uninstall.sh"        /usr/local/bin/dxsbash-uninstall  "dxsbash-uninstall"
 relink_system "$DXSBASH_DIR/dxsbash-gui.sh"      /usr/local/bin/dxsbash-gui        "dxsbash-gui"
 
+# 3.1-era installs: ~/update-dxsbash.sh pointed at a frozen copy of the
+# updater in ~/linuxtoolbox — point it at the repo, drop the copy
+if [ -L "$HOME/update-dxsbash.sh" ] && [ "$(readlink -f "$HOME/update-dxsbash.sh")" != "$(readlink -f "$DXSBASH_DIR/updater.sh")" ]; then
+    run "ln -sf \"$DXSBASH_DIR/updater.sh\" \"$HOME/update-dxsbash.sh\""
+    echo -e "  ${GREEN}relinked${RC}   ~/update-dxsbash.sh"
+fi
+for stale in reset-bash-profile.sh reset-zsh-profile.sh reset-fish-profile.sh; do
+    if [ -f "$HOME/linuxtoolbox/$stale" ] && [ ! -L "$HOME/linuxtoolbox/$stale" ]; then
+        run "rm -f \"$HOME/linuxtoolbox/$stale\""
+        echo -e "  ${GREEN}removed${RC}    stale ~/linuxtoolbox/$stale copy"
+    fi
+done
+if [ -f "$HOME/linuxtoolbox/updater.sh" ] && [ ! -L "$HOME/linuxtoolbox/updater.sh" ]; then
+    run "rm -f \"$HOME/linuxtoolbox/updater.sh\""
+    echo -e "  ${GREEN}removed${RC}    stale ~/linuxtoolbox/updater.sh copy"
+fi
+
 case "$SHELL_TARGET" in
     bash) RESET_SRC="$DXSBASH_DIR/reset-bash-profile.sh" ;;
     zsh)  RESET_SRC="$DXSBASH_DIR/reset-zsh-profile.sh"  ;;
