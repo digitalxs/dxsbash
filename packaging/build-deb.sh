@@ -7,7 +7,7 @@
 #
 # Builds a binary Debian package that ships the repository to
 # /usr/share/dxsbash and provides /usr/bin/dxsbash-installer, which
-# copies it into the invoking user's ~/linuxtoolbox/dxsbash and runs
+# clones DXSBash into the invoking user's ~/linuxtoolbox/dxsbash and runs
 # the normal interactive installer. Packaging does NOT replace
 # setup.sh — per-user symlinks, shell selection and fonts still happen
 # through it; the .deb is a distribution vehicle.
@@ -15,7 +15,9 @@
 # Usage:   ./packaging/build-deb.sh
 # Output:  dist/dxsbash_<version>_all.deb
 #
-# Requires dpkg-deb (present on any Debian/Ubuntu system).
+# Requires dpkg-deb: always present on Debian/Ubuntu; on Arch install
+# the "dpkg" package, on Fedora "dpkg". (To install DXSBash *on* Arch,
+# build the native package instead: packaging/build-arch.sh.)
 #=================================================================
 
 set -euo pipefail
@@ -26,10 +28,18 @@ DIST="$REPO_DIR/dist"
 PKGROOT="$DIST/pkgroot"
 SHARE="$PKGROOT/usr/share/dxsbash"
 
-command -v dpkg-deb >/dev/null 2>&1 || {
-    echo "Error: dpkg-deb not found — build on a Debian/Ubuntu system." >&2
+if ! command -v dpkg-deb >/dev/null 2>&1; then
+    echo "Error: dpkg-deb not found." >&2
+    if command -v pacman >/dev/null 2>&1; then
+        echo "  Arch: sudo pacman -S dpkg" >&2
+        echo "  (a .deb cannot be installed on Arch — for Arch itself use packaging/build-arch.sh)" >&2
+    elif command -v dnf >/dev/null 2>&1; then
+        echo "  Fedora: sudo dnf install dpkg" >&2
+    else
+        echo "  Debian/Ubuntu: sudo apt install dpkg" >&2
+    fi
     exit 1
-}
+fi
 
 rm -rf "$PKGROOT"
 mkdir -p "$SHARE" "$PKGROOT/usr/bin" "$PKGROOT/DEBIAN" \
@@ -54,46 +64,8 @@ cp "$REPO_DIR/LICENSE" "$PKGROOT/usr/share/doc/dxsbash/copyright"
 #-----------------------------------------------------------------
 # /usr/bin/dxsbash-installer — per-user bootstrap
 #-----------------------------------------------------------------
-cat > "$PKGROOT/usr/bin/dxsbash-installer" <<'LAUNCHER'
-#!/bin/bash
-# Bootstrap DXSBash for the current user.
-#
-# Prefers a real git clone: updater.sh ('dxsbash update') is git-pull
-# based, so a plain copy of /usr/share/dxsbash would have a dead
-# update path. The packaged tree is the offline fallback.
-set -euo pipefail
-
-REPO_URL="https://github.com/digitalxs/dxsbash.git"
-SRC="/usr/share/dxsbash"
-DEST="$HOME/linuxtoolbox/dxsbash"
-
-if [ "$(id -u)" -eq 0 ] && [ -z "${DXSBASH_ALLOW_ROOT:-}" ]; then
-    echo "Run dxsbash-installer as the user who will use the shell,"
-    echo "not as root (set DXSBASH_ALLOW_ROOT=1 to override)."
-    exit 1
-fi
-
-mkdir -p "$HOME/linuxtoolbox"
-if [ -d "$DEST/.git" ]; then
-    echo "Existing clone found at $DEST — updating..."
-    git -C "$DEST" pull --ff-only origin main || \
-        echo "Warning: could not update the existing clone; continuing with it as-is."
-elif [ -d "$DEST" ]; then
-    echo "Existing non-git copy found at $DEST — refreshing from $SRC..."
-    cp -a "$SRC/." "$DEST/"
-elif git clone --depth=1 "$REPO_URL" "$DEST" 2>/dev/null; then
-    echo "Cloned $REPO_URL to $DEST."
-else
-    echo "No network (or clone failed) — copying packaged tree from $SRC."
-    echo "Note: 'dxsbash update' needs a git clone; re-run dxsbash-installer"
-    echo "with network access to enable updates."
-    cp -a "$SRC/." "$DEST/"
-fi
-chmod +x "$DEST/setup.sh"
-cd "$DEST"
-exec ./setup.sh "$@"
-LAUNCHER
-chmod 755 "$PKGROOT/usr/bin/dxsbash-installer"
+# Shared with the Arch package (packaging/dxsbash-installer)
+install -m 755 "$REPO_DIR/packaging/dxsbash-installer" "$PKGROOT/usr/bin/dxsbash-installer"
 
 #-----------------------------------------------------------------
 # Control metadata

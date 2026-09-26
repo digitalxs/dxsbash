@@ -1,0 +1,43 @@
+#!/bin/bash
+# DXSBash per-user bootstrap — installed as /usr/bin/dxsbash-installer
+# by the distribution packages (.deb and Arch). Each user runs it once;
+# it sets DXSBash up in their home through the normal setup.sh, so the
+# package itself never touches home directories.
+#
+# Prefers a real git clone: update-dxsbash fast-forwards the clone to new
+# releases, so a plain copy of /usr/share/dxsbash would never update.
+# The packaged tree is the offline fallback.
+#
+# Usage: dxsbash-installer [setup.sh options, e.g. --install --shell zsh]
+set -euo pipefail
+
+REPO_URL="https://github.com/digitalxs/dxsbash.git"
+SRC="/usr/share/dxsbash"
+DEST="$HOME/linuxtoolbox/dxsbash"
+
+if [ "$(id -u)" -eq 0 ] && [ -z "${DXSBASH_ALLOW_ROOT:-}" ]; then
+    echo "Run dxsbash-installer as the user who will use the shell,"
+    echo "not as root (set DXSBASH_ALLOW_ROOT=1 to override)."
+    exit 1
+fi
+
+mkdir -p "$HOME/linuxtoolbox"
+if [ -d "$DEST/.git" ]; then
+    echo "Existing clone found at $DEST — updating..."
+    git -C "$DEST" pull --ff-only origin main || \
+        echo "Warning: could not update the existing clone; continuing with it as-is."
+elif [ -d "$DEST" ]; then
+    echo "Existing non-git copy found at $DEST — refreshing from $SRC..."
+    cp -a "$SRC/." "$DEST/"
+# Full clone (not --depth=1): release fast-forwards need the history
+elif git clone "$REPO_URL" "$DEST" 2>/dev/null; then
+    echo "Cloned $REPO_URL to $DEST."
+else
+    echo "No network (or clone failed) — copying packaged tree from $SRC."
+    echo "Note: 'update-dxsbash' needs a git clone; re-run dxsbash-installer"
+    echo "with network access to enable updates."
+    cp -a "$SRC/." "$DEST/"
+fi
+chmod +x "$DEST/setup.sh"
+cd "$DEST"
+exec ./setup.sh "$@"

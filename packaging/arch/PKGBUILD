@@ -1,0 +1,45 @@
+# Maintainer: Luis Miguel P. Freitas <luis@digitalxs.ca>
+#
+# Arch Linux package for DXSBash. Same layout as the .deb: the project
+# goes to /usr/share/dxsbash and each user runs 'dxsbash-installer'
+# once, which sets DXSBash up in their home through setup.sh.
+#
+# As published (e.g. AUR) this builds from the GitHub release tarball.
+# To build from a local checkout instead, run packaging/build-arch.sh,
+# which points 'source' at a tarball of the working tree.
+
+pkgname=dxsbash
+pkgver=0.0.0      # set from version.txt by build-arch.sh / on release
+pkgrel=1
+pkgdesc="Professional shell environment for Bash, Zsh and Fish (Starship, fzf, zoxide, settings GUI)"
+arch=('any')
+url="https://dxsbash.digitalxs.ca"
+license=('GPL-3.0-only')
+depends=('bash' 'git' 'curl' 'tar')
+optdepends=(
+    'zsh: DXSBash for Zsh'
+    'fish: DXSBash for Fish'
+    'starship: themeable prompt'
+    'fzf: fuzzy history and file search'
+    'zoxide: smart directory jumping'
+    'bat: syntax-highlighted cat and cheat'
+    'ripgrep: fast search'
+    'tree: directory trees'
+    'trash-cli: safe delete'
+    'zenity: DXSBash Settings window'
+    'fastfetch: system info at startup'
+)
+install=dxsbash.install
+source=("$pkgname-$pkgver.tar.gz::https://github.com/digitalxs/dxsbash/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver" || return 1
+
+    install -d "$pkgdir/usr/share/dxsbash"
+    tar --exclude='./.git' --exclude='./.github' --exclude='./dist' -cf - . \
+        | tar -C "$pkgdir/usr/share/dxsbash" -xf -
+
+    install -Dm755 packaging/dxsbash-installer "$pkgdir/usr/bin/dxsbash-installer"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

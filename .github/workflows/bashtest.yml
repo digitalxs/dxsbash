@@ -166,3 +166,37 @@ jobs:
         with:
           name: dxsbash-deb
           path: dist/*.deb
+
+  build-arch:
+    name: Build Arch package
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install build tools
+        run: pacman -Syu --noconfirm --needed base-devel git sudo
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build package (makepkg refuses root — use a build user)
+        run: |
+          useradd -m builder
+          cp -a "$GITHUB_WORKSPACE" /home/builder/dxsbash
+          chown -R builder:builder /home/builder/dxsbash
+          sudo -u builder -H bash -c 'cd ~/dxsbash && ./packaging/build-arch.sh'
+
+      - name: Install and verify the package
+        run: |
+          pkg=$(ls /home/builder/dxsbash/dist/dxsbash-*-any.pkg.tar.*)
+          pacman -U --noconfirm "$pkg"
+          test -x /usr/bin/dxsbash-installer
+          test -f /usr/share/dxsbash/setup.sh
+          test -f /usr/share/licenses/dxsbash/LICENSE
+          pacman -Qi dxsbash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxsbash-arch
+          path: /home/builder/dxsbash/dist/*.pkg.tar.*
