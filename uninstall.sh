@@ -224,6 +224,19 @@ remove_path "$HOME/.local/share/konsole/DXSBash.profile"
 remove_path "$HOME/update-dxsbash.sh"
 remove_path "$HOME/.dxsbash"
 
+# "DXSBash Settings" menu entry and its icons (installed by dxsbash-gui).
+# Check both locations: setup.sh run through sudo installs into
+# ~/.local/share even when the user has a custom XDG_DATA_HOME.
+for DATA_HOME in "$HOME/.local/share" ${XDG_DATA_HOME:+"$XDG_DATA_HOME"}; do
+    remove_path "$DATA_HOME/applications/dxsbash-settings.desktop"
+    for icon in "$DATA_HOME"/icons/hicolor/*/apps/dxsbash.png \
+                "$DATA_HOME"/icons/hicolor/scalable/apps/dxsbash.svg; do
+        remove_path "$icon"   # an unmatched glob is a no-op in remove_path
+    done
+    command -v update-desktop-database >/dev/null 2>&1 && [ -d "$DATA_HOME/applications" ] && \
+        run "update-desktop-database \"$DATA_HOME/applications\" >/dev/null 2>&1 || true"
+done
+
 # Clean Konsole / Yakuake references
 for rcfile in "$HOME/.config/konsolerc" "$HOME/.config/yakuakerc"; do
     if [ -f "$rcfile" ] && grep -q "DefaultProfile=DXSBash.profile" "$rcfile"; then
@@ -247,6 +260,7 @@ for bin in \
     /usr/local/bin/dxsbash-uninstall \
     /usr/local/bin/dxsbash-doctor \
     /usr/local/bin/dxsbash-audit \
+    /usr/local/bin/dxsbash-gui \
     /usr/local/bin/reset-shell-profile \
     /usr/local/bin/reset-bash-profile \
     /usr/local/bin/reset-zsh-profile \

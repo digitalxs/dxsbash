@@ -844,6 +844,7 @@ if status is-interactive
         source "$HOME/.dxsbash/user.fish"
     end
 
+
     # The PWD watcher does not fire for the login directory — check once
     __dxs_env_check
 
@@ -897,5 +898,13 @@ if status is-interactive
     # a cache and refreshes in the background, so startup stays instant.
     if test "$DXSBASH_SECSUMMARY" = "true"; and test -f "$HOME/linuxtoolbox/dxsbash/secsummary.sh"
         bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
+    end
+
+    # Custom aliases added via dxsbash-gui (fish twin generated from
+    # custom-aliases.sh). Loaded last so they override DXSBash defaults
+    # and tool inits (zoxide defines z/zi above); skipped if the user
+    # deleted custom-aliases.sh, so a stale twin never lingers.
+    if test -f "$HOME/.dxsbash/custom-aliases.fish"; and test -f "$HOME/.dxsbash/custom-aliases.sh"
+        source "$HOME/.dxsbash/custom-aliases.fish"
     end
 end

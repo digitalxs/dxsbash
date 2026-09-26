@@ -253,7 +253,7 @@ done
 
 # Newer commands — warn-only so installs made before they existed
 # still report healthy; dxsbash-repair installs them.
-for newcmd in dxsbash dxsbash-audit; do
+for newcmd in dxsbash dxsbash-audit dxsbash-gui; do
     if [ -x "/usr/local/bin/$newcmd" ] && [ -e "/usr/local/bin/$newcmd" ]; then
         pass "$newcmd command installed" "/usr/local/bin/$newcmd"
     else

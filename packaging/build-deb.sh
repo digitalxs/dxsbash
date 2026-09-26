@@ -107,7 +107,7 @@ Section: shells
 Priority: optional
 Architecture: all
 Depends: bash (>= 5.0), git, curl, tar
-Recommends: zsh, fish, fzf, zoxide, bat, ripgrep, tree, trash-cli
+Recommends: zsh, fish, fzf, zoxide, bat, ripgrep, tree, trash-cli, zenity
 Suggests: fastfetch, btop, multitail
 Installed-Size: $INSTALLED_SIZE
 Maintainer: Luis Miguel P. Freitas <luis@digitalxs.ca>
@@ -116,7 +116,9 @@ Description: professional shell environment for Bash, Zsh and Fish
  DXSBash is a cross-shell productivity suite for Debian, Ubuntu, Arch
  and Fedora power users: Starship prompt, fzf-powered history and
  navigation, zoxide, curated aliases and helper commands, with a
- single interactive installer.
+ single interactive installer, plus a graphical settings window
+ (System → DXSBash Settings) for prompt themes, custom aliases and
+ updates.
  .
  After installing this package, each user runs 'dxsbash-installer'
  once to set up their own shell configuration.

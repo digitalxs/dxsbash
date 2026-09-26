@@ -1,0 +1,27 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=DXSBash Settings
+GenericName=Shell Environment Settings
+Comment=Configure DXSBash: prompt themes, custom aliases, startup options and updates
+Exec="@GUI@"
+TryExec=@GUI@
+Icon=dxsbash
+Terminal=false
+StartupNotify=true
+StartupWMClass=zenity
+Categories=System;
+Keywords=dxsbash;shell;bash;zsh;fish;terminal;prompt;starship;theme;alias;update;
+Actions=update;themes;aliases;
+
+[Desktop Action update]
+Name=Check for Updates
+Exec="@GUI@" --update
+
+[Desktop Action themes]
+Name=Change Prompt Theme
+Exec="@GUI@" --themes
+
+[Desktop Action aliases]
+Name=Edit Custom Aliases
+Exec="@GUI@" --aliases

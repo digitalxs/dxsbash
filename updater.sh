@@ -334,10 +334,27 @@ update_shell_configs() {
     esac
     
     # Update common configs
-    update_file_link "${DXSBASH_DIR}/starship.toml" "${HOME}/.config/starship.toml" "Starship config"
+    update_starship_link
     
     mkdir -p "${HOME}/.config/fastfetch"
     update_file_link "${DXSBASH_DIR}/config.jsonc" "${HOME}/.config/fastfetch/config.jsonc" "Fastfetch config"
+}
+
+# ~/.config/starship.toml is user state (the theme picked in
+# dxsbash-gui / dxsbash-config, or a hand-written config). Presets are
+# updated in place by the git pull, so a working link needs nothing;
+# only a missing or dangling link is re-pointed at the default, and a
+# regular file is never touched.
+update_starship_link() {
+    local link="${HOME}/.config/starship.toml"
+    mkdir -p "${HOME}/.config"
+    if [[ -L "${link}" && -e "${link}" ]]; then
+        log INFO "Keeping your Starship theme ($(basename "$(readlink "${link}")"))"
+    elif [[ -f "${link}" && ! -L "${link}" ]]; then
+        log INFO "Keeping your custom starship.toml"
+    else
+        update_file_link "${DXSBASH_DIR}/starship.toml" "${link}" "Starship config"
+    fi
 }
 
 update_system_scripts() {
@@ -356,6 +373,10 @@ update_system_scripts() {
         "reset-zsh-profile.sh"
         "reset-fish-profile.sh"
         "clean.sh"
+        "dxsbash-gui.sh"
+        "gui-askpass.sh"
+        "export-import.sh"
+        "bench.sh"
     )
 
     for script in "${scripts[@]}"; do
@@ -383,6 +404,20 @@ update_system_scripts() {
                 log WARN "Could not update system-wide dxsbash-audit command"
             }
         fi
+        if [[ -f "${DXSBASH_DIR}/dxsbash-gui.sh" ]]; then
+            ${SUDO_CMD} ln -sf "${DXSBASH_DIR}/dxsbash-gui.sh" /usr/local/bin/dxsbash-gui 2>/dev/null || {
+                log WARN "Could not update system-wide dxsbash-gui command"
+            }
+        fi
+    fi
+
+    # Refresh the "DXSBash Settings" menu entry if the user has one, so
+    # new desktop actions/icons from this release show up
+    local entry="${XDG_DATA_HOME:-${HOME}/.local/share}/applications/dxsbash-settings.desktop"
+    # -O: never rewrite it as another user (e.g. sudo -E update-dxsbash)
+    if [[ -f "${entry}" && -O "${entry}" && -f "${DXSBASH_DIR}/dxsbash-gui.sh" ]]; then
+        bash "${DXSBASH_DIR}/dxsbash-gui.sh" --install-desktop >/dev/null 2>&1 && \
+            log SUCCESS "Refreshed DXSBash Settings menu entry"
     fi
 }
 

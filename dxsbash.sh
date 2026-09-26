@@ -14,6 +14,7 @@
 # Usage:
 #   dxsbash update [--check]   Update DXSBash (or just check for updates)
 #   dxsbash config             Interactive configuration menu
+#   dxsbash gui                Graphical settings window
 #   dxsbash doctor [args]      Health-check the installation
 #   dxsbash audit [args]       Security audit of the system (read-only)
 #   dxsbash repair [args]      Re-create symlinks and helper commands
@@ -41,6 +42,7 @@ Commands:
   update      Update DXSBash to the latest release
               (use 'dxsbash update --check' to only check)
   config      Interactive configuration menu (editor, prompt, themes)
+  gui         Graphical settings: themes, aliases, updates (needs zenity)
   doctor      Health-check the installation (read-only)
   audit       Security audit of the system (read-only)
               (run 'sudo dxsbash audit' for full coverage)
@@ -79,6 +81,7 @@ CMD="${1:-help}"
 case "$CMD" in
     update)              run_script updater.sh "$@" ;;
     config)              run_script dxsbash-config.sh "$@" ;;
+    gui|settings)        run_script dxsbash-gui.sh "$@" ;;
     doctor)              run_script doctor.sh "$@" ;;
     audit)               run_script secaudit.sh "$@" ;;
     secsummary)          run_script secsummary.sh "$@" ;;

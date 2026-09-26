@@ -404,7 +404,8 @@
 | `envdeny` | Withdraw trust for the current directory's `.dxsbash-env` |
 | `install_bashrc_support` | Install required dependencies for bashrc |
 | `update-dxsbash` | Update dxsbash to latest version |
-| `dxsbash-config` | Interactive settings menu (editor, history, prompt, theme, fastfetch) |
+| `dxsbash-config` | Interactive settings menu (editor, history, prompt, theme, fastfetch, SSH-lite) |
+| `dxsbash-gui` / `dxsbash gui` | Graphical settings window: updates, visual theme picker, custom aliases editor, startup options (menu: System → DXSBash Settings) |
 | `dxsbash-repair` | Re-link symlinks and helper commands without changing settings |
 | `dxsbash-doctor` | Run diagnostics on the DXSBash install |
 | `dxsbash-uninstall` | Remove DXSBash and restore system defaults |
