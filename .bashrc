@@ -749,6 +749,12 @@ if [ "${DXSBASH_SECSUMMARY:-false}" = "true" ] && [ -f "$HOME/linuxtoolbox/dxsba
     bash "$HOME/linuxtoolbox/dxsbash/secsummary.sh" --startup 2>/dev/null
 fi
 
+# dxsbash-gui lives in /usr/local/bin, which needs root to link; until
+# dxsbash-repair (or the next update) has done that, run it from the repo
+if ! command -v dxsbash-gui >/dev/null 2>&1 && [ -f "$HOME/linuxtoolbox/dxsbash/dxsbash-gui.sh" ]; then
+    alias dxsbash-gui='bash "$HOME/linuxtoolbox/dxsbash/dxsbash-gui.sh"'
+fi
+
 # Custom aliases added via dxsbash-gui. Loaded at the very end: they
 # override any DXSBash default (and tool inits such as zoxide), and are
 # not yet active while the init code above runs — an alias shadowing a
